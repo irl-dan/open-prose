@@ -6,3 +6,7 @@ dist/
 !jest.config.js
 .DS_Store
 test-harness/reports/*.json
+
+# Landing page
+landing/.next/
+landing/node_modules/

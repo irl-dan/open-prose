@@ -1,0 +1,352 @@
+@import "tailwindcss";
+
+/* ============================================
+   PROSE.MD DESIGN SYSTEM
+   Theme: Paper / Typewriter / Author's Desk
+   ============================================ */
+
+@font-face {
+  font-family: 'Literata';
+  font-style: normal;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/literata/v35/or3PQ6P12-iJxAIgLa78DkrbXsDgk0oVo.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Literata';
+  font-style: italic;
+  font-weight: 300 900;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/literata/v35/or3RQ6P12-iJxAIgLa78DkrbXsDgk0oVo6EGM3iE.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('https://fonts.gstatic.com/s/jetbrainsmono/v18/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPVmUsaaDhw.woff2') format('woff2');
+}
+
+:root {
+  /* Paper colors - warm, inviting, tactile */
+  --paper-cream: #FAF7F2;
+  --paper-warm: #F5F0E6;
+  --paper-aged: #EDE6D6;
+  --paper-shadow: #E8DFD0;
+
+  /* Ink colors - rich, authoritative */
+  --ink-dark: #1C1917;
+  --ink-medium: #44403C;
+  --ink-light: #78716C;
+  --ink-faded: #A8A29E;
+
+  /* Accent - typewriter ribbon red */
+  --ribbon-red: #B91C1C;
+  --ribbon-red-soft: #DC2626;
+
+  /* Accent - editorial blue */
+  --edit-blue: #1D4ED8;
+  --edit-blue-soft: #3B82F6;
+
+  /* Semantic highlight - the ** syntax */
+  --semantic-gold: #D97706;
+  --semantic-gold-soft: #F59E0B;
+  --semantic-gold-bg: rgba(217, 119, 6, 0.12);
+
+  /* Code block */
+  --code-bg: #292524;
+  --code-text: #E7E5E4;
+
+  /* Fonts */
+  --font-prose: 'Literata', 'Georgia', serif;
+  --font-code: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+
+  /* Spacing rhythm */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 2rem;
+  --space-xl: 4rem;
+  --space-2xl: 8rem;
+}
+
+@theme inline {
+  --color-paper-cream: var(--paper-cream);
+  --color-paper-warm: var(--paper-warm);
+  --color-paper-aged: var(--paper-aged);
+  --color-ink-dark: var(--ink-dark);
+  --color-ink-medium: var(--ink-medium);
+  --color-ink-light: var(--ink-light);
+  --color-ribbon-red: var(--ribbon-red);
+  --color-edit-blue: var(--edit-blue);
+  --color-semantic-gold: var(--semantic-gold);
+  --font-sans: var(--font-prose);
+  --font-mono: var(--font-code);
+}
+
+/* Base styles */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--paper-cream);
+  color: var(--ink-dark);
+  font-family: var(--font-prose);
+  font-size: 18px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Paper texture overlay */
+.paper-texture {
+  position: relative;
+}
+
+.paper-texture::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+/* Code blocks - typewriter feel */
+.code-block {
+  font-family: var(--font-code);
+  background: var(--code-bg);
+  color: var(--code-text);
+  border-radius: 6px;
+  padding: var(--space-lg);
+  overflow-x: auto;
+  font-size: 14px;
+  line-height: 1.6;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Semantic highlight syntax */
+.semantic-highlight {
+  color: var(--semantic-gold);
+  font-weight: 600;
+  position: relative;
+}
+
+.semantic-highlight::before,
+.semantic-highlight::after {
+  content: '**';
+  opacity: 0.6;
+}
+
+/* Inline code */
+.inline-code {
+  font-family: var(--font-code);
+  background: var(--paper-aged);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+  color: var(--ink-dark);
+}
+
+/* Selection styling */
+::selection {
+  background: var(--semantic-gold-soft);
+  color: var(--ink-dark);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--paper-warm);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ink-faded);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-light);
+}
+
+/* Animated underline for links */
+.prose-link {
+  position: relative;
+  color: var(--ink-dark);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.prose-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -2px;
+  width: 100%;
+  height: 1px;
+  background: var(--ink-dark);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.3s ease;
+}
+
+.prose-link:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Fade in animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.animation-delay-100 { animation-delay: 0.1s; }
+.animation-delay-200 { animation-delay: 0.2s; }
+.animation-delay-300 { animation-delay: 0.3s; }
+.animation-delay-400 { animation-delay: 0.4s; }
+.animation-delay-500 { animation-delay: 0.5s; }
+.animation-delay-600 { animation-delay: 0.6s; }
+
+/* Typewriter cursor blink */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.cursor-blink {
+  animation: blink 1s step-end infinite;
+}
+
+/* Subtle float animation for hero elements */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+/* Paper edge shadow for sections */
+.paper-edge {
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.04),
+    0 4px 6px rgba(0, 0, 0, 0.02);
+}
+
+/* Decorative margin line (like typewriter margin) */
+.margin-line {
+  position: relative;
+}
+
+.margin-line::before {
+  content: '';
+  position: absolute;
+  left: -40px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--ribbon-red);
+  opacity: 0.3;
+}
+
+/* Button styles */
+.btn-primary {
+  background: var(--ink-dark);
+  color: var(--paper-cream);
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-family: var(--font-code);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+  background: var(--ink-medium);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--ink-dark);
+  padding: 0.75rem 1.5rem;
+  border-radius: 4px;
+  font-family: var(--font-code);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: all 0.2s ease;
+  border: 1px solid var(--ink-light);
+}
+
+.btn-secondary:hover {
+  border-color: var(--ink-dark);
+  background: var(--paper-warm);
+}
+
+/* Section divider */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--ink-faded) 20%,
+    var(--ink-faded) 80%,
+    transparent
+  );
+  margin: var(--space-2xl) 0;
+}
+
+/* Syntax highlighting for code */
+.token-keyword { color: #F472B6; }
+.token-string { color: #86EFAC; }
+.token-comment { color: #6B7280; font-style: italic; }
+.token-agent { color: #93C5FD; }
+.token-operator { color: #F472B6; }
+.token-semantic {
+  color: #FCD34D;
+  font-weight: 600;
+}
+.token-number { color: #C4B5FD; }
+.token-property { color: #67E8F9; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  .code-block {
+    font-size: 13px;
+    padding: var(--space-md);
+  }
+
+  .margin-line::before {
+    display: none;
+  }
+}

@@ -8,7 +8,7 @@ OpenProse is an incomplete project in active development. The language foundatio
 
 ## Vision
 
-OpenProse aims to provide Python-like syntax for defining and orchestrating AI agent sessions. Programs are compiled to a canonical form and executed via Claude Code (with OpenCode support planned for later).
+OpenProse aims to provide a common, self-evident syntax for defining and orchestrating AI agent sessions. Programs are compiled to a canonical form and executed via a long running agent session, such as Claude Code, OpenCode, Codex, Amp, etc.
 
 Example of what the language will look like:
 
@@ -132,6 +132,7 @@ npx ts-node index.ts tier-00-comments --skip-judge
 4. **Reports**: Generates JSON reports in `test-harness/reports/`
 
 The rubric evaluates:
+
 - Control flow accuracy
 - Clarity of execution
 - Feature handling
