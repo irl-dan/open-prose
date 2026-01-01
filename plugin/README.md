@@ -164,12 +164,27 @@ bun run bin/open-prose.ts validate path/to/program.prose
 bun run bin/open-prose.ts --help
 ```
 
+### Installing Dependencies
+
+```bash
+cd plugin
+npm install
+```
+
 ### Running Tests
 
-From the repository root:
+From the plugin directory:
 
 ```bash
 npm test
+npm run test:watch  # Watch mode
+```
+
+### Building & Linting
+
+```bash
+npm run build       # Compile TypeScript
+npm run lint        # Type check without emitting
 ```
 
 ### Bun Type Export Bug

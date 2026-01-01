@@ -57,12 +57,23 @@ Many features from the specification are pending:
 - Multi-line strings and string interpolation
 - And more...
 
+## Try It Now (Claude Code Plugin)
+
+OpenProse is available as a Claude Code plugin:
+
+```bash
+/plugin marketplace add irl-dan/open-prose
+/plugin install open-prose
+```
+
+Then ask Claude to run a `.prose` file or help you write one.
+
 ## Development Environment Setup
 
 ```bash
 # Clone the repository
 git clone <repo-url>
-cd open-prose
+cd open-prose/plugin
 
 # Install dependencies
 npm install
@@ -77,23 +88,27 @@ npm run test:watch
 npm run lint
 ```
 
-**Requirements**: Node.js 18+
+**Requirements**: Node.js 18+, Bun (for running the CLI)
 
 ## Project Structure
 
 ```
 open-prose/
-├── src/
-│   ├── parser/           # Lexer, parser, AST definitions
-│   ├── validator/        # Semantic validation
-│   ├── compiler/         # Compiles to canonical form
-│   ├── lsp/              # Language Server Protocol (semantic tokens)
-│   └── __tests__/        # Unit tests
+├── .claude-plugin/       # Plugin marketplace metadata
+│   ├── marketplace.json  # Points to ./plugin
+│   └── plugin.json       # Plugin metadata
+├── plugin/               # THE PLUGIN (Claude Code skill)
+│   ├── bin/              # CLI entry point
+│   ├── src/              # Parser, validator, compiler
+│   ├── skills/           # SKILL.md and prose.md
+│   ├── examples/         # Example .prose files
+│   └── package.json      # Dev dependencies
 ├── test-harness/         # LLM-as-judge testing infrastructure
 │   ├── test-programs/    # .prose test files
 │   └── reports/          # Generated test reports
 ├── specification/        # Language specification documents
-├── examples/             # Example .prose files
+├── landing/              # Website (prose.md)
+├── infra/                # Terraform for AWS deployment
 └── guidance/             # Design interviews and notes
 ```
 
