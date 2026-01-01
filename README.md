@@ -78,7 +78,7 @@ cd open-prose/plugin
 # Install dependencies
 npm install
 
-# Run tests (160 tests)
+# Run tests (177 tests)
 npm test
 
 # Watch mode for development
