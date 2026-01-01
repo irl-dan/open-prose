@@ -68,11 +68,103 @@ const debugResult = compile(program, { preserveComments: true });
 
 The `strippedComments` array in the compiler output contains information about all removed comments, including their original positions.
 
+## Simple Session (Tier 1.1)
+
+### Syntax
+
+The simplest executable construct in OpenProse is the session statement:
+
+```prose
+session "Do something"
+```
+
+### How the Orchestrator Executes a Session
+
+When the Orchestrator encounters a `session` statement, it performs the following steps:
+
+1. **Spawn a Subagent Session**
+   - The Orchestrator creates a new subagent session
+   - The subagent is a Claude instance that will execute the prompt
+
+2. **Send the Prompt**
+   - The prompt string from the session statement is sent to the subagent
+   - Example: `session "Analyze this data"` sends "Analyze this data" to the subagent
+
+3. **Wait for Completion**
+   - The Orchestrator blocks until the subagent session completes
+   - The subagent processes the prompt and produces its output
+
+4. **Continue Execution**
+   - Once the session completes, the Orchestrator proceeds to the next statement
+   - Any output from the session may be used by subsequent statements (in later tiers)
+
+### Session Execution Flow
+
+```
+Orchestrator                    Subagent
+    |                              |
+    |  spawn session               |
+    |----------------------------->|
+    |                              |
+    |  send prompt                 |
+    |----------------------------->|
+    |                              |
+    |  [processing...]             |
+    |                              |
+    |  session complete            |
+    |<-----------------------------|
+    |                              |
+    |  continue to next statement  |
+    v                              v
+```
+
+### Sequential Sessions
+
+Multiple sessions execute sequentially:
+
+```prose
+session "First task"
+session "Second task"
+session "Third task"
+```
+
+Each session waits for the previous one to complete before starting.
+
+### Session with Inline Comment
+
+Comments do not affect session execution:
+
+```prose
+session "Hello"  # This is just for documentation
+```
+
+The Orchestrator only sees `session "Hello"` after compilation.
+
+### Validation Rules
+
+The validator enforces the following rules for sessions:
+
+1. **Required Prompt**: A session must have a prompt (error if missing)
+2. **Empty Prompt Warning**: Sessions with empty prompts (`session ""`) generate a warning
+3. **Long Prompt Warning**: Prompts over 10,000 characters generate a warning suggesting to break into smaller tasks
+4. **Whitespace-only Warning**: Prompts containing only whitespace generate a warning
+
+### Canonical Form
+
+A simple session is already in canonical form. The compiled output matches the input:
+
+```
+Input:  session "Hello"
+Output: session "Hello"
+```
+
+Comments are stripped during compilation, but the session statement itself is unchanged.
+
 ## Future Features
 
 This documentation will be expanded as more language features are implemented:
 
-- Tier 1: Simple sessions and sequences
+- Tier 1.2: Sequential blocks (do:)
 - Tier 2: Agent definitions
 - Tier 3: Skills and imports
 - Tier 4: Variables and context

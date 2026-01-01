@@ -109,15 +109,43 @@ export class Validator {
    * Validate a session statement
    */
   private validateSessionStatement(statement: SessionStatementNode): void {
-    // For Tier 0.2, minimal validation
-    // Just check that session has either a prompt or agent
+    // Session must have a prompt (for simple sessions in Tier 1.1)
+    // In later tiers, sessions can also have an agent reference
     if (!statement.prompt && !statement.agent) {
-      this.addWarning('Session statement has no prompt or agent', statement.span);
+      this.addError('Session statement requires a prompt', statement.span);
+      return;
     }
 
     // Validate the prompt string if present
     if (statement.prompt) {
-      this.validateStringLiteral(statement.prompt);
+      this.validateSessionPrompt(statement.prompt);
+    }
+  }
+
+  /**
+   * Validate a session prompt string
+   */
+  private validateSessionPrompt(prompt: StringLiteralNode): void {
+    // First, run general string validation
+    this.validateStringLiteral(prompt);
+
+    // Warn on empty prompt
+    if (prompt.value.length === 0) {
+      this.addWarning('Session has an empty prompt', prompt.span);
+    }
+
+    // Warn on very long prompts (over 10,000 characters)
+    const MAX_PROMPT_LENGTH = 10000;
+    if (prompt.value.length > MAX_PROMPT_LENGTH) {
+      this.addWarning(
+        `Session prompt is very long (${prompt.value.length} characters). Consider breaking into smaller tasks.`,
+        prompt.span
+      );
+    }
+
+    // Warn on prompts that are just whitespace
+    if (prompt.value.length > 0 && prompt.value.trim().length === 0) {
+      this.addWarning('Session prompt contains only whitespace', prompt.span);
     }
   }
 
