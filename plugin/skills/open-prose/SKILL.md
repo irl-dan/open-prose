@@ -1,10 +1,12 @@
 ---
 name: open-prose
 description: |
-  Use when user asks to run, execute, or interpret .prose files.
-  Use when user mentions OpenProse or prose programs.
-  Use when orchestrating multi-agent sessions from a script.
-  Use when user wants to define agent workflows in a declarative language.
+  OpenProse is a domain-specific language for orchestrating AI agent sessions.
+  Write .prose programs to define multi-agent workflows with a Python-like syntax.
+  Each `session "prompt"` statement spawns a subagent to complete a task.
+
+  Activate when: running .prose files, mentioning OpenProse, or orchestrating
+  multi-agent workflows from a script.
 ---
 
 # OpenProse Skill
