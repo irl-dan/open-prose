@@ -4,6 +4,60 @@ This document outlines how to package and distribute OpenProse as a Claude Code 
 
 ---
 
+## Current Architecture (Skills-Only)
+
+**Date**: 2025-01-01
+
+After research and iteration, we've settled on a **skills-only architecture** that sidesteps the Command environment variable bug (#9354).
+
+### How It Works
+
+1. **Skill-based activation**: Claude reads `SKILL.md` when user mentions `.prose` files
+2. **Source distribution**: Bun runs TypeScript directly from `bin/open-prose.ts`
+3. **Environment variable**: `${CLAUDE_PLUGIN_ROOT}` works in Bash tool calls (but not in Commands)
+
+### Plugin Structure
+
+```
+plugin/
+├── .claude-plugin/
+│   ├── marketplace.json      # Registers as marketplace
+│   └── plugin.json           # Plugin metadata
+├── bin/
+│   └── open-prose.ts         # CLI entry point
+├── skills/
+│   └── open-prose/
+│       ├── SKILL.md          # Instructions (uses ${CLAUDE_PLUGIN_ROOT})
+│       └── prose.md          # Full DSL reference
+├── src/                      # Parser/compiler source
+├── examples/                 # Example .prose files
+├── package.json              # For Bun module resolution
+└── tsconfig.json             # TypeScript config
+```
+
+### Installation
+
+```bash
+/plugin marketplace add irl-dan/open-prose/plugin
+/plugin install open-prose
+```
+
+### Key Decisions
+
+| Decision | Choice | Reason |
+|----------|--------|--------|
+| Distribution | Skills only (no Commands) | Commands don't expand `${CLAUDE_PLUGIN_ROOT}` |
+| Binary | Source distribution (Bun) | 57MB binary too large, cross-platform issues |
+| Fallback | `npx ts-node` | For systems without Bun |
+| Structure | Nested `plugin/` directory | Separates skill from webapp/infra |
+
+---
+
+## Decision History
+
+<details>
+<summary>Click to expand historical decisions (Q1-Q8)</summary>
+
 ## Open Questions (Need Alignment)
 
 ### Q1: Repository Role - Marketplace vs Plugin?
@@ -502,27 +556,27 @@ open-prose/
 
 For `bun run bin/open-prose.ts` to work, we need:
 
-| Directory/File | Required | Reason |
-|----------------|----------|--------|
-| `src/` | Yes | TypeScript source imported by CLI |
-| `bin/open-prose.ts` | Yes | CLI entry point |
-| `skills/` | Yes | SKILL.md and prose.md |
-| `commands/` | Yes | Slash commands |
-| `.claude-plugin/` | Yes | Plugin/marketplace metadata |
-| `package.json` | Yes | Bun needs this for module resolution |
-| `tsconfig.json` | Yes | TypeScript configuration |
-| `specification/` | Optional | Useful reference for Claude |
-| `examples/` | Optional | Nice for users to see |
+| Directory/File      | Required | Reason                               |
+| ------------------- | -------- | ------------------------------------ |
+| `src/`              | Yes      | TypeScript source imported by CLI    |
+| `bin/open-prose.ts` | Yes      | CLI entry point                      |
+| `skills/`           | Yes      | SKILL.md and prose.md                |
+| `commands/`         | Yes      | Slash commands                       |
+| `.claude-plugin/`   | Yes      | Plugin/marketplace metadata          |
+| `package.json`      | Yes      | Bun needs this for module resolution |
+| `tsconfig.json`     | Yes      | TypeScript configuration             |
+| `specification/`    | Optional | Useful reference for Claude          |
+| `examples/`         | Optional | Nice for users to see                |
 
 ### What Should NOT Be Shipped
 
-| Directory | Size | Reason to Exclude |
-|-----------|------|-------------------|
-| `landing/` | ~230MB (with node_modules) | Separate webapp, unrelated to skill |
-| `infra/` | Small | Terraform config, not relevant |
-| `test-harness/` | Medium | Testing infrastructure |
-| `guidance/` | Small | Internal design docs |
-| `dist/` | N/A | Already gitignored |
+| Directory       | Size                       | Reason to Exclude                   |
+| --------------- | -------------------------- | ----------------------------------- |
+| `landing/`      | ~230MB (with node_modules) | Separate webapp, unrelated to skill |
+| `infra/`        | Small                      | Terraform config, not relevant      |
+| `test-harness/` | Medium                     | Testing infrastructure              |
+| `guidance/`     | Small                      | Internal design docs                |
+| `dist/`         | N/A                        | Already gitignored                  |
 
 ### The Problem: `landing/` Directory
 
@@ -563,6 +617,7 @@ open-prose/
 ```
 
 Then `marketplace.json` would reference:
+
 ```json
 {
   "plugins": [{
@@ -574,16 +629,19 @@ Then `marketplace.json` would reference:
 ```
 
 And users would add the marketplace as:
+
 ```
 /plugin marketplace add irl-dan/open-prose/plugin
 ```
 
 **Pros:**
+
 - Clean separation between plugin and other repo contents
 - Only ships what's needed
 - Clear boundary
 
 **Cons:**
+
 - Requires restructuring the repo
 - Duplicates or moves src/ away from tests
 - More complex development workflow (changes in plugin/src/ vs root)
@@ -605,11 +663,13 @@ open-prose/                        # THIS is the plugin
 ```
 
 **Pros:**
+
 - No restructuring needed
 - Simple to maintain
 - Can improve later
 
 **Cons:**
+
 - Ships unnecessary files
 - `landing/` source files included (though node_modules gitignored)
 - Less professional
@@ -632,11 +692,13 @@ prose-skill/                       # Dedicated plugin repo
 The main `open-prose` repo would be for development, and releases would be published to the skill repo.
 
 **Pros:**
+
 - Cleanest separation
 - Plugin repo stays lean
 - Clear versioning
 
 **Cons:**
+
 - Two repos to maintain
 - Sync complexity
 - More release overhead
@@ -722,13 +784,14 @@ During restructuring, we discovered a Bun bug with re-exported types. Fixed by u
 
 ```typescript
 // Before (broken in Bun)
-export { TryBlockNode } from './ast';
+export { TryBlockNode } from "./ast";
 
 // After (works in Bun)
-export type { TryBlockNode } from './ast';
+export type { TryBlockNode } from "./ast";
 ```
 
 Applied to all barrel exports in:
+
 - `plugin/src/parser/index.ts`
 - `plugin/src/validator/index.ts`
 - `plugin/src/compiler/index.ts`
@@ -744,13 +807,338 @@ For `bun run bin/open-prose.ts` to work when the skill is installed, we need to 
 3. Does Bun need to be in the plugin directory, or can it run from anywhere?
 
 Example: If plugin is installed to `~/.claude/plugins/open-prose/`:
+
 ```bash
 cd ~/.claude/plugins/open-prose && bun run bin/open-prose.ts compile /path/to/program.prose
 ```
 
 Or with explicit path:
+
 ```bash
 bun run ~/.claude/plugins/open-prose/bin/open-prose.ts compile program.prose
 ```
 
 This needs testing to confirm.
+
+===============================================
+
+<CEO timestamp="2025-01-01 06:40:00">
+I did some followup research to figure out how to do this and encountered an issue with our plugin plan. However, I think we have a solution to do this exclusively with skills.
+</CEO>
+
+===============================================
+
+I'll research how Claude Code plugins work to answer these questions.Excellent! I found a key piece of information - the `${CLAUDE_PLUGIN_ROOT}` environment variable. Let me get more details on the official documentation.Let me get the detailed plugins reference for more specifics on file paths and what gets installed.This is very helpful! I found the key information. Let me search for one more detail about what gets cloned during installation.I've gathered all the key information. Here's the complete research summary:
+
+---
+
+## Research Findings: Claude Code Plugin Installation
+
+### 1. Where Plugins Are Installed
+
+**Installation Path Pattern:**
+
+```
+~/.claude/plugins/cache/{marketplace-name}/{plugin-name}/{version}/
+```
+
+Example:
+
+```
+~/.claude/plugins/cache/irl-dan-open-prose/open-prose/1.0.0/
+```
+
+### 2. What Gets Cloned/Copied
+
+From the [official docs](https://code.claude.com/docs/en/plugins-reference):
+
+> "For plugins with `.claude-plugin/plugin.json`: The implicit root directory (the directory containing `.claude-plugin/plugin.json`) is **copied recursively**."
+
+**Key behaviors:**
+
+- The **entire directory** containing `.claude-plugin/plugin.json` is copied
+- External files outside the plugin directory are **NOT copied**
+- Symlinks **ARE honored** during copy (symlinked content gets copied)
+- Each version gets its own cache directory (old versions remain)
+
+### 3. The `${CLAUDE_PLUGIN_ROOT}` Environment Variable
+
+This variable contains the absolute path to the installed plugin directory.
+
+**Where it works:**
+
+- ✅ `hooks/hooks.json` - command paths
+- ✅ `.mcp.json` - server command arguments
+- ✅ Executed scripts (bash, node, etc.)
+
+**Where it does NOT work (BUG!):**
+
+- ❌ **Command markdown files** ([Issue #9354](https://github.com/anthropics/claude-code/issues/9354) - 27+ upvotes)
+
+This is a **critical bug** for your use case. The issue states:
+
+> "Currently, the `${CLAUDE_PLUGIN_ROOT}` environment variable... only works in JSON configurations (hooks, MCP servers) but **not in command markdown files**. This makes it impossible for /plugin commands to execute bundled scripts."
+
+### 4. Implications for OpenProse
+
+**Source Distribution (Option B) Assessment:**
+
+| Aspect                                        | Status                                         |
+| --------------------------------------------- | ---------------------------------------------- |
+| Full repo gets cloned                         | ✅ Yes - entire plugin root is copied          |
+| `src/`, `bin/` would be included              | ✅ Yes                                         |
+| Path construction via `${CLAUDE_PLUGIN_ROOT}` | ⚠️ Only works in hooks, not commands           |
+| `/run-prose` command can call `bun run ...`   | ❌ **No** - env var doesn't expand in commands |
+
+### 5. Workarounds
+
+**Option A: Use a Hook Instead of Command**
+
+Instead of a slash command, use a `SessionStart` hook or custom trigger:
+
+```json
+// hooks/hooks.json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": ".*\\.prose$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun run ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts compile $TOOL_INPUT"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+**Option B: MCP Server**
+
+Package the compiler as an MCP server. The `.mcp.json` can use `${CLAUDE_PLUGIN_ROOT}`:
+
+```json
+{
+  "mcpServers": {
+    "open-prose": {
+      "command": "bun",
+      "args": ["run", "${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts", "serve"]
+    }
+  }
+}
+```
+
+**Option C: Hardcode Expected Path (Fragile)**
+
+Document that users must know the path:
+
+```bash
+bun run ~/.claude/plugins/cache/irl-dan-open-prose/open-prose/*/bin/open-prose.ts
+```
+
+**Option D: Wait for Bug Fix**
+
+The issue has significant upvotes and is tagged for attention. Could be fixed soon.
+
+**Option E: Skill-Based Interpretation**
+
+Don't use the compiler at all. Have Claude interpret `.prose` files directly using the documentation in `prose.md`. This is what you're partially doing already.
+
+---
+
+### Recommendation
+
+Given the bug, I'd suggest a **hybrid approach**:
+
+1. **For now**: Rely on skill-based interpretation (Claude reads `prose.md` and interprets programs directly)
+2. **Add an MCP server** for the compiler (works with `${CLAUDE_PLUGIN_ROOT}`)
+3. **Watch Issue #9354** - once fixed, add proper `/run-prose` command support
+
+The `landing/` directory bloat issue is real but secondary - you can address it later with Option B1 (nested `plugin/` directory) once the core functionality works.
+
+===============================================
+
+<CEO timestamp="2025-01-01 06:41:00">
+Can we execute the script from a skill instead of a plugin? Perhaps plugin is the wrong construct?
+</CEO>
+
+===============================================
+
+That's a great question. Let me think through the distinction:
+
+**Commands** = Claude executes instructions from the markdown file
+**Skills** = Claude _reads_ the markdown and gains knowledge/instructions, then uses its _own tools_ (Bash, Read, etc.)
+
+The bug (#9354) is about `${CLAUDE_PLUGIN_ROOT}` not being expanded in command markdown. But Skills work differently - they provide knowledge to Claude, and Claude then decides what tools to use.
+
+So a Skill could say:
+
+```markdown
+# SKILL.md
+
+When executing a .prose program, use the bundled compiler:
+
+\`\`\`bash
+bun run ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts compile <file>
+\`\`\`
+```
+
+When Claude reads this and then runs `Bash(...)`, does `${CLAUDE_PLUGIN_ROOT}` exist in that shell environment?
+
+Let me check if there's documentation on this specific case.This is the key insight! Based on the research:
+
+## Skills vs Commands: Critical Difference
+
+**Commands** (the bug):
+
+```
+Command markdown → Claude Code directly processes → env var NOT expanded
+```
+
+**Skills** (should work):
+
+```
+SKILL.md instructions → Claude reads them → Claude invokes Bash tool → env var IS available
+```
+
+From the [official docs](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview):
+
+> "When instructions mention executable scripts, **Claude runs them via bash** and receives only the output (the script code itself never enters context)."
+
+And from real-world usage (motlin.com example):
+
+````markdown
+## Plugin Health Check
+
+Run the master doctor script:
+
+```bash
+${CLAUDE_PLUGIN_ROOT}/../orchestration/scripts/doctor-all.sh
+```
+````
+
+So **YES** - a Skill should work because:
+
+1. `SKILL.md` contains instructions like "run `bun run ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts compile <file>`"
+2. Claude reads these as _instructions_, not as commands to directly execute
+3. When Claude decides to run the script, it uses its **Bash tool**
+4. The Bash environment has `${CLAUDE_PLUGIN_ROOT}` set by Claude Code
+5. Script executes successfully
+
+## Recommended Architecture
+
+```
+open-prose/
+├── .claude-plugin/
+│   ├── marketplace.json
+│   └── plugin.json
+├── skills/
+│   └── open-prose/
+│       ├── SKILL.md          # Instructions + when to use compiler
+│       ├── prose.md          # Full DSL reference
+│       └── scripts/          # Optional helper scripts
+├── bin/
+│   └── open-prose.ts         # CLI entry point
+├── src/                      # Parser source
+└── package.json
+```
+
+The `SKILL.md` would say:
+
+````markdown
+---
+name: open-prose
+description: |
+  This skill should be used when the user asks to run, execute, 
+  or interpret .prose files, or when orchestrating multi-agent 
+  sessions from a prose program.
+---
+
+# OpenProse Interpreter
+
+## Compilation (Optional)
+
+For validation or to see the canonical form:
+
+```bash
+bun run ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts compile <file.prose>
+```
+````
+
+## Interpretation
+
+For full DSL syntax, read: `${CLAUDE_PLUGIN_ROOT}/skills/open-prose/prose.md`
+...
+
+```
+
+This sidesteps the Command bug entirely by leveraging how Skills work.
+
+===============================================
+
+## Revised Plan: Skills-Only Architecture
+
+Based on the research findings, we're pivoting to a skills-only approach.
+
+### Open Questions Resolved
+
+**Q6: Bun availability** - Is Bun commonly available on Claude Code users' machines?
+
+<CEO timestamp="2025-01-01 09:00:00">We will assume that it is but add instructions to fall back to `npx ts-node` if not.</CEO>
+
+**Q7: Compile vs Interpret** - Should Claude always compile, interpret directly, or hybrid?
+
+<CEO timestamp="2025-01-01 09:00:00">We should make a cheap method of checking whether it's been compiled yet, with instructions to check and compile if it's not yet compiled.</CEO>
+
+**Q8: Command retention** - Should we keep `commands/run-prose.md`?
+
+<CEO timestamp="2025-01-01 09:00:00">Yes, let's delete it completely. There are no users and we don't need to maintain anything for documentation or backward compatibility reasons for now.</CEO>
+
+### Implementation Plan
+
+1. **Update `SKILL.md`**:
+   - Use `${CLAUDE_PLUGIN_ROOT}` for all paths
+   - Add compile check instructions
+   - Add Bun fallback to `npx ts-node`
+
+2. **Delete `commands/run-prose.md`**:
+   - Commands don't work due to bug #9354
+   - No backward compatibility concerns
+
+3. **Remove bundled binary references**:
+   - Switch to source distribution
+   - Bun runs TypeScript directly
+
+</details>
+
+---
+
+## Implementation Complete
+
+**Date**: 2025-01-01
+
+All items from the revised skills-only plan have been implemented:
+
+| Task | Status |
+|------|--------|
+| Update SKILL.md with `${CLAUDE_PLUGIN_ROOT}` paths | Done |
+| Add compile check instructions | Done |
+| Add Bun/ts-node fallback | Done |
+| Delete `commands/run-prose.md` | Done |
+| Remove bundled binary | Done |
+| Update HOSTING_PLAN.md | Done |
+
+### What Changed
+
+1. **SKILL.md** now uses `${CLAUDE_PLUGIN_ROOT}` for all paths
+2. **commands/** directory deleted (Commands don't expand env vars)
+3. **scripts/compile** binary removed (using source distribution)
+4. Execution flow: Validate with Bun → Interpret statements → Spawn subagents
+
+### Next Steps
+
+1. Test the plugin installation: `/plugin marketplace add irl-dan/open-prose/plugin`
+2. Verify `${CLAUDE_PLUGIN_ROOT}` expands correctly in Bash calls
+3. Continue building language features per BUILD_PLAN.md

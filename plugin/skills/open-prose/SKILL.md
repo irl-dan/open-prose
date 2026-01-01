@@ -45,19 +45,19 @@ Use grep or search to find specific topics:
 
 ```bash
 # Find session syntax
-grep -A 10 "## Session" prose.md
+grep -A 10 "## Session" ${CLAUDE_PLUGIN_ROOT}/skills/open-prose/prose.md
 
 # Find comment handling
-grep -A 5 "## Comments" prose.md
+grep -A 5 "## Comments" ${CLAUDE_PLUGIN_ROOT}/skills/open-prose/prose.md
 
 # Find string escape sequences
-grep -A 10 "Escape Sequences" prose.md
+grep -A 10 "Escape Sequences" ${CLAUDE_PLUGIN_ROOT}/skills/open-prose/prose.md
 
 # Find examples
-grep -A 20 "## Examples" prose.md
+grep -A 20 "## Examples" ${CLAUDE_PLUGIN_ROOT}/skills/open-prose/prose.md
 
 # Find validation rules
-grep -A 10 "Validation" prose.md
+grep -A 10 "Validation" ${CLAUDE_PLUGIN_ROOT}/skills/open-prose/prose.md
 ```
 
 ## Quick Reference
@@ -70,13 +70,37 @@ Currently implemented features:
 | Strings | `"text"` | Single-line string literals |
 | Sessions | `session "prompt"` | Spawn a subagent with prompt |
 
-## Execution Model
+## Running OpenProse Programs
 
-When executing an OpenProse program:
+### Step 1: Check if Compiler is Available
 
-1. **Parse** the program to identify statements
-2. **Validate** syntax and semantics
-3. **Execute** each statement sequentially
+Before executing a `.prose` file, check if the compiler works:
+
+```bash
+# Check if bun is available (preferred)
+which bun && bun run ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts --help
+
+# If bun is not available, fall back to npx ts-node
+which bun || npx ts-node ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts --help
+```
+
+### Step 2: Validate the Program
+
+Always validate before execution:
+
+```bash
+# With bun (preferred)
+bun run ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts validate <file.prose>
+
+# Or with ts-node fallback
+npx ts-node ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts validate <file.prose>
+```
+
+If validation fails, report the errors to the user with line numbers.
+
+### Step 3: Execute the Program
+
+If validation passes, execute each statement sequentially.
 
 For `session` statements, use Claude Code's **Task tool** to spawn a subagent:
 
@@ -90,28 +114,33 @@ Task({
 
 Wait for each session to complete before proceeding to the next statement.
 
-## Compilation (Optional)
+## Execution Model
 
-The skill includes a bundled compiler in `scripts/compile` that can:
+When executing an OpenProse program:
 
-- Validate program syntax
-- Expand syntax sugar
-- Generate canonical output
+1. **Validate** - Run the compiler to check for syntax errors
+2. **Parse** - Identify statements (comments, sessions, etc.)
+3. **Execute** - Process each statement sequentially
 
-Run it with:
+For simple programs with only comments and sessions, you can interpret directly by:
+- Skipping lines that start with `#` (comments)
+- Extracting the prompt from `session "..."` statements
+- Spawning subagents for each session
+
+## Compiler Commands
+
+The compiler supports these commands:
 
 ```bash
-./scripts/compile compile program.prose   # Compile and output canonical form
-./scripts/compile validate program.prose  # Validate only
+# Validate syntax only
+bun run ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts validate <file.prose>
+
+# Compile and output canonical form
+bun run ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts compile <file.prose>
+
+# Show help
+bun run ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts --help
 ```
-
-**Note**: The bundled binary is compiled for macOS arm64. For other platforms, run from the repository root:
-
-```bash
-bun run bin/open-prose.ts compile program.prose
-```
-
-For simple programs, you can interpret directly without compilation.
 
 ## Example Execution
 
@@ -125,10 +154,11 @@ session "Summarize the key findings in 3 bullet points"
 
 Execute by:
 
-1. Skip the comment line
-2. Spawn a subagent with prompt "Research recent developments in quantum computing"
-3. Wait for completion
-4. Spawn a subagent with prompt "Summarize the key findings in 3 bullet points"
-5. Wait for completion
+1. Validate with `bun run ${CLAUDE_PLUGIN_ROOT}/bin/open-prose.ts validate program.prose`
+2. Skip the comment line
+3. Spawn a subagent with prompt "Research recent developments in quantum computing"
+4. Wait for completion
+5. Spawn a subagent with prompt "Summarize the key findings in 3 bullet points"
+6. Wait for completion
 
 For complete syntax and semantics, see `prose.md`.
