@@ -73,7 +73,20 @@ Add semantic token highlighting for this feature via LSP.
 - Write unit tests for the syntax highlighting
 - Write integration tests for the syntax highlighting (to combine various permutations of the feature being used alongside any previously implemented language features)
 
-### Step 8: E2E Test (LLM-as-Judge)
+### Step 6: Plugin Examples
+
+Add example `.prose` files to the plugin that demonstrate this feature.
+
+- Create practical, real-world examples in `plugin/examples/`
+- Each example should focus on a common use case (code review, debugging, content creation, etc.)
+- Combine the new feature with previously implemented features where appropriate
+- Use clear comments explaining each step
+- Update `plugin/examples/README.md` with the new examples
+- Update `plugin/skills/open-prose/SKILL.md` if the examples list needs refreshing
+
+**Important**: Examples must only use implemented syntax. Future/planned syntax examples go in `plugin/examples/roadmap/`.
+
+### Step 7: E2E Test (LLM-as-Judge)
 
 Run the feature through the test harness with an LLM judge.
 
