@@ -2,10 +2,13 @@
  * OpenProse Validator Module
  */
 
-export {
-  Validator,
+export type {
   ValidationError,
   ValidationResult,
+} from './validator';
+
+export {
+  Validator,
   validate,
   isValid,
 } from './validator';

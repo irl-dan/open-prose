@@ -11,5 +11,5 @@ test-harness/reports/*.json
 landing/.next/
 landing/node_modules/
 
-# Compiled binaries (built with: bun build bin/open-prose.ts --compile --outfile skills/open-prose/scripts/compile)
-skills/open-prose/scripts/compile
+# Compiled binaries (built with: bun build bin/open-prose.ts --compile --outfile plugin/skills/open-prose/scripts/compile)
+plugin/skills/open-prose/scripts/compile

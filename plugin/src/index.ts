@@ -5,30 +5,20 @@
  */
 
 // Import for internal use
-import { parse as _parse, ParseError as _ParseError } from './parser';
-import { compile as _compile, CommentInfo as _CommentInfo } from './compiler';
+import type { ParseError as _ParseError } from './parser';
+import type { CommentInfo as _CommentInfo } from './compiler';
+import { parse as _parse } from './parser';
+import { compile as _compile } from './compiler';
 
-// Parser exports
-export {
-  // Token types
+// Parser type exports
+export type {
   TokenType,
   Token,
   SourceLocation,
   SourceSpan,
-  KEYWORDS,
-  isKeyword,
-  isTrivia,
-
-  // Lexer
-  Lexer,
   LexerOptions,
   LexerResult,
   LexerError,
-  tokenize,
-  tokenizeWithoutComments,
-  extractComments,
-
-  // AST types
   ASTNode,
   ProgramNode,
   StatementNode,
@@ -55,47 +45,68 @@ export {
   ObjectExpressionNode,
   PipeExpressionNode,
   ASTVisitor,
+  ParseResult,
+  ParseError,
+} from './parser';
+
+// Parser value exports
+export {
+  KEYWORDS,
+  isKeyword,
+  isTrivia,
+  Lexer,
+  tokenize,
+  tokenizeWithoutComments,
+  extractComments,
   createCommentNode,
   createProgramNode,
   walkAST,
-
-  // Parser
   Parser,
-  ParseResult,
-  ParseError,
   parse,
   parseComments,
 } from './parser';
 
-// Validator exports
-export {
-  Validator,
+// Validator type exports
+export type {
   ValidationError,
   ValidationResult,
+} from './validator';
+
+// Validator value exports
+export {
+  Validator,
   validate,
   isValid,
 } from './validator';
 
-// Compiler exports
-export {
-  Compiler,
+// Compiler type exports
+export type {
   CompilerOptions,
   CompiledOutput,
   CommentInfo,
   SourceMap,
   SourceMapping,
+} from './compiler';
+
+// Compiler value exports
+export {
+  Compiler,
   compile,
   compileToString,
   stripComments,
 } from './compiler';
 
-// LSP exports
-export {
+// LSP type exports
+export type {
   SemanticTokenType,
   SemanticTokenModifier,
   SemanticToken,
   EncodedSemanticTokens,
   SemanticTokensLegend,
+} from './lsp';
+
+// LSP value exports
+export {
   SemanticTokensProvider,
   getSemanticTokensLegend,
   getSemanticTokens,

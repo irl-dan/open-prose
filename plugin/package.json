@@ -1,0 +1,17 @@
+{
+  "name": "open-prose",
+  "version": "0.1.0",
+  "description": "OpenProse - A DSL for orchestrating AI agent sessions",
+  "type": "commonjs",
+  "main": "src/index.ts",
+  "bin": {
+    "open-prose": "bin/open-prose.ts"
+  },
+  "scripts": {
+    "compile": "bun run bin/open-prose.ts compile",
+    "validate": "bun run bin/open-prose.ts validate"
+  },
+  "engines": {
+    "bun": ">=1.0.0"
+  }
+}

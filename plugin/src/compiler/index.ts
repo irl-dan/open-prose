@@ -2,13 +2,16 @@
  * OpenProse Compiler Module
  */
 
-export {
-  Compiler,
+export type {
   CompilerOptions,
   CompiledOutput,
   CommentInfo,
   SourceMap,
   SourceMapping,
+} from './compiler';
+
+export {
+  Compiler,
   compile,
   compileToString,
   stripComments,

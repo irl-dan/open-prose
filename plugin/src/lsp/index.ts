@@ -2,12 +2,15 @@
  * OpenProse LSP Module
  */
 
-export {
-  SemanticTokenType,
-  SemanticTokenModifier,
+export type {
   SemanticToken,
   EncodedSemanticTokens,
   SemanticTokensLegend,
+} from './semantic-tokens';
+
+export {
+  SemanticTokenType,
+  SemanticTokenModifier,
   SemanticTokensProvider,
   getSemanticTokensLegend,
   getSemanticTokens,

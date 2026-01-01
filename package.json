@@ -1,17 +1,15 @@
 {
-  "name": "open-prose",
+  "name": "open-prose-dev",
   "version": "0.1.0",
-  "description": "OpenProse - A DSL for orchestrating AI agent sessions",
+  "description": "OpenProse development workspace",
+  "private": true,
   "type": "commonjs",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc -p plugin/tsconfig.json",
     "test": "jest",
     "test:watch": "jest --watch",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit -p plugin/tsconfig.json"
   },
-  "dependencies": {},
   "devDependencies": {
     "@types/jest": "^29.5.11",
     "@types/node": "^20.10.0",

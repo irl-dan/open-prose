@@ -8,32 +8,40 @@
  * - Parser
  */
 
-// Token types and utilities
-export {
+// Token types and utilities (types)
+export type {
   TokenType,
   Token,
   SourceLocation,
   SourceSpan,
   StringTokenMetadata,
   EscapeSequenceInfo,
+} from './tokens';
+
+// Token utilities (values)
+export {
   KEYWORDS,
   isKeyword,
   isTrivia,
 } from './tokens';
 
-// Lexer
-export {
-  Lexer,
+// Lexer types
+export type {
   LexerOptions,
   LexerResult,
   LexerError,
+} from './lexer';
+
+// Lexer class and functions
+export {
+  Lexer,
   tokenize,
   tokenizeWithoutComments,
   extractComments,
 } from './lexer';
 
 // AST types
-export {
+export type {
   ASTNode,
   ProgramNode,
   StatementNode,
@@ -61,16 +69,24 @@ export {
   ObjectExpressionNode,
   PipeExpressionNode,
   ASTVisitor,
+} from './ast';
+
+// AST functions
+export {
   createCommentNode,
   createProgramNode,
   walkAST,
 } from './ast';
 
-// Parser
-export {
-  Parser,
+// Parser types
+export type {
   ParseResult,
   ParseError,
+} from './parser';
+
+// Parser class and functions
+export {
+  Parser,
   parse,
   parseComments,
 } from './parser';
