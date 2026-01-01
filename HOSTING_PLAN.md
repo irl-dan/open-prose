@@ -16,29 +16,33 @@ After research and iteration, we've settled on a **skills-only architecture** th
 2. **Source distribution**: Bun runs TypeScript directly from `bin/open-prose.ts`
 3. **Environment variable**: `${CLAUDE_PLUGIN_ROOT}` works in Bash tool calls (but not in Commands)
 
-### Plugin Structure
+### Repository Structure
 
 ```
-plugin/
-├── .claude-plugin/
-│   ├── marketplace.json      # Registers as marketplace
-│   └── plugin.json           # Plugin metadata
-├── bin/
-│   └── open-prose.ts         # CLI entry point
-├── skills/
-│   └── open-prose/
-│       ├── SKILL.md          # Instructions (uses ${CLAUDE_PLUGIN_ROOT})
-│       └── prose.md          # Full DSL reference
-├── src/                      # Parser/compiler source
-├── examples/                 # Example .prose files
-├── package.json              # For Bun module resolution
-└── tsconfig.json             # TypeScript config
+open-prose/
+├── .claude-plugin/               # At repo root (required for marketplace discovery)
+│   ├── marketplace.json          # source: "./plugin" points to subdirectory
+│   └── plugin.json               # Plugin metadata
+├── plugin/                       # THE PLUGIN (contents installed by Claude Code)
+│   ├── bin/
+│   │   └── open-prose.ts         # CLI entry point
+│   ├── skills/
+│   │   └── open-prose/
+│   │       ├── SKILL.md          # Instructions (uses ${CLAUDE_PLUGIN_ROOT})
+│   │       └── prose.md          # Full DSL reference
+│   ├── src/                      # Parser/compiler source
+│   ├── examples/                 # Example .prose files
+│   ├── package.json              # For Bun module resolution
+│   └── tsconfig.json             # TypeScript config
+├── landing/                      # Webapp (NOT part of plugin)
+├── infra/                        # Terraform (NOT part of plugin)
+└── ...
 ```
 
 ### Installation
 
 ```bash
-/plugin marketplace add irl-dan/open-prose/plugin
+/plugin marketplace add irl-dan/open-prose
 /plugin install open-prose
 ```
 

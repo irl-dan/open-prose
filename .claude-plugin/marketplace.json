@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "open-prose",
-      "source": "./",
+      "source": "./plugin",
       "description": "A domain-specific language for orchestrating AI agent sessions"
     }
   ]
