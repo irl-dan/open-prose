@@ -2,17 +2,74 @@
 
 A domain-specific language for orchestrating AI agent sessions.
 
+## What is OpenProse?
+
+OpenProse lets you script multi-step AI workflows. Instead of manually prompting an agent multiple times, you write a `.prose` file that defines each step, and OpenProse executes them in sequence.
+
+```prose
+# Code review workflow
+session "Read the files in src/ and provide an overview of the codebase"
+session "Review the code for security vulnerabilities"
+session "Review the code for performance issues"
+session "Create a unified report with prioritized recommendations"
+```
+
+Each `session` spawns a subagent that completes its task before the next session starts.
+
+## Try It Now (Claude Code Plugin)
+
+OpenProse is available as a Claude Code plugin:
+
+```bash
+/plugin marketplace add irl-dan/open-prose
+/plugin install open-prose
+```
+
+After installation, you can:
+
+```
+# Ask Claude to run an example
+"Run the code review example from OpenProse"
+
+# Or run your own .prose file
+"Execute my-workflow.prose"
+
+# Or ask Claude to write one for you
+"Write me an OpenProse workflow for debugging a bug"
+```
+
+The plugin includes 8 ready-to-use examples for common workflows like code review, debugging, refactoring, and content creation.
+
 ## Status: Early Development
 
-OpenProse is an incomplete project in active development. The language foundation is being built incrementally, with only a few features currently implemented. This is not ready for end users.
+The language foundation is working and usable via the Claude Code plugin. More features are being added incrementally.
+
+### Currently Implemented
+
+| Feature | Syntax | Description |
+|---------|--------|-------------|
+| Comments | `# comment` | Standalone and inline comments |
+| Strings | `"text"` | Single-line with escapes (`\n`, `\t`, `\"`, `\\`) |
+| Sessions | `session "prompt"` | Spawn a subagent with a prompt |
+
+### Planned Features
+
+The full language will include:
+
+- Agent definitions (`agent name:` with model/skills configuration)
+- Variables and context passing (`let result = session "..."`)
+- Parallel execution (`parallel:` blocks)
+- Loops (`repeat`, `for`, `loop until **condition**`)
+- Error handling (`try`/`catch`, `retry`)
+- And more...
+
+See `BUILD_PLAN.md` for the complete roadmap and `specification/` for language design documents.
 
 ## Vision
 
-OpenProse aims to provide a common, self-evident syntax for defining and orchestrating AI agent sessions. Programs are compiled to a canonical form and executed via a long running agent session, such as Claude Code, OpenCode, Codex, Amp, etc.
+OpenProse aims to provide a common, self-evident syntax for orchestrating AI agents across different platforms (Claude Code, OpenCode, Codex, Amp, etc.).
 
-This treats the agent session as a sort of Inversion of Control container, whereby one can specify a service-oriented agent architecture, and the Prose Operator Session will intelligently run it.
-
-Example of what the language will look like:
+Example of the planned full syntax:
 
 ```prose
 # Research and write an article
@@ -30,131 +87,83 @@ session research: researcher
   prompt: "Write a blog post about quantum computing"
 ```
 
-## Currently Implemented
-
-The following features are working:
-
-- **Comments**: `# comment` syntax (standalone and inline)
-- **Single-line strings**: `"string"` with escape sequences (`\n`, `\t`, `\"`, `\\`)
-- **Simple session**: `session "prompt"` syntax
-- **Parser**: Lexer, parser, and AST generation
-- **Validator**: Basic validation infrastructure
-- **Compiler**: Compiles to canonical form for orchestrator consumption
-- **LSP semantic tokens**: Syntax highlighting support
-
-## Not Yet Implemented
-
-Many features from the specification are pending:
-
-- Agent definitions and configuration
-- Skills and imports
-- Variables (`let`, `const`) and context passing
-- Composition blocks (`do:`, `block:`, `->`)
-- Parallel execution
-- Loops (`repeat`, `for`, `loop until`)
-- Pipeline operations (`map`, `filter`, `reduce`)
-- Error handling (`try`/`catch`, `retry`)
-- Multi-line strings and string interpolation
-- And more...
-
-## Try It Now (Claude Code Plugin)
-
-OpenProse is available as a Claude Code plugin:
-
-```bash
-/plugin marketplace add irl-dan/open-prose
-/plugin install open-prose
-```
-
-Then ask Claude to run a `.prose` file or help you write one.
-
-## Development Environment Setup
-
-```bash
-# Clone the repository
-git clone <repo-url>
-cd open-prose/plugin
-
-# Install dependencies
-npm install
-
-# Run tests (177 tests)
-npm test
-
-# Watch mode for development
-npm run test:watch
-
-# Type checking
-npm run lint
-```
-
-**Requirements**: Node.js 18+, Bun (for running the CLI)
-
 ## Project Structure
 
 ```
 open-prose/
-├── .claude-plugin/       # Plugin marketplace metadata
-│   ├── marketplace.json  # Points to ./plugin
-│   └── plugin.json       # Plugin metadata
-├── plugin/               # THE PLUGIN (Claude Code skill)
-│   ├── bin/              # CLI entry point
-│   ├── src/              # Parser, validator, compiler
-│   ├── skills/           # SKILL.md and prose.md
-│   ├── examples/         # Example .prose files
-│   └── package.json      # Dev dependencies
-├── test-harness/         # LLM-as-judge testing infrastructure
-│   ├── test-programs/    # .prose test files
-│   └── reports/          # Generated test reports
-├── specification/        # Language specification documents
-├── landing/              # Website (prose.md)
-├── infra/                # Terraform for AWS deployment
-└── guidance/             # Design interviews and notes
+├── .claude-plugin/           # Plugin marketplace metadata
+├── plugin/                   # THE PLUGIN (Claude Code skill)
+│   ├── bin/                  # CLI (open-prose.ts)
+│   ├── src/
+│   │   ├── parser/           # Lexer, parser, AST
+│   │   ├── validator/        # Semantic validation
+│   │   ├── compiler/         # Compiles to canonical form
+│   │   └── lsp/              # Language Server Protocol
+│   ├── skills/open-prose/    # SKILL.md + prose.md (DSL reference)
+│   ├── examples/             # 8 ready-to-use workflow examples
+│   └── package.json          # Dependencies
+├── test-harness/             # LLM-as-judge E2E testing
+├── specification/            # Language specification documents
+├── guidance/                 # Design research and decisions
+├── landing/                  # Website
+├── infra/                    # Terraform (AWS deployment)
+└── BUILD_PLAN.md             # Development roadmap
 ```
 
-## Running the LLM-as-Judge Tests
+## Development
 
-The test harness executes `.prose` programs via Claude Code and uses an LLM judge to evaluate execution against a rubric.
+### Setup
+
+```bash
+git clone https://github.com/irl-dan/open-prose.git
+cd open-prose/plugin
+npm install
+```
+
+### Commands
+
+```bash
+npm test          # Run all 177 tests
+npm run test:watch # Watch mode
+npm run lint      # Type check
+npm run build     # Compile TypeScript
+```
+
+### Running the CLI
+
+```bash
+# Validate a .prose file
+bun run bin/open-prose.ts validate path/to/program.prose
+
+# Compile to canonical form
+bun run bin/open-prose.ts compile path/to/program.prose
+```
+
+**Requirements**: Node.js 18+, Bun (for CLI)
+
+## Contributing
+
+See `BUILD_PLAN.md` for the development roadmap. The iteration loop for adding new features:
+
+1. **Parser** - Grammar rules, AST nodes, unit tests
+2. **Validator** - Semantic validation, error messages
+3. **Compiler** - Expand to canonical form
+4. **Documentation** - Update `prose.md`
+5. **LSP** - Syntax highlighting
+6. **Examples** - Add to `plugin/examples/`
+7. **E2E Test** - LLM-as-judge validation
+
+### LLM-as-Judge Testing
+
+The test harness runs `.prose` programs via Claude Code and uses an LLM to evaluate execution:
 
 ```bash
 cd test-harness
-
-# Install harness dependencies
 npm install
-
-# Show available commands
-npx ts-node index.ts --help
-
-# List available tests
-npx ts-node index.ts --list
-
-# Run a specific test
-npx ts-node index.ts tier-00-comments
-
-# Run all tests
-npx ts-node index.ts --all
-
-# Run with verbose output
-npx ts-node index.ts tier-00-comments --verbose
-
-# Skip the judge evaluation (just run the program)
-npx ts-node index.ts tier-00-comments --skip-judge
+npx ts-node index.ts --list        # List available tests
+npx ts-node index.ts tier-00-comments  # Run specific test
+npx ts-node index.ts --all         # Run all tests
 ```
-
-### How it works
-
-1. **Runner**: Executes the `.prose` program via `claude -p`
-2. **Log Collector**: Collects execution logs from `~/.claude/`
-3. **Judge**: Invokes an LLM to evaluate the execution against the rubric
-4. **Reports**: Generates JSON reports in `test-harness/reports/`
-
-The rubric evaluates:
-
-- Control flow accuracy
-- Clarity of execution
-- Feature handling
-- State management
-- Task completion
 
 Passing threshold: Average score >= 4.0/5.0 with no criterion below 3.
 
