@@ -34,13 +34,24 @@ export interface ProgramNode extends ASTNode {
 }
 
 /**
+ * Represents an escape sequence found in a string literal
+ */
+export interface EscapeSequence {
+  type: 'standard' | 'unicode' | 'invalid';
+  sequence: string;      // The raw escape sequence (e.g., "\\n", "\\u0041")
+  resolved: string;      // The resolved character (e.g., "\n", "A")
+  offset: number;        // Offset within the string where the escape starts
+}
+
+/**
  * A string literal
  */
 export interface StringLiteralNode extends ASTNode {
   type: 'StringLiteral';
-  value: string;  // The string value (without quotes)
-  raw: string;    // The raw string (with quotes)
+  value: string;           // The processed string value (escapes resolved)
+  raw: string;             // The raw string (with quotes, escapes unresolved)
   isTripleQuoted: boolean;
+  escapeSequences?: EscapeSequence[];  // Tracked escape sequences for validation
 }
 
 /**

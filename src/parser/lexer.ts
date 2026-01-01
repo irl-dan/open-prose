@@ -7,7 +7,7 @@
  * - Indentation-based structure
  */
 
-import { Token, TokenType, SourceLocation, SourceSpan, KEYWORDS } from './tokens';
+import { Token, TokenType, SourceLocation, SourceSpan, KEYWORDS, StringTokenMetadata, EscapeSequenceInfo } from './tokens';
 
 export interface LexerOptions {
   /** Whether to include comments in the token stream (default: true) */
@@ -24,6 +24,7 @@ export interface LexerResult {
 export interface LexerError {
   message: string;
   span: SourceSpan;
+  severity?: 'error' | 'warning';
 }
 
 export class Lexer {
@@ -247,6 +248,7 @@ export class Lexer {
    */
   private scanString(): void {
     const start = this.currentLocation();
+    const rawStart = this.pos; // Track raw position for raw string
     this.advance(); // consume opening quote
 
     // Check for triple-quoted string
@@ -258,6 +260,8 @@ export class Lexer {
     }
 
     let value = '';
+    const escapeSequences: EscapeSequenceInfo[] = [];
+    let rawOffset = 1; // Start after opening quote
 
     while (!this.isAtEnd() && this.peek() !== '"') {
       if (this.peek() === '\n' || this.peek() === '\r') {
@@ -266,23 +270,110 @@ export class Lexer {
       }
 
       if (this.peek() === '\\') {
+        const escapeStart = this.currentLocation();
+        const escapeRawOffset = rawOffset;
         this.advance();
-        if (!this.isAtEnd()) {
-          const escaped = this.peek();
-          switch (escaped) {
-            case 'n': value += '\n'; break;
-            case 't': value += '\t'; break;
-            case 'r': value += '\r'; break;
-            case '\\': value += '\\'; break;
-            case '"': value += '"'; break;
-            case '#': value += '#'; break;
-            default: value += escaped;
+        rawOffset++;
+
+        if (this.isAtEnd()) {
+          this.addError('Unterminated string literal');
+          return;
+        }
+
+        const escaped = this.peek();
+        let escapeInfo: EscapeSequenceInfo | null = null;
+
+        switch (escaped) {
+          case 'n':
+            value += '\n';
+            escapeInfo = { type: 'standard', sequence: '\\n', resolved: '\n', offset: escapeRawOffset };
+            this.advance();
+            rawOffset++;
+            break;
+          case 't':
+            value += '\t';
+            escapeInfo = { type: 'standard', sequence: '\\t', resolved: '\t', offset: escapeRawOffset };
+            this.advance();
+            rawOffset++;
+            break;
+          case 'r':
+            value += '\r';
+            escapeInfo = { type: 'standard', sequence: '\\r', resolved: '\r', offset: escapeRawOffset };
+            this.advance();
+            rawOffset++;
+            break;
+          case '\\':
+            value += '\\';
+            escapeInfo = { type: 'standard', sequence: '\\\\', resolved: '\\', offset: escapeRawOffset };
+            this.advance();
+            rawOffset++;
+            break;
+          case '"':
+            value += '"';
+            escapeInfo = { type: 'standard', sequence: '\\"', resolved: '"', offset: escapeRawOffset };
+            this.advance();
+            rawOffset++;
+            break;
+          case '#':
+            value += '#';
+            escapeInfo = { type: 'standard', sequence: '\\#', resolved: '#', offset: escapeRawOffset };
+            this.advance();
+            rawOffset++;
+            break;
+          case '0':
+            value += '\0';
+            escapeInfo = { type: 'standard', sequence: '\\0', resolved: '\0', offset: escapeRawOffset };
+            this.advance();
+            rawOffset++;
+            break;
+          case 'u': {
+            // Unicode escape: \uXXXX
+            this.advance(); // consume 'u'
+            rawOffset++;
+            const unicodeResult = this.scanUnicodeEscape(escapeStart);
+            if (unicodeResult.success) {
+              value += unicodeResult.char;
+              escapeInfo = {
+                type: 'unicode',
+                sequence: `\\u${unicodeResult.hexDigits}`,
+                resolved: unicodeResult.char,
+                offset: escapeRawOffset
+              };
+              rawOffset += 4; // 4 hex digits
+            } else {
+              // On error, we already added the error, just add the literal characters
+              value += 'u';
+              escapeInfo = {
+                type: 'invalid',
+                sequence: '\\u',
+                resolved: 'u',
+                offset: escapeRawOffset
+              };
+            }
+            break;
           }
-          this.advance();
+          default: {
+            // Warn on unrecognized escape sequence, but include the character literally
+            this.addWarning(`Unrecognized escape sequence: \\${escaped}`, escapeStart);
+            value += escaped;
+            escapeInfo = {
+              type: 'invalid',
+              sequence: `\\${escaped}`,
+              resolved: escaped,
+              offset: escapeRawOffset
+            };
+            this.advance();
+            rawOffset++;
+          }
+        }
+
+        if (escapeInfo) {
+          escapeSequences.push(escapeInfo);
         }
       } else {
         value += this.peek();
         this.advance();
+        rawOffset++;
       }
     }
 
@@ -292,13 +383,62 @@ export class Lexer {
     }
 
     this.advance(); // consume closing quote
-    this.addTokenAt(TokenType.STRING, value, start);
+
+    // Get the raw string from the source
+    const raw = this.source.substring(rawStart, this.pos);
+
+    // Create string metadata
+    const stringMetadata: StringTokenMetadata = {
+      raw,
+      isTripleQuoted: false,
+      escapeSequences,
+    };
+
+    this.addStringToken(value, start, stringMetadata);
+  }
+
+  /**
+   * Scan a unicode escape sequence (\uXXXX)
+   * Returns the parsed character or signals an error
+   */
+  private scanUnicodeEscape(escapeStart: SourceLocation): { success: boolean; char: string; hexDigits: string } {
+    let hexDigits = '';
+
+    for (let i = 0; i < 4; i++) {
+      if (this.isAtEnd() || this.peek() === '"' || this.peek() === '\n' || this.peek() === '\r') {
+        this.addError(`Invalid unicode escape: expected 4 hex digits, got ${i}`, escapeStart);
+        return { success: false, char: '', hexDigits };
+      }
+
+      const c = this.peek();
+      if (!this.isHexDigit(c)) {
+        this.addError(`Invalid unicode escape: '${c}' is not a valid hex digit`, escapeStart);
+        return { success: false, char: '', hexDigits };
+      }
+
+      hexDigits += c;
+      this.advance();
+    }
+
+    const codePoint = parseInt(hexDigits, 16);
+    return { success: true, char: String.fromCharCode(codePoint), hexDigits };
+  }
+
+  /**
+   * Check if a character is a valid hexadecimal digit
+   */
+  private isHexDigit(c: string): boolean {
+    return (c >= '0' && c <= '9') ||
+           (c >= 'a' && c <= 'f') ||
+           (c >= 'A' && c <= 'F');
   }
 
   /**
    * Scan a triple-quoted string literal
+   * Note: Triple-quoted strings do not process escape sequences
    */
   private scanTripleQuotedString(start: SourceLocation): void {
+    const rawStart = start.offset; // The position includes the opening """
     let value = '';
 
     while (!this.isAtEnd()) {
@@ -306,7 +446,18 @@ export class Lexer {
         this.advance();
         this.advance();
         this.advance();
-        this.addTokenAt(TokenType.STRING, value, start);
+
+        // Get the raw string from the source
+        const raw = this.source.substring(rawStart, this.pos);
+
+        // Create string metadata (triple-quoted strings don't process escapes)
+        const stringMetadata: StringTokenMetadata = {
+          raw,
+          isTripleQuoted: true,
+          escapeSequences: [],
+        };
+
+        this.addStringToken(value, start, stringMetadata);
         return;
       }
 
@@ -538,14 +689,41 @@ export class Lexer {
     this.tokens.push(token);
   }
 
-  private addError(message: string): void {
-    const location = this.currentLocation();
+  private addStringToken(value: string, start: SourceLocation, stringMetadata: StringTokenMetadata): void {
+    const end = this.currentLocation();
+
+    const token: Token = {
+      type: TokenType.STRING,
+      value,
+      span: { start, end },
+      isTrivia: false,
+      stringMetadata,
+    };
+
+    this.tokens.push(token);
+  }
+
+  private addError(message: string, location?: SourceLocation): void {
+    const loc = location || this.currentLocation();
     this.errors.push({
       message,
       span: {
-        start: location,
-        end: location,
+        start: loc,
+        end: loc,
       },
+      severity: 'error',
+    });
+  }
+
+  private addWarning(message: string, location?: SourceLocation): void {
+    const loc = location || this.currentLocation();
+    this.errors.push({
+      message,
+      span: {
+        start: loc,
+        end: loc,
+      },
+      severity: 'warning',
     });
   }
 }

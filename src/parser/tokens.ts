@@ -85,6 +85,25 @@ export interface SourceSpan {
 }
 
 /**
+ * Metadata specific to string tokens
+ */
+export interface StringTokenMetadata {
+  raw: string;                    // The raw string including quotes
+  isTripleQuoted: boolean;        // True for """ strings
+  escapeSequences: EscapeSequenceInfo[];  // Tracked escape sequences
+}
+
+/**
+ * Information about an escape sequence in a string
+ */
+export interface EscapeSequenceInfo {
+  type: 'standard' | 'unicode' | 'invalid';
+  sequence: string;      // The raw escape sequence (e.g., "\\n", "\\u0041")
+  resolved: string;      // The resolved character (e.g., "\n", "A")
+  offset: number;        // Offset within the raw string where the escape starts
+}
+
+/**
  * Represents a token produced by the lexer
  */
 export interface Token {
@@ -92,6 +111,7 @@ export interface Token {
   value: string;
   span: SourceSpan;
   isTrivia?: boolean;  // True for comments, whitespace, etc.
+  stringMetadata?: StringTokenMetadata;  // Additional data for STRING tokens
 }
 
 /**

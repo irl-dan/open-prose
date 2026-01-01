@@ -11,6 +11,7 @@ import {
   CommentNode,
   CommentStatementNode,
   SessionStatementNode,
+  StringLiteralNode,
   walkAST,
   ASTVisitor,
 } from '../parser';
@@ -112,6 +113,37 @@ export class Validator {
     // Just check that session has either a prompt or agent
     if (!statement.prompt && !statement.agent) {
       this.addWarning('Session statement has no prompt or agent', statement.span);
+    }
+
+    // Validate the prompt string if present
+    if (statement.prompt) {
+      this.validateStringLiteral(statement.prompt);
+    }
+  }
+
+  /**
+   * Validate a string literal node
+   */
+  private validateStringLiteral(node: StringLiteralNode): void {
+    // Check for invalid escape sequences
+    if (node.escapeSequences) {
+      for (const escape of node.escapeSequences) {
+        if (escape.type === 'invalid') {
+          this.addWarning(
+            `Unrecognized escape sequence: ${escape.sequence}`,
+            node.span
+          );
+        }
+      }
+    }
+
+    // Validate string is not too long (arbitrary limit for now)
+    const MAX_STRING_LENGTH = 1000000; // 1MB
+    if (node.value.length > MAX_STRING_LENGTH) {
+      this.addWarning(
+        `String literal is very long (${node.value.length} characters)`,
+        node.span
+      );
     }
   }
 

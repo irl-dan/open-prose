@@ -15,6 +15,7 @@ import {
   CommentStatementNode,
   SessionStatementNode,
   StringLiteralNode,
+  EscapeSequence,
   createProgramNode,
   createCommentNode,
 } from './ast';
@@ -150,13 +151,7 @@ export class Parser {
     // Check for string literal (prompt)
     if (this.check(TokenType.STRING)) {
       const stringToken = this.advance();
-      prompt = {
-        type: 'StringLiteral',
-        value: stringToken.value,
-        raw: `"${stringToken.value}"`,
-        isTripleQuoted: stringToken.value.includes('\n'),
-        span: stringToken.span,
-      };
+      prompt = this.createStringLiteralNode(stringToken);
     }
 
     // Check for inline comment
@@ -229,6 +224,30 @@ export class Parser {
       message,
       span: this.peek().span,
     });
+  }
+
+  /**
+   * Create a StringLiteralNode from a string token
+   */
+  private createStringLiteralNode(token: Token): StringLiteralNode {
+    const metadata = token.stringMetadata;
+
+    // Convert token escape sequences to AST escape sequences if available
+    const escapeSequences: EscapeSequence[] = metadata?.escapeSequences?.map(esc => ({
+      type: esc.type,
+      sequence: esc.sequence,
+      resolved: esc.resolved,
+      offset: esc.offset,
+    })) || [];
+
+    return {
+      type: 'StringLiteral',
+      value: token.value,
+      raw: metadata?.raw || `"${token.value}"`,
+      isTripleQuoted: metadata?.isTripleQuoted ?? token.value.includes('\n'),
+      escapeSequences: escapeSequences.length > 0 ? escapeSequences : undefined,
+      span: token.span,
+    };
   }
 }
 

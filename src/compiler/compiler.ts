@@ -168,14 +168,31 @@ export class Compiler {
 
   /**
    * Escape special characters in a string
+   * Converts processed values back to their escape sequence representation
    */
   private escapeString(str: string): string {
-    return str
-      .replace(/\\/g, '\\\\')
-      .replace(/"/g, '\\"')
-      .replace(/\n/g, '\\n')
-      .replace(/\r/g, '\\r')
-      .replace(/\t/g, '\\t');
+    let result = '';
+    for (let i = 0; i < str.length; i++) {
+      const char = str[i];
+      const code = char.charCodeAt(0);
+
+      switch (char) {
+        case '\\': result += '\\\\'; break;
+        case '"': result += '\\"'; break;
+        case '\n': result += '\\n'; break;
+        case '\r': result += '\\r'; break;
+        case '\t': result += '\\t'; break;
+        case '\0': result += '\\0'; break;
+        default:
+          // Escape non-printable ASCII and control characters as unicode
+          if (code < 32 || code === 127) {
+            result += '\\u' + code.toString(16).padStart(4, '0');
+          } else {
+            result += char;
+          }
+      }
+    }
+    return result;
   }
 
   /**
