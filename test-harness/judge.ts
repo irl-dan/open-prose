@@ -8,7 +8,7 @@
  * - Determining pass/fail based on thresholds
  */
 
-import { spawn } from 'child_process';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { RunnerResult } from './runner';
@@ -235,32 +235,30 @@ export async function invokeJudge(
 
   const prompt = buildJudgePrompt(runnerResult, executionLogs, rubric, testName);
 
-  return new Promise<JudgmentResult>((resolve) => {
-    let output = '';
-    let errorOutput = '';
-    let timeoutId: NodeJS.Timeout | null = null;
-    let resolved = false;
+  // Write prompt to a temp file to avoid shell escaping issues
+  // IMPORTANT: We use execSync instead of spawn because Node's spawn() does not
+  // properly capture stdout from the Claude CLI (events never fire, process hangs).
+  // See test-harness/README.md for details. Do not refactor to use spawn.
+  const tempPromptFile = path.join(
+    process.env.TMPDIR || '/tmp',
+    `openprose-judge-${Date.now()}.txt`
+  );
+  fs.writeFileSync(tempPromptFile, prompt, 'utf-8');
 
-    const resolveOnce = (result: JudgmentResult) => {
-      if (resolved) return;
-      resolved = true;
-      if (timeoutId) clearTimeout(timeoutId);
-      resolve(result);
-    };
+  try {
+    const command = `cat "${tempPromptFile}" | claude -p`;
 
-    // Spawn claude CLI process for judging
-    const claudeProcess = spawn('claude', [
-      '-p',
-      prompt
-    ], {
-      shell: true,
-      env: { ...process.env },
+    const output = execSync(command, {
+      timeout,
+      encoding: 'utf-8',
+      maxBuffer: 50 * 1024 * 1024, // 50MB buffer
     });
 
-    // Set timeout
-    timeoutId = setTimeout(() => {
-      claudeProcess.kill('SIGTERM');
-      resolveOnce({
+    // Parse the judge's response
+    const parsed = parseJudgeResponse(output);
+
+    if (!parsed) {
+      return {
         success: false,
         passed: false,
         scores: [],
@@ -269,84 +267,40 @@ export async function invokeJudge(
         summary: '',
         recommendations: [],
         rawResponse: output,
-        error: `Judge timed out after ${timeout}ms`,
-      });
-    }, timeout);
+        error: 'Failed to parse judge response as JSON',
+      };
+    }
 
-    // Collect stdout
-    claudeProcess.stdout?.on('data', (data: Buffer) => {
-      output += data.toString();
-    });
+    // Calculate metrics
+    const validScores = parsed.scores.filter(s => s.score >= 1 && s.score <= 5);
+    const averageScore = validScores.length > 0
+      ? validScores.reduce((sum, s) => sum + s.score, 0) / validScores.length
+      : 0;
+    const lowestScore = validScores.length > 0
+      ? Math.min(...validScores.map(s => s.score))
+      : 0;
 
-    // Collect stderr
-    claudeProcess.stderr?.on('data', (data: Buffer) => {
-      errorOutput += data.toString();
-    });
+    // Determine pass/fail
+    // Passing: average >= 4.0 AND no individual score below 3
+    const passed = averageScore >= 4.0 && lowestScore >= 3;
 
-    // Handle process exit
-    claudeProcess.on('close', (code: number | null) => {
-      if (code !== 0) {
-        resolveOnce({
-          success: false,
-          passed: false,
-          scores: [],
-          averageScore: 0,
-          lowestScore: 0,
-          summary: '',
-          recommendations: [],
-          rawResponse: output,
-          error: errorOutput || `Judge process exited with code ${code}`,
-        });
-        return;
-      }
+    return {
+      success: true,
+      passed,
+      scores: parsed.scores,
+      averageScore,
+      lowestScore,
+      summary: parsed.summary,
+      recommendations: parsed.recommendations,
+      rawResponse: output,
+      error: null,
+    };
+  } catch (err) {
+    const error = err as { message?: string; killed?: boolean; signal?: string; status?: number; stderr?: string };
 
-      // Parse the judge's response
-      const parsed = parseJudgeResponse(output);
-
-      if (!parsed) {
-        resolveOnce({
-          success: false,
-          passed: false,
-          scores: [],
-          averageScore: 0,
-          lowestScore: 0,
-          summary: '',
-          recommendations: [],
-          rawResponse: output,
-          error: 'Failed to parse judge response as JSON',
-        });
-        return;
-      }
-
-      // Calculate metrics
-      const validScores = parsed.scores.filter(s => s.score >= 1 && s.score <= 5);
-      const averageScore = validScores.length > 0
-        ? validScores.reduce((sum, s) => sum + s.score, 0) / validScores.length
-        : 0;
-      const lowestScore = validScores.length > 0
-        ? Math.min(...validScores.map(s => s.score))
-        : 0;
-
-      // Determine pass/fail
-      // Passing: average >= 4.0 AND no individual score below 3
-      const passed = averageScore >= 4.0 && lowestScore >= 3;
-
-      resolveOnce({
-        success: true,
-        passed,
-        scores: parsed.scores,
-        averageScore,
-        lowestScore,
-        summary: parsed.summary,
-        recommendations: parsed.recommendations,
-        rawResponse: output,
-        error: null,
-      });
-    });
-
-    // Handle process errors
-    claudeProcess.on('error', (err: Error) => {
-      resolveOnce({
+    // Check if it was a timeout
+    if (error.killed && error.signal === 'SIGTERM') {
+      return {
         success: false,
         passed: false,
         scores: [],
@@ -355,10 +309,29 @@ export async function invokeJudge(
         summary: '',
         recommendations: [],
         rawResponse: '',
-        error: `Failed to spawn judge process: ${err.message}`,
-      });
-    });
-  });
+        error: `Judge timed out after ${timeout}ms`,
+      };
+    }
+
+    return {
+      success: false,
+      passed: false,
+      scores: [],
+      averageScore: 0,
+      lowestScore: 0,
+      summary: '',
+      recommendations: [],
+      rawResponse: error.stderr || '',
+      error: error.message || `Judge process exited with code ${error.status}`,
+    };
+  } finally {
+    // Clean up temp file
+    try {
+      fs.unlinkSync(tempPromptFile);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
 }
 
 /**

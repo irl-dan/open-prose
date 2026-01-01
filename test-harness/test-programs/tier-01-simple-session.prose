@@ -1,0 +1,4 @@
+# Tier 1.1: Simple Session
+# Tests that a single session statement spawns a subagent and completes
+
+session "Say hello and confirm you are a subagent spawned by OpenProse"

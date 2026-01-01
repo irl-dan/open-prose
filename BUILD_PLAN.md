@@ -101,6 +101,78 @@ Run the feature through the test harness with an LLM judge.
 
 ---
 
+## Feature Implementation Checklist
+
+When adding or modifying a language feature, these are the files that typically need to be updated. Use this as a checklist to ensure nothing is missed.
+
+### Core Language (in order of implementation)
+
+| Step | Files | What to Do |
+|------|-------|------------|
+| **1. Tokens** | `plugin/src/parser/tokens.ts` | Add new `TokenType` enum values for keywords/operators |
+| **2. Lexer** | `plugin/src/parser/lexer.ts` | Add lexing rules to recognize new tokens |
+| **3. AST** | `plugin/src/parser/ast.ts` | Define new AST node interfaces (e.g., `AgentDefinitionNode`) |
+| **4. Parser** | `plugin/src/parser/parser.ts` | Add parsing rules to build AST nodes from tokens |
+| **5. Validator** | `plugin/src/validator/validator.ts` | Add semantic validation (references exist, types match, etc.) |
+| **6. Compiler** | `plugin/src/compiler/compiler.ts` | Add compilation/expansion logic for the feature |
+| **7. LSP** | `plugin/src/lsp/semantic-tokens.ts` | Add syntax highlighting token mappings |
+
+### Exports (if adding new types)
+
+| File | What to Do |
+|------|------------|
+| `plugin/src/parser/index.ts` | Export new AST types (use `export type` for interfaces) |
+| `plugin/src/index.ts` | Re-export if needed at top level |
+
+### Tests
+
+| File | What to Do |
+|------|------------|
+| `plugin/src/__tests__/<feature>.test.ts` | Create unit tests covering lexer, parser, validator, compiler, LSP |
+| `plugin/src/__tests__/examples.test.ts` | No changes needed (auto-discovers examples) |
+
+### Documentation
+
+| File | What to Do |
+|------|------------|
+| `plugin/skills/open-prose/prose.md` | Update DSL reference with new syntax |
+| `plugin/skills/open-prose/SKILL.md` | Update if execution behavior changes |
+
+### Examples
+
+| Location | What to Do |
+|----------|------------|
+| `plugin/examples/` | Add practical example `.prose` files using the feature |
+| `plugin/examples/README.md` | Document new examples |
+| `plugin/examples/roadmap/` | Move any "future syntax" examples here if not yet implemented |
+
+### E2E Tests
+
+| Location | What to Do |
+|----------|------------|
+| `test-harness/test-programs/` | Add `tier-XX-<feature>.prose` test program |
+
+### Verification Commands
+
+After implementation, run these to verify everything works:
+
+```bash
+# From plugin/
+npm test                    # Run all 177+ unit tests
+npm run lint                # Type check
+
+# From test-harness/
+npx ts-node index.ts --all  # Run all E2E tests
+```
+
+### Common Gotchas
+
+1. **Bun type exports**: Use `export type { Interface }` not `export { Interface }` in barrel files
+2. **Test count**: Update README.md if test count changes significantly
+3. **Examples**: Only use implemented syntax in `plugin/examples/`; future syntax goes in `roadmap/`
+
+---
+
 ## LLM-as-Judge Framework
 
 We need to build a test harness that allows us to run an OpenProse program in Claude Code, while we have an LLM-as-judge system (use `claude code -p` with instructions to observe the behavior and the jsonl logs, etc (see `/Users/sl/code/stack/archive/docs-claude-code` and `~/.claude/` directory for outputs)), and judge how well the Orchestrator Session handled that feature according to a rubric we will define. OpenCode will be supported later.

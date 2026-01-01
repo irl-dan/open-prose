@@ -8,7 +8,7 @@
  * - Handling timeouts and errors gracefully
  */
 
-import { spawn, ChildProcess } from 'child_process';
+import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -102,111 +102,97 @@ export async function runProseProgram(
   const programName = path.basename(programPath);
   const prompt = buildExecutionPrompt(programContent, programName);
 
-  return new Promise<RunnerResult>((resolve) => {
-    let output = '';
-    let errorOutput = '';
-    let timeoutId: NodeJS.Timeout | null = null;
-    let resolved = false;
+  // Write prompt to a temp file to avoid shell escaping issues
+  // IMPORTANT: We use execSync instead of spawn because Node's spawn() does not
+  // properly capture stdout from the Claude CLI (events never fire, process hangs).
+  // See test-harness/README.md for details. Do not refactor to use spawn.
+  const tempPromptFile = path.join(
+    process.env.TMPDIR || '/tmp',
+    `openprose-prompt-${Date.now()}.txt`
+  );
+  fs.writeFileSync(tempPromptFile, prompt, 'utf-8');
 
-    const resolveOnce = (result: RunnerResult) => {
-      if (resolved) return;
-      resolved = true;
-      if (timeoutId) clearTimeout(timeoutId);
-      resolve(result);
-    };
+  try {
+    const command = `cat "${tempPromptFile}" | claude -p --output-format json`;
 
-    // Spawn claude CLI process
-    const claudeProcess: ChildProcess = spawn('claude', [
-      '-p',
-      '--output-format', 'json',
-      prompt
-    ], {
+    const output = execSync(command, {
       cwd: workingDir,
-      shell: true,
-      env: { ...process.env },
+      timeout,
+      encoding: 'utf-8',
+      maxBuffer: 50 * 1024 * 1024, // 50MB buffer
     });
 
-    // Set timeout
-    timeoutId = setTimeout(() => {
-      claudeProcess.kill('SIGTERM');
-      resolveOnce({
-        success: false,
-        sessionId: null,
-        output,
-        jsonOutput: null,
-        error: `Execution timed out after ${timeout}ms`,
-        duration: Date.now() - startTime,
-        programPath,
-        programContent,
-        timestamp,
-      });
-    }, timeout);
+    const duration = Date.now() - startTime;
 
-    // Collect stdout
-    claudeProcess.stdout?.on('data', (data: Buffer) => {
-      output += data.toString();
-    });
+    // Try to parse JSON output
+    let jsonOutput: unknown = null;
+    let sessionId: string | null = null;
 
-    // Collect stderr
-    claudeProcess.stderr?.on('data', (data: Buffer) => {
-      errorOutput += data.toString();
-    });
-
-    // Handle process exit
-    claudeProcess.on('close', (code: number | null) => {
-      const duration = Date.now() - startTime;
-
-      // Try to parse JSON output
-      let jsonOutput: unknown = null;
-      let sessionId: string | null = null;
-
-      try {
-        if (output.trim()) {
-          jsonOutput = JSON.parse(output.trim());
-          // Try to extract session ID from JSON output
-          if (typeof jsonOutput === 'object' && jsonOutput !== null) {
-            const jsonObj = jsonOutput as Record<string, unknown>;
-            if ('session_id' in jsonObj) {
-              sessionId = String(jsonObj.session_id);
-            } else if ('sessionId' in jsonObj) {
-              sessionId = String(jsonObj.sessionId);
-            }
+    try {
+      if (output.trim()) {
+        jsonOutput = JSON.parse(output.trim());
+        if (typeof jsonOutput === 'object' && jsonOutput !== null) {
+          const jsonObj = jsonOutput as Record<string, unknown>;
+          if ('session_id' in jsonObj) {
+            sessionId = String(jsonObj.session_id);
+          } else if ('sessionId' in jsonObj) {
+            sessionId = String(jsonObj.sessionId);
           }
         }
-      } catch {
-        // JSON parsing failed, that's okay - output might be plain text
       }
+    } catch {
+      // JSON parsing failed, output might be plain text
+    }
 
-      const success = code === 0;
+    return {
+      success: true,
+      sessionId,
+      output,
+      jsonOutput,
+      error: null,
+      duration,
+      programPath,
+      programContent,
+      timestamp,
+    };
+  } catch (err) {
+    const duration = Date.now() - startTime;
+    const error = err as { message?: string; killed?: boolean; signal?: string; status?: number; stderr?: string };
 
-      resolveOnce({
-        success,
-        sessionId,
-        output,
-        jsonOutput,
-        error: success ? null : (errorOutput || `Process exited with code ${code}`),
+    // Check if it was a timeout
+    if (error.killed && error.signal === 'SIGTERM') {
+      return {
+        success: false,
+        sessionId: null,
+        output: '',
+        jsonOutput: null,
+        error: `Execution timed out after ${timeout}ms`,
         duration,
         programPath,
         programContent,
         timestamp,
-      });
-    });
+      };
+    }
 
-    // Handle process errors
-    claudeProcess.on('error', (err: Error) => {
-      resolveOnce({
-        success: false,
-        sessionId: null,
-        output,
-        jsonOutput: null,
-        error: `Failed to spawn claude process: ${err.message}`,
-        duration: Date.now() - startTime,
-        programPath,
-        programContent,
-        timestamp,
-      });
-    });
-  });
+    return {
+      success: false,
+      sessionId: null,
+      output: error.stderr || '',
+      jsonOutput: null,
+      error: error.message || `Process exited with code ${error.status}`,
+      duration,
+      programPath,
+      programContent,
+      timestamp,
+    };
+  } finally {
+    // Clean up temp file
+    try {
+      fs.unlinkSync(tempPromptFile);
+    } catch {
+      // Ignore cleanup errors
+    }
+  }
 }
 
 /**

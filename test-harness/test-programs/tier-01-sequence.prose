@@ -1,0 +1,8 @@
+# Tier 1.2: Implicit Sequence
+# Tests that multiple sessions run in order, one after another
+
+session "Generate a random 4-digit number and state it clearly"
+
+session "Take the number from the previous session and double it"
+
+session "Summarize: what was the original number and what is the doubled result?"
