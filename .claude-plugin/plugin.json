@@ -1,0 +1,20 @@
+{
+  "name": "open-prose",
+  "description": "A domain-specific language for orchestrating AI agent sessions",
+  "version": "0.1.0",
+  "author": {
+    "name": "irl-dan",
+    "url": "https://github.com/irl-dan"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/irl-dan/open-prose.git"
+  },
+  "keywords": [
+    "ai",
+    "agents",
+    "orchestration",
+    "dsl",
+    "prose"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "open-prose",
+  "owner": {
+    "name": "irl-dan",
+    "url": "https://github.com/irl-dan"
+  },
+  "plugins": [
+    {
+      "name": "open-prose",
+      "source": "./",
+      "description": "A domain-specific language for orchestrating AI agent sessions"
+    }
+  ]
+}

@@ -10,6 +10,8 @@ OpenProse is an incomplete project in active development. The language foundatio
 
 OpenProse aims to provide a common, self-evident syntax for defining and orchestrating AI agent sessions. Programs are compiled to a canonical form and executed via a long running agent session, such as Claude Code, OpenCode, Codex, Amp, etc.
 
+This treats the agent session as a sort of Inversion of Control container, whereby one can specify a service-oriented agent architecture, and the Prose Operator Session will intelligently run it.
+
 Example of what the language will look like:
 
 ```prose
