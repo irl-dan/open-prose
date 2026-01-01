@@ -83,8 +83,11 @@ Add example `.prose` files to the plugin that demonstrate this feature.
 - Use clear comments explaining each step
 - Update `plugin/examples/README.md` with the new examples
 - Update `plugin/skills/open-prose/SKILL.md` if the examples list needs refreshing
+- Run `npm test` to verify new examples pass the Example Validation Tests
 
 **Important**: Examples must only use implemented syntax. Future/planned syntax examples go in `plugin/examples/roadmap/`.
+
+**Automatic testing**: All files in `plugin/examples/` are automatically tested by `examples.test.ts` to ensure they parse and compile correctly. See "Plugin Examples Validation Tests" in the Classical Unit Tests section.
 
 ### Step 7: E2E Test (LLM-as-Judge)
 
@@ -454,6 +457,28 @@ For deterministic components, we add classical unit tests:
 - Special syntax (`**...**`) highlighted correctly
 - Nested structures handled
 
+### Plugin Examples Validation Tests
+
+The `plugin/examples/` directory contains user-facing example `.prose` files. These are automatically tested to ensure they remain valid as the language evolves.
+
+**Test file:** `plugin/src/__tests__/examples.test.ts`
+
+**What it does:**
+- Dynamically loads all `.prose` files from `plugin/examples/` (excludes `roadmap/`)
+- For each file, asserts it parses without errors
+- For each file, asserts it compiles without errors
+- Optionally uses Jest snapshots to detect compiled output regressions
+
+**Why this matters:**
+- Catches regressions when parser/compiler changes
+- Ensures shipped examples always work
+- No duplication - examples serve double duty as tests
+- Automatically picks up new examples added in Step 6
+
+**What it does NOT test:**
+- Execution semantics (that's what LLM-as-judge E2E tests are for)
+- Edge cases and error conditions (that's what unit tests with inline strings are for)
+
 ---
 
 ## Success Criteria
@@ -468,3 +493,4 @@ The language is complete when:
 6. ✅ LSP semantic tokens provide accurate syntax highlighting in VS Code
 7. ✅ CLI is polished and documented
 8. ✅ Example programs demonstrate real-world usage
+9. ✅ All plugin examples pass validation tests (parse + compile)
