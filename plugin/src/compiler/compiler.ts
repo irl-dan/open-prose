@@ -2,9 +2,10 @@
  * OpenProse Compiler
  *
  * Compiles OpenProse programs to a canonical form for the Orchestrator.
- * For comments (Tier 0.2):
- * - Comments are stripped from the output by default
- * - Optionally preserved for debugging
+ * Handles:
+ * - Comments (stripped by default)
+ * - Sessions (simple and with agents)
+ * - Agent definitions
  */
 
 import {
@@ -13,6 +14,10 @@ import {
   CommentNode,
   CommentStatementNode,
   SessionStatementNode,
+  AgentDefinitionNode,
+  PropertyNode,
+  StringLiteralNode,
+  IdentifierNode,
 } from '../parser';
 import { SourceSpan } from '../parser/tokens';
 
@@ -23,6 +28,8 @@ export interface CompilerOptions {
   sourceMaps?: boolean;
   /** Whether to format output for readability (default: true) */
   prettyPrint?: boolean;
+  /** Indentation string (default: two spaces) */
+  indent?: string;
 }
 
 export interface CompiledOutput {
@@ -58,13 +65,14 @@ export class Compiler {
   private sourceMappings: SourceMapping[] = [];
   private currentLine: number = 1;
   private currentColumn: number = 1;
-  private options: CompilerOptions;
+  private options: Required<CompilerOptions>;
 
   constructor(private program: ProgramNode, options: CompilerOptions = {}) {
     this.options = {
       preserveComments: options.preserveComments ?? false,
       sourceMaps: options.sourceMaps ?? false,
       prettyPrint: options.prettyPrint ?? true,
+      indent: options.indent ?? '  ',
     };
   }
 
@@ -103,6 +111,9 @@ export class Compiler {
       case 'SessionStatement':
         this.compileSessionStatement(statement);
         break;
+      case 'AgentDefinition':
+        this.compileAgentDefinition(statement);
+        break;
       // Other statement types will be added in later tiers
     }
   }
@@ -130,6 +141,46 @@ export class Compiler {
   }
 
   /**
+   * Compile an agent definition
+   */
+  private compileAgentDefinition(agent: AgentDefinitionNode): void {
+    // Add source mapping
+    this.addSourceMapping(agent.span.start.line, agent.span.start.column);
+
+    // Emit: agent name:
+    this.emit('agent ');
+    this.emit(agent.name.name);
+    this.emit(':');
+    this.emitNewline();
+
+    // Emit properties with indentation
+    for (const prop of agent.properties) {
+      this.compileProperty(prop);
+    }
+  }
+
+  /**
+   * Compile a property
+   */
+  private compileProperty(prop: PropertyNode): void {
+    this.emit(this.options.indent);
+    this.emit(prop.name.name);
+    this.emit(': ');
+
+    if (prop.value.type === 'StringLiteral') {
+      const str = prop.value as StringLiteralNode;
+      this.emit('"');
+      this.emit(this.escapeString(str.value));
+      this.emit('"');
+    } else if (prop.value.type === 'Identifier') {
+      const id = prop.value as IdentifierNode;
+      this.emit(id.name);
+    }
+
+    this.emitNewline();
+  }
+
+  /**
    * Compile a session statement
    */
   private compileSessionStatement(statement: SessionStatementNode): void {
@@ -139,13 +190,22 @@ export class Compiler {
     // Emit the session keyword
     this.emit('session');
 
-    // Emit the prompt if present
-    if (statement.prompt) {
+    // Simple session with inline prompt
+    if (statement.prompt && !statement.agent) {
       this.emit(' ');
       this.emit('"');
-      // Escape special characters in the string
       this.emit(this.escapeString(statement.prompt.value));
       this.emit('"');
+    }
+    // Session with agent reference
+    else if (statement.agent) {
+      // Named session: session name: agent
+      if (statement.name) {
+        this.emit(' ');
+        this.emit(statement.name.name);
+      }
+      this.emit(': ');
+      this.emit(statement.agent.name);
     }
 
     // Note: inline comments are stripped by default
@@ -164,6 +224,11 @@ export class Compiler {
     }
 
     this.emitNewline();
+
+    // Emit properties with indentation
+    for (const prop of statement.properties) {
+      this.compileProperty(prop);
+    }
   }
 
   /**

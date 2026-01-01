@@ -199,6 +199,8 @@ export class SemanticTokensProvider {
       case TokenType.FROM:
       case TokenType.AGENT:
       case TokenType.SESSION:
+      case TokenType.MODEL:
+      case TokenType.PROMPT:
       case TokenType.BLOCK:
       case TokenType.DO:
       case TokenType.PARALLEL:

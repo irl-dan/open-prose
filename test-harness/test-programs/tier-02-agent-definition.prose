@@ -1,0 +1,11 @@
+# Tier 2.1-2.3: Agent Definition
+# Tests that agent definitions with model and prompt properties work correctly
+
+# Define an agent with model and prompt
+agent helper:
+  model: sonnet
+  prompt: "You are a helpful assistant"
+
+# Use the agent in a session
+session: helper
+  prompt: "Introduce yourself and confirm you understand your role as a helpful assistant"

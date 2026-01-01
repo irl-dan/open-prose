@@ -203,8 +203,8 @@ export class Lexer {
       this.advance();
     }
 
-    // Skip empty lines and comment-only lines
-    if (this.isAtEnd() || this.peek() === '\n' || this.peek() === '\r' || this.peek() === '#') {
+    // Skip empty lines (but NOT comment-only lines - they need proper indentation)
+    if (this.isAtEnd() || this.peek() === '\n' || this.peek() === '\r') {
       return;
     }
 

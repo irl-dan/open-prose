@@ -1,0 +1,19 @@
+# Tier 2.4-2.6: Session with Agent and Property Override
+# Tests that sessions can reference agents and override their properties
+
+# Define a base agent
+agent analyzer:
+  model: haiku
+  prompt: "You are a data analyst"
+
+# First session: use agent with default settings
+session: analyzer
+  prompt: "State that you are using the haiku model as a data analyst"
+
+# Second session: override the model
+session: analyzer
+  model: sonnet
+  prompt: "State that you are now using the sonnet model but still acting as a data analyst"
+
+# Verify the sessions ran in sequence
+session "Summarize: we just ran two sessions with the analyzer agent, one with haiku and one with sonnet"

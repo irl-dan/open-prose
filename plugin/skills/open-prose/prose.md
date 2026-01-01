@@ -10,11 +10,12 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. Thi
 2. [File Format](#file-format)
 3. [Comments](#comments)
 4. [String Literals](#string-literals)
-5. [Session Statement](#session-statement)
-6. [Execution Model](#execution-model)
-7. [Validation Rules](#validation-rules)
-8. [Examples](#examples)
-9. [Future Features](#future-features)
+5. [Agent Definitions](#agent-definitions)
+6. [Session Statement](#session-statement)
+7. [Execution Model](#execution-model)
+8. [Validation Rules](#validation-rules)
+9. [Examples](#examples)
+10. [Future Features](#future-features)
 
 ---
 
@@ -38,6 +39,8 @@ The following features are implemented:
 | Comments | Implemented | `# comment` syntax |
 | Single-line strings | Implemented | `"string"` with escapes |
 | Simple session | Implemented | `session "prompt"` |
+| Agent definitions | Implemented | `agent name:` with model/prompt properties |
+| Session with agent | Implemented | `session: agent` with property overrides |
 
 ---
 
@@ -96,11 +99,11 @@ Comments are **stripped during compilation**. The Orchestrator never sees them. 
   ```
   The `#` inside the string literal is part of the prompt, not a comment.
 
-- **Comments don't affect indentation** (when blocks are implemented):
+- **Comments inside indented blocks are allowed**:
   ```prose
-  do:
+  agent researcher:
       # This comment is inside the block
-      session "Hello"
+      model: sonnet
   # This comment is outside the block
   ```
 
@@ -156,24 +159,138 @@ session "Column1\tColumn2"
 
 ---
 
-## Session Statement
+## Agent Definitions
 
-The session statement is the primary executable construct in OpenProse. It spawns a subagent to complete a task.
+Agents are reusable templates that configure subagent behavior. Once defined, agents can be referenced in session statements.
 
 ### Syntax
 
 ```prose
+agent name:
+  model: sonnet
+  prompt: "System prompt for this agent"
+```
+
+### Properties
+
+| Property | Type | Values | Description |
+|----------|------|--------|-------------|
+| `model` | identifier | `sonnet`, `opus`, `haiku` | The Claude model to use |
+| `prompt` | string | Any string | System prompt/context for the agent |
+
+### Examples
+
+```prose
+# Define a research agent
+agent researcher:
+  model: sonnet
+  prompt: "You are a research assistant skilled at finding and synthesizing information"
+
+# Define a writing agent
+agent writer:
+  model: opus
+  prompt: "You are a technical writer who creates clear, concise documentation"
+
+# Agent with only model
+agent quick:
+  model: haiku
+
+# Agent with only prompt
+agent expert:
+  prompt: "You are a domain expert"
+```
+
+### Model Selection
+
+| Model | Use Case |
+|-------|----------|
+| `haiku` | Fast, simple tasks; quick responses |
+| `sonnet` | Balanced performance; general purpose |
+| `opus` | Complex reasoning; detailed analysis |
+
+### Execution Semantics
+
+When a session references an agent:
+
+1. The agent's `model` property determines which Claude model is used
+2. The agent's `prompt` property is included as system context
+3. Session properties can override agent defaults
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Duplicate agent name | Error | Agent already defined |
+| Invalid model value | Error | Must be sonnet, opus, or haiku |
+| Empty prompt property | Warning | Consider providing a prompt |
+| Duplicate property | Error | Property already specified |
+
+---
+
+## Session Statement
+
+The session statement is the primary executable construct in OpenProse. It spawns a subagent to complete a task.
+
+### Syntax Variants
+
+#### Simple Session (with inline prompt)
+
+```prose
 session "prompt text"
+```
+
+#### Session with Agent Reference
+
+```prose
+session: agentName
+```
+
+#### Named Session with Agent
+
+```prose
+session sessionName: agentName
+```
+
+#### Session with Properties
+
+```prose
+session: agentName
+  prompt: "Override the agent's default prompt"
+  model: opus  # Override the agent's model
+```
+
+### Property Overrides
+
+When a session references an agent, it can override the agent's properties:
+
+```prose
+agent researcher:
+  model: sonnet
+  prompt: "You are a research assistant"
+
+# Use researcher with different model
+session: researcher
+  model: opus
+
+# Use researcher with different prompt
+session: researcher
+  prompt: "Research this specific topic in depth"
+
+# Override both
+session: researcher
+  model: opus
+  prompt: "Specialized research task"
 ```
 
 ### Execution Semantics
 
 When the Orchestrator encounters a `session` statement:
 
-1. **Spawn a Subagent**: Create a new Claude subagent session
-2. **Send the Prompt**: Pass the prompt string to the subagent
-3. **Wait for Completion**: Block until the subagent finishes
-4. **Continue**: Proceed to the next statement
+1. **Resolve Configuration**: Merge agent defaults with session overrides
+2. **Spawn a Subagent**: Create a new Claude subagent with the resolved configuration
+3. **Send the Prompt**: Pass the prompt string to the subagent
+4. **Wait for Completion**: Block until the subagent finishes
+5. **Continue**: Proceed to the next statement
 
 ### Execution Flow Diagram
 
@@ -212,10 +329,19 @@ Each session waits for the previous one to complete before starting.
 To execute a session, use the Task tool:
 
 ```typescript
+// Simple session
 Task({
   description: "OpenProse session",
   prompt: "The prompt from the session statement",
   subagent_type: "general-purpose"
+})
+
+// Session with agent configuration
+Task({
+  description: "OpenProse session",
+  prompt: "The session prompt",
+  subagent_type: "general-purpose",
+  model: "opus"  // From agent or override
 })
 ```
 
@@ -223,10 +349,12 @@ Task({
 
 | Check | Severity | Message |
 |-------|----------|---------|
-| Missing prompt | Error | Session must have a prompt |
+| Missing prompt and agent | Error | Session requires a prompt or agent reference |
+| Undefined agent reference | Error | Agent not defined |
 | Empty prompt `""` | Warning | Session has empty prompt |
 | Whitespace-only prompt | Warning | Session prompt contains only whitespace |
 | Prompt > 10,000 chars | Warning | Consider breaking into smaller tasks |
+| Duplicate property | Error | Property already specified |
 
 ### Examples
 
@@ -234,20 +362,36 @@ Task({
 # Simple session
 session "Hello world"
 
-# Session with detailed prompt
-session "Analyze the provided data and create a summary report with key insights"
+# Session with agent
+agent researcher:
+  model: sonnet
+  prompt: "You research topics thoroughly"
 
-# Session with escaped characters
-session "Create a file with the following content:\n- Item 1\n- Item 2"
+session: researcher
+  prompt: "Research quantum computing applications"
+
+# Named session
+session analysis: researcher
+  prompt: "Analyze the competitive landscape"
 ```
 
 ### Canonical Form
 
-A simple session is already in canonical form. The compiled output matches the input:
+The compiled output preserves the structure:
 
 ```
-Input:  session "Hello"
-Output: session "Hello"
+Input:
+agent researcher:
+  model: sonnet
+
+session: researcher
+  prompt: "Do research"
+
+Output:
+agent researcher:
+  model: sonnet
+session: researcher
+  prompt: "Do research"
 ```
 
 ---
@@ -270,9 +414,10 @@ The compile phase handles deterministic preprocessing:
 The Orchestrator executes the compiled program:
 
 1. **Load**: Receive the compiled program
-2. **Execute**: Process each statement in order
-3. **Spawn**: Create subagents for session statements
-4. **Coordinate**: Manage context passing between sessions
+2. **Collect Agents**: Register all agent definitions
+3. **Execute**: Process each statement in order
+4. **Spawn**: Create subagents with resolved configurations
+5. **Coordinate**: Manage context passing between sessions
 
 ### Orchestrator Behavior
 
@@ -280,6 +425,7 @@ The Orchestrator executes the compiled program:
 |--------|----------|
 | Execution order | Strict - follows program exactly |
 | Session creation | Strict - creates what program specifies |
+| Agent resolution | Strict - merge properties deterministically |
 | Context passing | Intelligent - summarizes/transforms as needed |
 | Completion detection | Intelligent - determines when session is "done" |
 
@@ -289,6 +435,7 @@ For the current implementation, state is tracked in-context (conversation histor
 
 | State Type | Tracking Approach |
 |------------|-------------------|
+| Agent definitions | Collected at program start |
 | Execution flow | Implicit reasoning ("completed X, now executing Y") |
 | Session outputs | Held in conversation history |
 | Position in program | Tracked by Orchestrator |
@@ -305,9 +452,13 @@ The validator checks programs for errors and warnings before execution.
 |------|-------------|
 | E001 | Unterminated string literal |
 | E002 | Unknown escape sequence in string |
-| E003 | Session missing prompt |
+| E003 | Session missing prompt or agent |
 | E004 | Unexpected token |
 | E005 | Invalid syntax |
+| E006 | Duplicate agent definition |
+| E007 | Undefined agent reference |
+| E008 | Invalid model value |
+| E009 | Duplicate property |
 
 ### Warnings (Non-blocking)
 
@@ -316,6 +467,8 @@ The validator checks programs for errors and warnings before execution.
 | W001 | Empty session prompt |
 | W002 | Whitespace-only session prompt |
 | W003 | Session prompt exceeds 10,000 characters |
+| W004 | Empty prompt property |
+| W005 | Unknown property name |
 
 ### Error Message Format
 
@@ -337,31 +490,58 @@ Error at line 5, column 12: Unterminated string literal
 session "Hello world"
 ```
 
-### Research Pipeline
+### Research Pipeline with Agents
 
 ```prose
-# Research and summarize a topic
-session "Research recent developments in quantum computing"
-session "Summarize the key findings in 3 bullet points"
-session "Identify potential applications for each finding"
+# Define specialized agents
+agent researcher:
+  model: sonnet
+  prompt: "You are a research assistant"
+
+agent writer:
+  model: opus
+  prompt: "You are a technical writer"
+
+# Execute workflow
+session: researcher
+  prompt: "Research recent developments in quantum computing"
+
+session: writer
+  prompt: "Write a summary of the research findings"
 ```
 
-### Multi-step Task
+### Code Review Workflow
 
 ```prose
-# Code review workflow
-session "Read the code in src/main.ts and identify potential bugs"
-session "Suggest fixes for each bug found"
-session "Create a summary of all changes needed"
+agent reviewer:
+  model: sonnet
+  prompt: "You are an expert code reviewer"
+
+session: reviewer
+  prompt: "Read the code in src/ and identify potential bugs"
+
+session: reviewer
+  prompt: "Suggest fixes for each bug found"
+
+session: reviewer
+  prompt: "Create a summary of all changes needed"
 ```
 
-### With Detailed Prompts
+### Multi-step Task with Model Override
 
 ```prose
-# Data analysis task
-session "Load the CSV file from data/sales.csv and analyze the following:\n- Total revenue by month\n- Top 5 products by sales volume\n- Customer acquisition trends"
+agent analyst:
+  model: haiku
+  prompt: "You analyze data quickly"
 
-session "Based on the analysis, create recommendations for Q2 strategy"
+# Quick initial analysis
+session: analyst
+  prompt: "Scan the data for obvious patterns"
+
+# Detailed analysis with more powerful model
+session: analyst
+  model: opus
+  prompt: "Perform deep analysis on the patterns found"
 ```
 
 ### Comments for Documentation
@@ -371,14 +551,25 @@ session "Based on the analysis, create recommendations for Q2 strategy"
 # Author: Team Lead
 # Date: 2024-01-01
 
+agent data-collector:
+  model: sonnet
+  prompt: "You gather and organize data"
+
+agent analyst:
+  model: opus
+  prompt: "You analyze data and create insights"
+
 # Step 1: Gather data
-session "Collect all sales data from the past quarter"
+session: data-collector
+  prompt: "Collect all sales data from the past quarter"
 
 # Step 2: Analysis
-session "Perform trend analysis on the collected data"
+session: analyst
+  prompt: "Perform trend analysis on the collected data"
 
 # Step 3: Report generation
-session "Generate a formatted quarterly report with charts"
+session: analyst
+  prompt: "Generate a formatted quarterly report with charts"
 ```
 
 ---
@@ -386,11 +577,6 @@ session "Generate a formatted quarterly report with charts"
 ## Future Features
 
 The following features are specified but not yet implemented:
-
-### Tier 2: Agents
-- Agent definitions with model, skills, permissions
-- Session-agent binding
-- Property overrides
 
 ### Tier 3: Skills & Imports
 - `import "skill" from "source"` syntax
@@ -435,8 +621,11 @@ The following features are specified but not yet implemented:
 
 ```
 program     → statement* EOF
-statement   → session | comment
-session     → "session" string
+statement   → agentDef | session | comment
+agentDef    → "agent" IDENTIFIER ":" NEWLINE INDENT property* DEDENT
+session     → "session" ( string | ":" IDENTIFIER | IDENTIFIER ":" IDENTIFIER )
+              ( NEWLINE INDENT property* DEDENT )?
+property    → ( "model" | "prompt" | IDENTIFIER ) ":" ( IDENTIFIER | string )
 comment     → "#" text NEWLINE
 string      → '"' character* '"'
 character   → escape | non-quote
