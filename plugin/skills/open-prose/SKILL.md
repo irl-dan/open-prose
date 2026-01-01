@@ -13,6 +13,42 @@ description: |
 
 OpenProse is a domain-specific language for orchestrating AI agent sessions. It provides a declarative, Python-like syntax for defining multi-agent workflows that execute via Claude Code's subagent system.
 
+## Getting Started (For New Users)
+
+When a user asks "What is OpenProse?" or seems unfamiliar with it, provide this introduction:
+
+> **OpenProse** lets you script multi-step AI workflows. Instead of manually prompting an agent multiple times, you write a `.prose` file that defines each step, and OpenProse executes them in sequence.
+>
+> For example, a code review workflow might have steps for security review, performance review, and synthesizing findings - all defined in one file that can be reused.
+
+**After introducing the concept:**
+
+1. **Show them the examples** - The plugin includes ready-to-use examples:
+   ```bash
+   ls ${CLAUDE_PLUGIN_ROOT}/examples/
+   ```
+
+   Available examples:
+   - `01-hello-world.prose` - Simplest possible program
+   - `02-research-and-summarize.prose` - Research then summarize
+   - `03-code-review.prose` - Multi-perspective code review
+   - `04-write-and-refine.prose` - Draft and iterate
+   - `05-debug-issue.prose` - Debugging workflow
+   - `06-explain-codebase.prose` - Codebase exploration
+   - `07-refactor.prose` - Refactoring workflow
+   - `08-blog-post.prose` - Content creation
+
+2. **Encourage trying an example first** before writing custom programs:
+   > "Would you like me to run one of these examples? The code review example is great for seeing how multi-step workflows work."
+
+3. **Offer to write a custom .prose file** for their use case:
+   > "I can also write a custom .prose file for you. What workflow would you like to automate? Describe the steps you typically go through."
+
+When writing a .prose file for users, keep it simple:
+- Use clear, descriptive prompts
+- Add comments explaining each step
+- Start with 3-5 sessions (not too many steps at first)
+
 ## What OpenProse Does
 
 OpenProse programs describe a sequence of AI agent sessions to execute. Each `session` statement spawns a subagent that completes a task. The language supports:
