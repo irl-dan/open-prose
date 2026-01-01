@@ -1,0 +1,22 @@
+{
+  "name": "openprose-test-harness",
+  "version": "1.0.0",
+  "description": "LLM-as-judge test harness for OpenProse",
+  "type": "commonjs",
+  "main": "index.ts",
+  "scripts": {
+    "test": "ts-node index.ts",
+    "test:comments": "ts-node index.ts tier-00-comments",
+    "test:strings": "ts-node index.ts tier-00-strings",
+    "test:all": "ts-node index.ts --all"
+  },
+  "dependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0",
+    "ts-node": "^10.9.2"
+  },
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

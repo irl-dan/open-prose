@@ -1,0 +1,2 @@
+session "Hello world"
+session "This is a test with special chars: 'quotes' and \"escaped\""

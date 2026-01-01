@@ -1,0 +1,6 @@
+# This is a comment
+# Comments should be ignored by the parser
+
+session "Say hello"  # inline comment
+
+# Another comment

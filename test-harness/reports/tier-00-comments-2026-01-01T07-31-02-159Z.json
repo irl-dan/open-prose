@@ -1,0 +1,24 @@
+{
+  "testName": "tier-00-comments",
+  "timestamp": "2026-01-01T07:31:02.158Z",
+  "runner": {
+    "success": false,
+    "duration": 30004,
+    "programPath": "/Users/sl/code/open-prose/test-harness/test-programs/tier-00-comments.prose",
+    "error": "Execution timed out after 30000ms"
+  },
+  "logs": {
+    "entryCount": 0,
+    "toolCallCount": 0,
+    "errorCount": 0
+  },
+  "judgment": {
+    "success": false,
+    "passed": false,
+    "averageScore": 0,
+    "lowestScore": 0,
+    "scores": [],
+    "summary": "Judge evaluation was skipped",
+    "recommendations": []
+  }
+}
