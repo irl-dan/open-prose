@@ -41,6 +41,8 @@ export enum TokenType {
   FILTER = 'FILTER',
   REDUCE = 'REDUCE',
   PMAP = 'PMAP',
+  SKILLS = 'SKILLS',
+  PERMISSIONS = 'PERMISSIONS',
 
   // Operators
   ARROW = 'ARROW',          // ->
@@ -149,6 +151,8 @@ export const KEYWORDS: Record<string, TokenType> = {
   'filter': TokenType.FILTER,
   'reduce': TokenType.REDUCE,
   'pmap': TokenType.PMAP,
+  'skills': TokenType.SKILLS,
+  'permissions': TokenType.PERMISSIONS,
 };
 
 /**

@@ -19,11 +19,14 @@ import {
   CommentStatementNode,
   SessionStatementNode,
   AgentDefinitionNode,
+  ImportStatementNode,
   PropertyNode,
   StringLiteralNode,
+  NumberLiteralNode,
   IdentifierNode,
   ExpressionNode,
   EscapeSequence,
+  ArrayExpressionNode,
   createProgramNode,
   createCommentNode,
 } from './ast';
@@ -124,6 +127,11 @@ export class Parser {
       return this.parseCommentStatement();
     }
 
+    // Handle import keyword
+    if (this.check(TokenType.IMPORT)) {
+      return this.parseImportStatement();
+    }
+
     // Handle agent keyword
     if (this.check(TokenType.AGENT)) {
       return this.parseAgentDefinition();
@@ -154,6 +162,61 @@ export class Parser {
       type: 'CommentStatement',
       comment,
       span: token.span,
+    };
+  }
+
+  /**
+   * Parse an import statement
+   * Syntax: import "skill-name" from "source"
+   */
+  private parseImportStatement(): ImportStatementNode {
+    const importToken = this.advance(); // consume 'import'
+    const start = importToken.span.start;
+
+    // Expect string literal (skill name)
+    let skillName: StringLiteralNode;
+    if (this.check(TokenType.STRING)) {
+      const stringToken = this.advance();
+      skillName = this.createStringLiteralNode(stringToken);
+    } else {
+      this.addError('Expected skill name string after "import"');
+      skillName = {
+        type: 'StringLiteral',
+        value: '',
+        raw: '""',
+        isTripleQuoted: false,
+        span: this.peek().span,
+      };
+    }
+
+    // Expect 'from' keyword
+    if (!this.match(TokenType.FROM)) {
+      this.addError('Expected "from" after skill name');
+    }
+
+    // Expect string literal (source)
+    let source: StringLiteralNode;
+    if (this.check(TokenType.STRING)) {
+      const stringToken = this.advance();
+      source = this.createStringLiteralNode(stringToken);
+    } else {
+      this.addError('Expected source string after "from"');
+      source = {
+        type: 'StringLiteral',
+        value: '',
+        raw: '""',
+        isTripleQuoted: false,
+        span: this.peek().span,
+      };
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ImportStatement',
+      skillName,
+      source,
+      span: { start, end },
     };
   }
 
@@ -245,13 +308,18 @@ export class Parser {
   /**
    * Parse a property
    * Syntax: name: value
+   * Special cases:
+   * - skills: ["skill1", "skill2"]
+   * - permissions: (nested block)
    */
   private parseProperty(): PropertyNode | null {
     const start = this.peek().span.start;
 
-    // Property name can be model, prompt, or any identifier
+    // Property name can be model, prompt, skills, permissions, or any identifier
     let propName: IdentifierNode;
-    if (this.check(TokenType.MODEL) || this.check(TokenType.PROMPT) || this.check(TokenType.IDENTIFIER)) {
+    if (this.check(TokenType.MODEL) || this.check(TokenType.PROMPT) ||
+        this.check(TokenType.SKILLS) || this.check(TokenType.PERMISSIONS) ||
+        this.check(TokenType.IDENTIFIER)) {
       propName = this.parsePropertyName();
     } else {
       // Skip unknown tokens
@@ -265,14 +333,199 @@ export class Parser {
       return null;
     }
 
-    // Parse value
+    // Parse value based on property name or what comes next
     let value: ExpressionNode;
-    if (this.check(TokenType.STRING)) {
+
+    if (this.check(TokenType.LBRACKET)) {
+      // Array expression: ["item1", "item2"]
+      value = this.parseArrayExpression();
+    } else if (this.check(TokenType.STRING)) {
       value = this.parseStringLiteral();
     } else if (this.check(TokenType.IDENTIFIER)) {
       value = this.parseIdentifier();
+    } else if (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+      // permissions: followed by newline means nested block - we'll handle that specially
+      // For now, create a placeholder and let the caller handle the block
+      if (propName.name === 'permissions') {
+        // Skip inline comment if present
+        if (this.check(TokenType.COMMENT)) {
+          const commentToken = this.advance();
+          const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+          this.comments.push(inlineComment);
+        }
+
+        // Parse the permissions block
+        value = this.parsePermissionsBlock();
+      } else {
+        this.addError('Expected property value');
+        value = {
+          type: 'Identifier',
+          name: '',
+          span: this.peek().span,
+        };
+      }
     } else {
       this.addError('Expected property value');
+      value = {
+        type: 'Identifier',
+        name: '',
+        span: this.peek().span,
+      };
+    }
+
+    // Skip inline comment
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'Property',
+      name: propName,
+      value,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse an array expression
+   * Syntax: ["item1", "item2", ...]
+   */
+  private parseArrayExpression(): ArrayExpressionNode {
+    const start = this.peek().span.start;
+    this.advance(); // consume '['
+
+    const elements: ExpressionNode[] = [];
+
+    while (!this.isAtEnd() && !this.check(TokenType.RBRACKET)) {
+      // Parse element
+      if (this.check(TokenType.STRING)) {
+        elements.push(this.parseStringLiteral());
+      } else if (this.check(TokenType.IDENTIFIER)) {
+        elements.push(this.parseIdentifier());
+      } else if (this.check(TokenType.NUMBER)) {
+        elements.push(this.parseNumberLiteral());
+      } else {
+        this.addError('Expected array element');
+        break;
+      }
+
+      // Expect comma or closing bracket
+      if (!this.check(TokenType.RBRACKET)) {
+        if (!this.match(TokenType.COMMA)) {
+          this.addError('Expected "," or "]" after array element');
+          break;
+        }
+      }
+    }
+
+    if (!this.match(TokenType.RBRACKET)) {
+      this.addError('Expected "]" to close array');
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ArrayExpression',
+      elements,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a permissions block (nested properties)
+   * Syntax:
+   *   permissions:
+   *     read: ["*.md"]
+   *     write: ["output/"]
+   */
+  private parsePermissionsBlock(): ExpressionNode {
+    const start = this.peek().span.start;
+
+    // Skip newlines
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    const properties: PropertyNode[] = [];
+
+    // Check for indented block
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      // Parse properties until DEDENT
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        // Parse permission property (e.g., read: ["*.md"])
+        const prop = this.parsePermissionProperty();
+        if (prop) {
+          properties.push(prop);
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ObjectExpression',
+      properties,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a single permission property
+   * Syntax: permission-type: value (array or identifier)
+   */
+  private parsePermissionProperty(): PropertyNode | null {
+    const start = this.peek().span.start;
+
+    // Permission name (read, write, execute, bash, etc.)
+    if (!this.check(TokenType.IDENTIFIER)) {
+      this.advance();
+      return null;
+    }
+
+    const propName = this.parseIdentifier();
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError(`Expected ":" after permission name "${propName.name}"`);
+      return null;
+    }
+
+    // Parse value (array or identifier like 'deny', 'allow', 'prompt')
+    // Note: 'prompt' is a keyword so we need to accept it as a valid identifier value
+    let value: ExpressionNode;
+    if (this.check(TokenType.LBRACKET)) {
+      value = this.parseArrayExpression();
+    } else if (this.check(TokenType.IDENTIFIER) || this.check(TokenType.PROMPT)) {
+      // Accept 'prompt' keyword as a valid permission value
+      value = this.parseIdentifier();
+    } else if (this.check(TokenType.STRING)) {
+      value = this.parseStringLiteral();
+    } else {
+      this.addError('Expected permission value');
       value = {
         type: 'Identifier',
         name: '',
@@ -437,6 +690,19 @@ export class Parser {
   private parseStringLiteral(): StringLiteralNode {
     const token = this.advance();
     return this.createStringLiteralNode(token);
+  }
+
+  /**
+   * Parse a number literal
+   */
+  private parseNumberLiteral(): NumberLiteralNode {
+    const token = this.advance();
+    return {
+      type: 'NumberLiteral',
+      value: parseFloat(token.value),
+      raw: token.value,
+      span: token.span,
+    };
   }
 
   // Helper methods

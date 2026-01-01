@@ -1,0 +1,29 @@
+# Tier 3.3: Agent Permissions
+# Tests that permission blocks are parsed and validated correctly
+
+# Define an agent with restricted permissions
+agent secure-reader:
+  model: sonnet
+  prompt: "You are a secure reader with restricted access"
+  permissions:
+    read: ["*.md", "*.txt", "docs/**/*"]
+    write: []
+    bash: deny
+    network: deny
+
+# Define an agent with write permissions
+agent writer:
+  model: sonnet
+  prompt: "You are a writer with limited write access"
+  permissions:
+    read: ["**/*"]
+    write: ["output/*.md", "docs/*.txt"]
+    bash: prompt
+
+# Use the secure agent in a session
+session: secure-reader
+  prompt: "Confirm that you are a secure reader with read access to markdown and text files, but no write, bash, or network access"
+
+# Use the writer agent
+session: writer
+  prompt: "Confirm that you are a writer with limited write access to output and docs directories"

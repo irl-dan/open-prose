@@ -224,6 +224,8 @@ export class SemanticTokensProvider {
       case TokenType.FILTER:
       case TokenType.REDUCE:
       case TokenType.PMAP:
+      case TokenType.SKILLS:
+      case TokenType.PERMISSIONS:
         return SemanticTokenType.Keyword;
 
       // Operators

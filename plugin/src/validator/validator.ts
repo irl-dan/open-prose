@@ -14,9 +14,12 @@ import {
   CommentStatementNode,
   SessionStatementNode,
   AgentDefinitionNode,
+  ImportStatementNode,
   PropertyNode,
   StringLiteralNode,
   IdentifierNode,
+  ArrayExpressionNode,
+  ObjectExpressionNode,
   walkAST,
   ASTVisitor,
 } from '../parser';
@@ -41,6 +44,7 @@ export class Validator {
   private errors: ValidationError[] = [];
   private warnings: ValidationError[] = [];
   private definedAgents: Map<string, AgentDefinitionNode> = new Map();
+  private importedSkills: Map<string, ImportStatementNode> = new Map();
 
   constructor(private program: ProgramNode) {}
 
@@ -51,10 +55,13 @@ export class Validator {
     this.errors = [];
     this.warnings = [];
     this.definedAgents = new Map();
+    this.importedSkills = new Map();
 
-    // First pass: collect agent definitions
+    // First pass: collect imports and agent definitions
     for (const statement of this.program.statements) {
-      if (statement.type === 'AgentDefinition') {
+      if (statement.type === 'ImportStatement') {
+        this.collectImport(statement);
+      } else if (statement.type === 'AgentDefinition') {
         this.collectAgentDefinition(statement);
       }
     }
@@ -74,6 +81,19 @@ export class Validator {
       errors: this.errors,
       warnings: this.warnings,
     };
+  }
+
+  /**
+   * Collect import statement (first pass)
+   */
+  private collectImport(importStmt: ImportStatementNode): void {
+    const skillName = importStmt.skillName.value;
+
+    if (this.importedSkills.has(skillName)) {
+      this.addError(`Duplicate import: "${skillName}"`, importStmt.skillName.span);
+    } else {
+      this.importedSkills.set(skillName, importStmt);
+    }
   }
 
   /**
@@ -97,6 +117,9 @@ export class Validator {
       case 'CommentStatement':
         this.validateCommentStatement(statement);
         break;
+      case 'ImportStatement':
+        this.validateImportStatement(statement);
+        break;
       case 'SessionStatement':
         this.validateSessionStatement(statement);
         break;
@@ -105,6 +128,41 @@ export class Validator {
         break;
       // Other statement types will be added in later tiers
     }
+  }
+
+  /**
+   * Validate an import statement
+   */
+  private validateImportStatement(importStmt: ImportStatementNode): void {
+    // Validate skill name is not empty
+    if (!importStmt.skillName.value) {
+      this.addError('Import skill name cannot be empty', importStmt.skillName.span);
+    }
+
+    // Validate source is not empty
+    if (!importStmt.source.value) {
+      this.addError('Import source cannot be empty', importStmt.source.span);
+    }
+
+    // Validate source format (github:, npm:, or local path)
+    const source = importStmt.source.value;
+    if (source && !this.isValidImportSource(source)) {
+      this.addWarning(
+        `Import source "${source}" should start with "github:", "npm:", or "./" for local paths`,
+        importStmt.source.span
+      );
+    }
+  }
+
+  /**
+   * Check if an import source is valid
+   */
+  private isValidImportSource(source: string): boolean {
+    return source.startsWith('github:') ||
+           source.startsWith('npm:') ||
+           source.startsWith('./') ||
+           source.startsWith('../') ||
+           source.startsWith('/');
   }
 
   /**
@@ -216,9 +274,99 @@ export class Validator {
       case 'prompt':
         this.validatePromptProperty(prop);
         break;
+      case 'skills':
+        if (context !== 'agent') {
+          this.addWarning('Skills property is only valid in agent definitions', prop.name.span);
+        } else {
+          this.validateSkillsProperty(prop);
+        }
+        break;
+      case 'permissions':
+        if (context !== 'agent') {
+          this.addWarning('Permissions property is only valid in agent definitions', prop.name.span);
+        } else {
+          this.validatePermissionsProperty(prop);
+        }
+        break;
       default:
         // Unknown properties - warn for now (could be future features)
         this.addWarning(`Unknown property: "${propName}"`, prop.name.span);
+    }
+  }
+
+  /**
+   * Validate skills property
+   */
+  private validateSkillsProperty(prop: PropertyNode): void {
+    if (prop.value.type !== 'ArrayExpression') {
+      this.addError('Skills must be an array of skill names', prop.value.span);
+      return;
+    }
+
+    const arrayValue = prop.value as ArrayExpressionNode;
+
+    // Validate each skill reference
+    for (const element of arrayValue.elements) {
+      if (element.type !== 'StringLiteral') {
+        this.addError('Skill name must be a string', element.span);
+        continue;
+      }
+
+      const skillName = (element as StringLiteralNode).value;
+
+      // Check if skill is imported
+      if (!this.importedSkills.has(skillName)) {
+        this.addWarning(`Skill "${skillName}" is not imported`, element.span);
+      }
+    }
+
+    // Warn on empty skills array
+    if (arrayValue.elements.length === 0) {
+      this.addWarning('Skills array is empty', prop.value.span);
+    }
+  }
+
+  /**
+   * Validate permissions property
+   */
+  private validatePermissionsProperty(prop: PropertyNode): void {
+    if (prop.value.type !== 'ObjectExpression') {
+      this.addError('Permissions must be a block of permission rules', prop.value.span);
+      return;
+    }
+
+    const objectValue = prop.value as ObjectExpressionNode;
+    const validPermissionTypes = ['read', 'write', 'execute', 'bash', 'network'];
+
+    for (const permProp of objectValue.properties) {
+      const permType = permProp.name.name;
+
+      // Check for known permission types
+      if (!validPermissionTypes.includes(permType)) {
+        this.addWarning(`Unknown permission type: "${permType}"`, permProp.name.span);
+      }
+
+      // Validate permission value (array or identifier like 'deny'/'allow')
+      if (permProp.value.type === 'ArrayExpression') {
+        // Validate each pattern in the array
+        const arrayValue = permProp.value as ArrayExpressionNode;
+        for (const element of arrayValue.elements) {
+          if (element.type !== 'StringLiteral') {
+            this.addError('Permission pattern must be a string', element.span);
+          }
+        }
+      } else if (permProp.value.type === 'Identifier') {
+        // Allow 'deny', 'allow', etc.
+        const identValue = (permProp.value as IdentifierNode).name;
+        if (!['deny', 'allow', 'prompt'].includes(identValue)) {
+          this.addWarning(
+            `Unknown permission value: "${identValue}". Expected 'deny', 'allow', or 'prompt'`,
+            permProp.value.span
+          );
+        }
+      } else {
+        this.addError('Permission value must be an array of patterns or an identifier', permProp.value.span);
+      }
     }
   }
 

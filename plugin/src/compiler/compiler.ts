@@ -15,9 +15,13 @@ import {
   CommentStatementNode,
   SessionStatementNode,
   AgentDefinitionNode,
+  ImportStatementNode,
   PropertyNode,
   StringLiteralNode,
   IdentifierNode,
+  ArrayExpressionNode,
+  ObjectExpressionNode,
+  ExpressionNode,
 } from '../parser';
 import { SourceSpan } from '../parser/tokens';
 
@@ -108,6 +112,9 @@ export class Compiler {
       case 'CommentStatement':
         this.compileCommentStatement(statement);
         break;
+      case 'ImportStatement':
+        this.compileImportStatement(statement);
+        break;
       case 'SessionStatement':
         this.compileSessionStatement(statement);
         break;
@@ -116,6 +123,22 @@ export class Compiler {
         break;
       // Other statement types will be added in later tiers
     }
+  }
+
+  /**
+   * Compile an import statement
+   */
+  private compileImportStatement(statement: ImportStatementNode): void {
+    // Add source mapping
+    this.addSourceMapping(statement.span.start.line, statement.span.start.column);
+
+    // Emit: import "skill-name" from "source"
+    this.emit('import "');
+    this.emit(this.escapeString(statement.skillName.value));
+    this.emit('" from "');
+    this.emit(this.escapeString(statement.source.value));
+    this.emit('"');
+    this.emitNewline();
   }
 
   /**
@@ -162,22 +185,79 @@ export class Compiler {
   /**
    * Compile a property
    */
-  private compileProperty(prop: PropertyNode): void {
-    this.emit(this.options.indent);
+  private compileProperty(prop: PropertyNode, indentLevel: number = 1): void {
+    const indent = this.options.indent.repeat(indentLevel);
+    this.emit(indent);
     this.emit(prop.name.name);
     this.emit(': ');
 
-    if (prop.value.type === 'StringLiteral') {
-      const str = prop.value as StringLiteralNode;
-      this.emit('"');
-      this.emit(this.escapeString(str.value));
-      this.emit('"');
-    } else if (prop.value.type === 'Identifier') {
-      const id = prop.value as IdentifierNode;
-      this.emit(id.name);
-    }
+    this.compileExpression(prop.value, indentLevel);
 
     this.emitNewline();
+  }
+
+  /**
+   * Compile an expression
+   */
+  private compileExpression(expr: ExpressionNode, indentLevel: number = 1): void {
+    switch (expr.type) {
+      case 'StringLiteral': {
+        const str = expr as StringLiteralNode;
+        this.emit('"');
+        this.emit(this.escapeString(str.value));
+        this.emit('"');
+        break;
+      }
+      case 'Identifier': {
+        const id = expr as IdentifierNode;
+        this.emit(id.name);
+        break;
+      }
+      case 'ArrayExpression': {
+        this.compileArrayExpression(expr as ArrayExpressionNode);
+        break;
+      }
+      case 'ObjectExpression': {
+        this.compileObjectExpression(expr as ObjectExpressionNode, indentLevel);
+        break;
+      }
+      default:
+        // Fallback for other expression types
+        break;
+    }
+  }
+
+  /**
+   * Compile an array expression
+   */
+  private compileArrayExpression(arr: ArrayExpressionNode): void {
+    this.emit('[');
+
+    for (let i = 0; i < arr.elements.length; i++) {
+      if (i > 0) {
+        this.emit(', ');
+      }
+      this.compileExpression(arr.elements[i]);
+    }
+
+    this.emit(']');
+  }
+
+  /**
+   * Compile an object expression (for permissions block)
+   */
+  private compileObjectExpression(obj: ObjectExpressionNode, indentLevel: number): void {
+    // Object expressions in permissions are rendered as nested blocks
+    if (obj.properties.length === 0) {
+      this.emit('{}');
+      return;
+    }
+
+    // Emit a newline and then each property with increased indentation
+    this.emitNewline();
+    for (const prop of obj.properties) {
+      this.compileProperty(prop, indentLevel + 1);
+    }
   }
 
   /**

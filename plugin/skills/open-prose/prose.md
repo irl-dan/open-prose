@@ -10,12 +10,13 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. Thi
 2. [File Format](#file-format)
 3. [Comments](#comments)
 4. [String Literals](#string-literals)
-5. [Agent Definitions](#agent-definitions)
-6. [Session Statement](#session-statement)
-7. [Execution Model](#execution-model)
-8. [Validation Rules](#validation-rules)
-9. [Examples](#examples)
-10. [Future Features](#future-features)
+5. [Import Statements](#import-statements)
+6. [Agent Definitions](#agent-definitions)
+7. [Session Statement](#session-statement)
+8. [Execution Model](#execution-model)
+9. [Validation Rules](#validation-rules)
+10. [Examples](#examples)
+11. [Future Features](#future-features)
 
 ---
 
@@ -41,6 +42,9 @@ The following features are implemented:
 | Simple session | Implemented | `session "prompt"` |
 | Agent definitions | Implemented | `agent name:` with model/prompt properties |
 | Session with agent | Implemented | `session: agent` with property overrides |
+| Import statements | Implemented | `import "skill" from "source"` |
+| Agent skills | Implemented | `skills: ["skill1", "skill2"]` |
+| Agent permissions | Implemented | `permissions:` block with rules |
 
 ---
 
@@ -159,6 +163,57 @@ session "Column1\tColumn2"
 
 ---
 
+## Import Statements
+
+Import statements load external skills that can be assigned to agents.
+
+### Syntax
+
+```prose
+import "skill-name" from "source"
+```
+
+### Source Types
+
+| Source Type | Format | Example |
+|-------------|--------|---------|
+| GitHub | `github:user/repo` | `github:anthropic/skills` |
+| NPM | `npm:package` | `npm:@org/analyzer` |
+| Local path | `./path` or `../path` | `./local-skills/my-skill` |
+
+### Examples
+
+```prose
+# Import from GitHub
+import "web-search" from "github:anthropic/skills"
+
+# Import from npm
+import "code-analyzer" from "npm:@company/analyzer"
+
+# Import from local path
+import "custom-tool" from "./skills/custom-tool"
+import "shared-skill" from "../common/skills"
+```
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Empty skill name | Error | Import skill name cannot be empty |
+| Empty source | Error | Import source cannot be empty |
+| Duplicate import | Error | Skill already imported |
+| Unknown source format | Warning | Should start with github:, npm:, or ./ |
+
+### Execution Semantics
+
+Import statements are processed before any agent definitions or sessions. The Orchestrator:
+
+1. Validates all imports at the start of execution
+2. Loads skill definitions from the specified sources
+3. Makes skills available for agent assignment
+
+---
+
 ## Agent Definitions
 
 Agents are reusable templates that configure subagent behavior. Once defined, agents can be referenced in session statements.
@@ -169,6 +224,10 @@ Agents are reusable templates that configure subagent behavior. Once defined, ag
 agent name:
   model: sonnet
   prompt: "System prompt for this agent"
+  skills: ["skill1", "skill2"]
+  permissions:
+    read: ["*.md"]
+    bash: deny
 ```
 
 ### Properties
@@ -177,6 +236,54 @@ agent name:
 |----------|------|--------|-------------|
 | `model` | identifier | `sonnet`, `opus`, `haiku` | The Claude model to use |
 | `prompt` | string | Any string | System prompt/context for the agent |
+| `skills` | array | String array | Skills assigned to this agent |
+| `permissions` | block | Permission rules | Access control for the agent |
+
+### Skills Property
+
+The `skills` property assigns imported skills to an agent:
+
+```prose
+import "web-search" from "github:anthropic/skills"
+import "summarizer" from "./local-skills"
+
+agent researcher:
+  skills: ["web-search", "summarizer"]
+```
+
+Skills must be imported before they can be assigned. Referencing an unimported skill generates a warning.
+
+### Permissions Property
+
+The `permissions` property controls agent access:
+
+```prose
+agent secure-agent:
+  permissions:
+    read: ["*.md", "*.txt"]
+    write: ["output/"]
+    bash: deny
+    network: allow
+```
+
+#### Permission Types
+
+| Type | Description |
+|------|-------------|
+| `read` | Files the agent can read (glob patterns) |
+| `write` | Files the agent can write (glob patterns) |
+| `execute` | Files the agent can execute (glob patterns) |
+| `bash` | Shell access: `allow`, `deny`, or `prompt` |
+| `network` | Network access: `allow`, `deny`, or `prompt` |
+
+#### Permission Values
+
+| Value | Description |
+|-------|-------------|
+| `allow` | Permission granted |
+| `deny` | Permission denied |
+| `prompt` | Ask user for permission |
+| Array | List of allowed patterns (for read/write/execute) |
 
 ### Examples
 
@@ -198,6 +305,18 @@ agent quick:
 # Agent with only prompt
 agent expert:
   prompt: "You are a domain expert"
+
+# Agent with skills
+agent web-researcher:
+  model: sonnet
+  skills: ["web-search", "summarizer"]
+
+# Agent with permissions
+agent file-handler:
+  permissions:
+    read: ["*.md", "*.txt"]
+    write: ["output/"]
+    bash: deny
 ```
 
 ### Model Selection
@@ -459,6 +578,13 @@ The validator checks programs for errors and warnings before execution.
 | E007 | Undefined agent reference |
 | E008 | Invalid model value |
 | E009 | Duplicate property |
+| E010 | Duplicate import |
+| E011 | Empty import skill name |
+| E012 | Empty import source |
+| E013 | Skills must be an array |
+| E014 | Skill name must be a string |
+| E015 | Permissions must be a block |
+| E016 | Permission pattern must be a string |
 
 ### Warnings (Non-blocking)
 
@@ -469,6 +595,11 @@ The validator checks programs for errors and warnings before execution.
 | W003 | Session prompt exceeds 10,000 characters |
 | W004 | Empty prompt property |
 | W005 | Unknown property name |
+| W006 | Unknown import source format |
+| W007 | Skill not imported |
+| W008 | Unknown permission type |
+| W009 | Unknown permission value |
+| W010 | Empty skills array |
 
 ### Error Message Format
 
@@ -572,15 +703,44 @@ session: analyst
   prompt: "Generate a formatted quarterly report with charts"
 ```
 
+### Workflow with Skills and Permissions
+
+```prose
+# Import external skills
+import "web-search" from "github:anthropic/skills"
+import "file-writer" from "./local-skills"
+
+# Define a secure research agent
+agent researcher:
+  model: sonnet
+  prompt: "You are a research assistant"
+  skills: ["web-search"]
+  permissions:
+    read: ["*.md", "*.txt"]
+    bash: deny
+
+# Define a writer agent
+agent writer:
+  model: opus
+  prompt: "You create documentation"
+  skills: ["file-writer"]
+  permissions:
+    write: ["docs/"]
+    bash: deny
+
+# Execute workflow
+session: researcher
+  prompt: "Research AI safety topics"
+
+session: writer
+  prompt: "Write a summary document"
+```
+
 ---
 
 ## Future Features
 
 The following features are specified but not yet implemented:
-
-### Tier 3: Skills & Imports
-- `import "skill" from "source"` syntax
-- Agent skill assignment
 
 ### Tier 4: Variables & Context
 - `let` and `const` bindings

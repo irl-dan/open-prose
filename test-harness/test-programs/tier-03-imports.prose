@@ -1,0 +1,17 @@
+# Tier 3.1: Import Statements
+# Tests that import statements are parsed and validated correctly
+
+# Import skills from various sources
+import "web-search" from "github:anthropic/skills"
+import "summarizer" from "npm:@example/summarizer"
+import "custom-tool" from "./local-skills/custom"
+
+# Define an agent using the imported skills
+agent researcher:
+  model: sonnet
+  prompt: "You are a research assistant"
+  skills: ["web-search", "summarizer", "custom-tool"]
+
+# Use the agent in a session
+session: researcher
+  prompt: "Confirm that you are a research assistant with access to web-search, summarizer, and custom-tool skills"
