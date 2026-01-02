@@ -1,0 +1,27 @@
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+
+app = 'openprose-api'
+primary_region = 'sjc'
+
+[build]
+
+[env]
+  NODE_ENV = 'production'
+  DATABASE_PATH = '/data/telemetry.db'
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  memory = '256mb'
+  cpu_kind = 'shared'
+  cpus = 1
+
+[mounts]
+  source = 'openprose_data'
+  destination = '/data'

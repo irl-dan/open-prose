@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import analytics from "@/lib/analytics";
 
 // ============================================
 // COMPONENTS
@@ -65,7 +66,7 @@ function HeroSection() {
         {/* Tagline */}
         <div className="mb-6 opacity-0 animate-fade-in-up animation-delay-200">
           <p className="text-2xl md:text-3xl font-light leading-relaxed text-[var(--ink-dark)]">
-            <TypewriterText text="Declarative agents. Intelligent runtime." delay={800} />
+            <TypewriterText text="A new kind of programming language. For a new kind of computer." delay={800} />
           </p>
         </div>
 
@@ -114,13 +115,21 @@ function HeroSection() {
 
         {/* CTA buttons */}
         <div className="flex flex-col sm:flex-row gap-4 opacity-0 animate-fade-in-up animation-delay-600">
-          <a href="https://github.com/irl-dan/open-prose" className="btn-primary inline-flex items-center justify-center gap-2">
+          <a
+            href="https://github.com/irl-dan/open-prose"
+            className="btn-primary inline-flex items-center justify-center gap-2"
+            onClick={() => analytics.track('cta_click', { button: 'github', section: 'hero' })}
+          >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
             </svg>
             View on GitHub
           </a>
-          <a href="#concept" className="btn-secondary">
+          <a
+            href="#concept"
+            className="btn-secondary"
+            onClick={() => analytics.track('cta_click', { button: 'learn_concept', section: 'hero' })}
+          >
             Learn the concept
           </a>
         </div>
@@ -285,7 +294,13 @@ function FAQSection() {
               className="border border-[var(--paper-aged)] rounded-lg overflow-hidden"
             >
               <button
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                onClick={() => {
+                  const isOpening = openIndex !== index;
+                  setOpenIndex(isOpening ? index : null);
+                  if (isOpening) {
+                    analytics.track('faq_expand', { question: index, questionText: faq.question });
+                  }
+                }}
                 className="w-full px-6 py-5 text-left flex justify-between items-center bg-[var(--paper-cream)] hover:bg-[var(--paper-warm)] transition-colors"
               >
                 <span className="font-medium text-[var(--ink-dark)]">{faq.question}</span>
@@ -347,7 +362,11 @@ function GettingStartedSection() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <a href="https://github.com/irl-dan/open-prose" className="btn-primary inline-flex items-center justify-center gap-2">
+          <a
+            href="https://github.com/irl-dan/open-prose"
+            className="btn-primary inline-flex items-center justify-center gap-2"
+            onClick={() => analytics.track('cta_click', { button: 'github', section: 'start' })}
+          >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
               <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
             </svg>
@@ -356,6 +375,7 @@ function GettingStartedSection() {
           <a
             href="https://github.com/irl-dan/open-prose/tree/main/plugin/examples"
             className="btn-secondary inline-flex items-center justify-center"
+            onClick={() => analytics.track('cta_click', { button: 'examples', section: 'start' })}
           >
             Browse examples
           </a>
@@ -383,6 +403,7 @@ function DonationTier({
   return (
     <a
       href={href}
+      onClick={() => analytics.track('donation_click', { tier: amount, name })}
       className={`
         group relative flex flex-col items-center p-6 rounded-lg transition-all duration-300
         ${isHighlighted
@@ -462,6 +483,7 @@ function SupportSection() {
           <a
             href="https://buy.stripe.com/9B67sM60TaQacu77IQ5AQ01"
             className="inline-flex items-center gap-2 text-sm text-[var(--ink-light)] hover:text-[var(--ink-dark)] transition-colors font-mono"
+            onClick={() => analytics.track('donation_click', { tier: 'custom', name: 'Custom' })}
           >
             <span>Or choose your own amount</span>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -492,6 +514,7 @@ function SupportSection() {
                 <a
                   href="mailto:dan@draftsofthefuture.com"
                   className="btn-secondary inline-flex items-center justify-center gap-2"
+                  onClick={() => analytics.track('cta_click', { button: 'consulting', section: 'support' })}
                 >
                   Get in touch
                 </a>
@@ -522,8 +545,20 @@ function Footer() {
         </div>
 
         <div className="flex gap-6 text-sm text-[var(--ink-light)]">
-          <a href="https://github.com/irl-dan/open-prose" className="prose-link">GitHub</a>
-          <a href="https://github.com/irl-dan/open-prose/blob/main/plugin/skills/open-prose/prose.md" className="prose-link">Language Spec</a>
+          <a
+            href="https://github.com/irl-dan/open-prose"
+            className="prose-link"
+            onClick={() => analytics.track('cta_click', { button: 'github', section: 'footer' })}
+          >
+            GitHub
+          </a>
+          <a
+            href="https://github.com/irl-dan/open-prose/blob/main/plugin/skills/open-prose/prose.md"
+            className="prose-link"
+            onClick={() => analytics.track('cta_click', { button: 'language_spec', section: 'footer' })}
+          >
+            Language Spec
+          </a>
         </div>
       </div>
     </footer>
@@ -587,7 +622,12 @@ function Navigation() {
           {/* Desktop navigation */}
           <div className="hidden md:flex gap-8 text-sm text-[var(--ink-light)]">
             {navLinks.map((link) => (
-              <a key={link.href} href={link.href} className="hover:text-[var(--ink-dark)] transition-colors">
+              <a
+                key={link.href}
+                href={link.href}
+                className="hover:text-[var(--ink-dark)] transition-colors"
+                onClick={() => analytics.track('nav_click', { target: link.label.toLowerCase() })}
+              >
                 {link.label}
               </a>
             ))}
@@ -633,7 +673,10 @@ function Navigation() {
             <a
               key={link.href}
               href={link.href}
-              onClick={() => setMobileMenuOpen(false)}
+              onClick={() => {
+                analytics.track('nav_click', { target: link.label.toLowerCase(), mobile: true });
+                setMobileMenuOpen(false);
+              }}
             >
               {link.label}
             </a>
@@ -649,6 +692,11 @@ function Navigation() {
 // ============================================
 
 export default function Home() {
+  // Initialize analytics on mount
+  useEffect(() => {
+    analytics.init();
+  }, []);
+
   return (
     <>
       <Navigation />
