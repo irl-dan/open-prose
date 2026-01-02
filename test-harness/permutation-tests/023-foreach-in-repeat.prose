@@ -1,0 +1,7 @@
+# Permutation: For-each loop + Repeat loop (28x27)
+# Tests: For-each nested inside repeat
+
+repeat 2 as round:
+  let items = session "Generate items for round {round}"
+  for item in items:
+    session "Process {item}"

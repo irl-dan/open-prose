@@ -1,0 +1,12 @@
+# Permutation: Pipeline ops + Pipeline ops (31x31)
+# Tests: Chained pipeline operations
+
+let items = session "Generate list of items"
+
+items
+  | filter:
+      session "Keep {item}?"
+  | map:
+      session "Transform {item}"
+  | reduce(acc, item):
+      session "Combine {acc} with {item}"

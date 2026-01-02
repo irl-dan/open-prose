@@ -1,0 +1,6 @@
+# Permutation: Unbounded loop + Repeat loop (30x27)
+# Tests: Loop until inside repeat
+
+repeat 3 as attempt:
+  loop until **task complete**:
+    session "Attempt {attempt}: working..."

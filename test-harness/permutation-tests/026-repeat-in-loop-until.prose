@@ -1,0 +1,7 @@
+# Permutation: Repeat loop + Unbounded loop (27x30)
+# Tests: Repeat inside loop until
+
+loop until **quality is acceptable**:
+  repeat 3:
+    session "Refine the work"
+  session "Check quality"

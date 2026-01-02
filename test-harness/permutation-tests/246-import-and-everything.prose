@@ -1,0 +1,16 @@
+# Permutation: Import + Agent + Block + all features
+# Tests: Full program structure
+
+import "utils" from "./utils.prose"
+
+agent helper:
+  model: sonnet
+  prompt: "Helper agent"
+
+block process(data):
+  session: helper
+    prompt: "Process data"
+    context: data
+
+let input = session "Get input"
+do process(input)

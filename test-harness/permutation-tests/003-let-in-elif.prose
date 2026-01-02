@@ -1,0 +1,11 @@
+# Permutation: Let binding + If/elif/else (14x35)
+# Tests: Variable defined in elif branch
+
+if **first condition**:
+  let a = session "First"
+elif **second condition**:
+  let b = session "Second"
+else:
+  let c = session "Third"
+
+session "One of: {a}, {b}, or {c}"

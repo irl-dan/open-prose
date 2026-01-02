@@ -1,0 +1,9 @@
+# Permutation: For-each loop + For-each loop (28x28)
+# Tests: Nested for-each with index variables
+
+let categories = session "Generate 2 categories"
+
+for cat, i in categories:
+  let items = session "Get items for {cat}"
+  for item, j in items:
+    session "Category {i} item {j}: {item}"

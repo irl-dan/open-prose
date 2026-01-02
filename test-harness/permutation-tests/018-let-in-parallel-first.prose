@@ -1,0 +1,8 @@
+# Permutation: Let binding + Parallel modifiers (14x26)
+# Tests: Variable from parallel with "first" strategy
+
+parallel("first"):
+  let fast = session "Fast result"
+  let slow = session "Slow result"
+
+session "Winner was: {fast}"

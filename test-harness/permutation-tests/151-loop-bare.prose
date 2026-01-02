@@ -1,0 +1,7 @@
+# Permutation: Unbounded loop (30)
+# Tests: Bare loop with discretion inside
+
+loop:
+  session "Keep working"
+  if **done**:
+    session "Finished"

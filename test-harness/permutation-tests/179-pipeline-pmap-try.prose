@@ -1,0 +1,11 @@
+# Permutation: Pipeline pmap + Try + Let (31x32x14)
+# Tests: Parallel map with error handling
+
+let items = session "Get items"
+
+try:
+  let results = items | pmap:
+    let processed = session "Process {item} in parallel"
+    session "Validate {processed}"
+catch:
+  session "Parallel processing failed"

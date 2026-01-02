@@ -1,0 +1,7 @@
+# Permutation: Arrow sequence + Try/catch (24x32)
+# Tests: Arrow sequence in try block
+
+try:
+  session "Start" -> session "Process" -> session "Finish"
+catch:
+  session "Pipeline failed"

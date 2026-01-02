@@ -1,0 +1,18 @@
+# Permutation: Pipeline used in many contexts
+# Tests: Pipeline versatility
+
+let items = session "Get items"
+
+# In simple context
+items | map:
+  session "Map {item}"
+
+# In if
+if **need processing**:
+  items | filter:
+    session "Filter {item}"
+
+# In loop
+repeat 2:
+  items | map:
+    session "Loop map {item}"

@@ -1,0 +1,7 @@
+# Permutation: Let binding + Repeat loop + For-each loop (14x27x28)
+# Tests: Variable defined in repeat, used as collection in for-each
+
+repeat 2 as round:
+  let items = session "Generate items for round {round}"
+  for item in items:
+    session "Process {item}"

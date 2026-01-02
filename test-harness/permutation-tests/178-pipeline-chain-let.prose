@@ -1,0 +1,15 @@
+# Permutation: Pipeline + Pipeline + Pipeline + Let (31x31x31x14)
+# Tests: Long pipeline chain with intermediate captures
+
+let items = session "Get items"
+
+let filtered = items | filter:
+  session "Keep {item}?"
+
+let transformed = filtered | map:
+  session "Transform {item}"
+
+let final = transformed | reduce(acc, item):
+  session "Combine {acc} with {item}"
+
+session "Result: {final}"

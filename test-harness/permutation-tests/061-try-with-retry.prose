@@ -1,0 +1,10 @@
+# Permutation: Try/catch + Session properties (32x07)
+# Tests: Session with retry inside try
+
+try:
+  session:
+    prompt: "Flaky operation"
+    retry: 3
+    backoff: 1000
+catch:
+  session "All retries failed"

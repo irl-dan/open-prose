@@ -1,0 +1,14 @@
+# Permutation: If + Repeat + Try + Parallel + For-each (35x27x32x25x28)
+# Tests: Five levels of control structure nesting
+
+let items = session "Get items"
+
+if **complex mode enabled**:
+  repeat 2 as round:
+    try:
+      parallel:
+        for item in items:
+          session "Round {round}: process {item}"
+        session "Round {round}: monitor"
+    catch:
+      session "Round {round} failed"

@@ -1,0 +1,12 @@
+# Permutation: Parallel block + Do block (25x20)
+# Tests: Do blocks inside parallel
+
+block taskA:
+  session "Task A work"
+
+block taskB:
+  session "Task B work"
+
+parallel:
+  do taskA
+  do taskB

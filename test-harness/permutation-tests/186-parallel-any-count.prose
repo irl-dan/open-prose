@@ -1,0 +1,10 @@
+# Permutation: Parallel("any", count) + Let (26x14)
+# Tests: Wait for N results
+
+let results = parallel("any", count: 2):
+  session "Candidate A"
+  session "Candidate B"
+  session "Candidate C"
+  session "Candidate D"
+
+session "Got 2 results: {results}"

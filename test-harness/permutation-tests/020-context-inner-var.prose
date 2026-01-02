@@ -1,0 +1,9 @@
+# Permutation: Context single + Let binding (17x14)
+# Tests: Context referencing variable from inner scope
+
+do:
+  let inner_data = session "Generate data"
+
+session:
+  prompt: "Process the data"
+  context: inner_data

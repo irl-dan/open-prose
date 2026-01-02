@@ -1,0 +1,13 @@
+# Permutation: Try + Context + Catch
+# Tests: Context in error handling
+
+let data = session "Get risky data"
+
+try:
+  session:
+    prompt: "Process risky data"
+    context: data
+catch as err:
+  session:
+    prompt: "Handle error with original data"
+    context: [data, err]

@@ -1,0 +1,14 @@
+# Permutation: Parallel + Parallel + Parallel (25x25x25)
+# Tests: Three levels of parallel with different strategies
+
+parallel:
+  parallel("first"):
+    session "Race A1"
+    session "Race A2"
+  parallel("any", count: 2):
+    session "Need 2 of B1"
+    session "Need 2 of B2"
+    session "Need 2 of B3"
+  parallel(on-fail: "continue"):
+    session "Maybe fails C1"
+    session "Maybe fails C2"

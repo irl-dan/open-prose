@@ -1,0 +1,7 @@
+# Permutation: If/elif/else + Arrow sequence (35x24)
+# Tests: Arrow sequence in conditional branch
+
+if **complex processing needed**:
+  session "Step 1" -> session "Step 2" -> session "Step 3"
+else:
+  session "Simple single step"

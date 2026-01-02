@@ -1,0 +1,12 @@
+# Permutation: Agent definition + Session with agent + Context (08x06x17)
+# Tests: Named agent session with context
+
+agent analyzer:
+  model: sonnet
+  prompt: "You analyze data"
+
+let data = session "Get data"
+
+session: analyzer
+  prompt: "Analyze this"
+  context: data

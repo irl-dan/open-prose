@@ -1,0 +1,7 @@
+# Permutation: Pipeline ops (31)
+# Tests: Parallel map operation
+
+let items = session "Generate list of items"
+
+items | pmap:
+  session "Process {item} in parallel"

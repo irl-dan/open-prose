@@ -1,0 +1,8 @@
+# Permutation: Throw (33)
+# Tests: Throw without message
+
+try:
+  session "Might fail"
+  throw
+catch:
+  session "Caught bare throw"

@@ -1,0 +1,14 @@
+# Permutation: Parallel block + Try/catch + Repeat loop (25x32x27)
+# Tests: Parallel containing try containing loop
+
+parallel:
+  try:
+    repeat 3:
+      session "Task A iteration"
+  catch:
+    session "Task A failed"
+  try:
+    repeat 3:
+      session "Task B iteration"
+  catch:
+    session "Task B failed"

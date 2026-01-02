@@ -1,0 +1,9 @@
+# Permutation: Agent definition + Agent permissions (08x12)
+# Tests: Agent with permissions block
+
+agent secure_agent:
+  model: sonnet
+  prompt: "You handle sensitive operations"
+  permissions:
+    allow: ["Read"]
+    deny: ["Bash", "Write"]

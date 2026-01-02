@@ -1,0 +1,8 @@
+# Permutation: Arrow + Loop + If
+# Tests: Arrow sequence in control flow
+
+repeat 3 as i:
+  if **iteration {i} needs pipeline**:
+    session "Step 1 for {i}" -> session "Step 2 for {i}" -> session "Step 3 for {i}"
+  else:
+    session "Simple for {i}"

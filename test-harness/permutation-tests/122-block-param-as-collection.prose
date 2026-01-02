@@ -1,0 +1,9 @@
+# Permutation: Block parameters + For-each loop (22x28)
+# Tests: Block parameter used as collection in for-each
+
+block process_all(items):
+  for item in items:
+    session "Process {item}"
+
+let data = session "Get items"
+do process_all(data)

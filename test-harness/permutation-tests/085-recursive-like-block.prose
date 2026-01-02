@@ -1,0 +1,10 @@
+# Permutation: Block parameters + Unbounded loop (22x30)
+# Tests: Block with internal loop (pseudo-recursion)
+
+block iterate(max):
+  let count = 0
+  loop until **count reaches {max}**:
+    count = session "Increment from {count}"
+    session "Current: {count}"
+
+do iterate(3)

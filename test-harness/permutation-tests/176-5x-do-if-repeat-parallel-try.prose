@@ -1,0 +1,20 @@
+# Permutation: Do block + If + Repeat + Parallel + Try (20x35x27x25x32)
+# Tests: Named execution with maximum nesting
+
+block mega_process:
+  if **full processing**:
+    repeat 2 as phase:
+      parallel:
+        try:
+          session "Phase {phase} worker A"
+        catch:
+          session "Worker A failed"
+        try:
+          session "Phase {phase} worker B"
+        catch:
+          session "Worker B failed"
+
+do:
+  session "Initialize"
+  do mega_process
+  session "Finalize"

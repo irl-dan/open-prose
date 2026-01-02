@@ -1,0 +1,10 @@
+# Permutation: Agent with multiple skills
+# Tests: Skills array parsing
+
+agent coder:
+  model: sonnet
+  prompt: "You write and edit code"
+  skills: ["Read", "Edit", "Write", "Bash", "Glob", "Grep"]
+
+session: coder
+  "Create a new Python file"

@@ -1,0 +1,5 @@
+# Permutation: Repeat loop + Arrow sequence (27x24)
+# Tests: Arrow sequence inside loop
+
+repeat 3:
+  session "Step 1" -> session "Step 2" -> session "Step 3"

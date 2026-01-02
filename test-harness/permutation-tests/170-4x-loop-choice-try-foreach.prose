@@ -1,0 +1,16 @@
+# Permutation: Repeat + Choice + Try + For-each (27x34x32x28)
+# Tests: Loop containing choice containing try containing foreach
+
+let items = session "Get items"
+
+repeat 2 as round:
+  choice **strategy for round {round}**:
+    option "Safe":
+      try:
+        for item in items:
+          session "Safely process {item}"
+      catch:
+        session "Safe strategy failed"
+    option "Fast":
+      for item in items:
+        session "Quickly process {item}"

@@ -1,0 +1,6 @@
+# Permutation: Session properties (07)
+# Tests: Session with model property
+
+session:
+  prompt: "Generate something"
+  model: opus

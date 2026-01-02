@@ -1,0 +1,9 @@
+# Permutation: Import statement + Named block (13x21)
+# Tests: Import followed by block definition
+
+import "shared" from "./shared.prose"
+
+block process:
+  session "Process using shared utilities"
+
+do process

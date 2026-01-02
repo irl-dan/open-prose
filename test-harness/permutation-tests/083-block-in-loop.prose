@@ -1,0 +1,10 @@
+# Permutation: Named block + For-each loop (21x28)
+# Tests: Block invoked inside loop
+
+block process(item):
+  session "Process: {item}"
+
+let items = session "Generate list"
+
+for item in items:
+  do process(item)

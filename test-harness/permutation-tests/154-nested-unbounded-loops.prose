@@ -1,0 +1,7 @@
+# Permutation: Unbounded loop + Unbounded loop (30x30)
+# Tests: Nested loop until/while
+
+loop until **outer goal met**:
+  loop while **inner work remains**:
+    session "Do inner work"
+  session "Check outer progress"

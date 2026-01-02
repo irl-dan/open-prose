@@ -1,0 +1,13 @@
+# Permutation: Try/catch + Context single (32x17)
+# Tests: Context passing in try/catch
+
+let data = session "Get data"
+
+try:
+  session:
+    prompt: "Process with context"
+    context: data
+catch as err:
+  session:
+    prompt: "Handle error with context"
+    context: [data, err]

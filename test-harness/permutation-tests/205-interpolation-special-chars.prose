@@ -1,0 +1,8 @@
+# Permutation: String interpolation + special characters
+# Tests: Interpolation near special characters
+
+let data = session "Get data with quotes and newlines"
+
+session "Data: '{data}'"
+session "Data: \"{data}\""
+session "Data:\n{data}\nEnd"

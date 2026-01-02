@@ -1,0 +1,10 @@
+# Permutation: Choice block + If/elif/else (34x35)
+# Tests: If inside choice option
+
+choice **method to use**:
+  option "Method A":
+    if **additional validation needed**:
+      session "Validate first"
+    session "Execute method A"
+  option "Method B":
+    session "Execute method B"

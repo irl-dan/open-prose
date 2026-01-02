@@ -1,0 +1,12 @@
+# Permutation: Let binding + Choice block + For-each loop (14x34x28)
+# Tests: Variable defined in choice option, used in for-each
+
+choice **data source**:
+  option "Database":
+    let items = session "Query database"
+    for item in items:
+      session "Process DB {item}"
+  option "API":
+    let items = session "Call API"
+    for item in items:
+      session "Process API {item}"

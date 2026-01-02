@@ -1,0 +1,6 @@
+# Permutation: Arrow sequence + Let binding (24x14)
+# Tests: Capturing arrow sequence result
+
+let result = session "Step 1" -> session "Step 2" -> session "Step 3"
+
+session "Final result: {result}"

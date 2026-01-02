@@ -1,0 +1,11 @@
+# Permutation: Pipeline ops + If/elif/else (31x35)
+# Tests: Pipeline inside conditional
+
+let items = session "Get items"
+
+if **items need filtering**:
+  items | filter:
+    session "Keep {item}?"
+else:
+  items | map:
+    session "Transform {item}"

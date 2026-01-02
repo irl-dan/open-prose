@@ -1,0 +1,12 @@
+# Permutation: Session properties + Try/catch (07x32)
+# Tests: Session with properties in try block
+
+let input = session "Get input"
+
+try:
+  session:
+    prompt: "Process input"
+    context: input
+    retry: 2
+catch:
+  session "Handle failure"

@@ -1,0 +1,7 @@
+# Permutation: Import statement + Import statement (13x13)
+# Tests: Multiple imports
+
+import "helper1" from "./helpers1.prose"
+import "helper2" from "./helpers2.prose"
+
+session "Use both helpers"

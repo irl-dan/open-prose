@@ -1,0 +1,10 @@
+# Permutation: Parallel block + Pipeline ops (25x31)
+# Tests: Pipeline operations inside parallel
+
+let items = session "Generate items"
+
+parallel:
+  items | map:
+    session "Transform {item}"
+  items | filter:
+    session "Keep {item}? yes/no"

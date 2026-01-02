@@ -1,0 +1,15 @@
+# Permutation: Parallel with diverse branch types
+# Tests: Different construct types as parallel branches
+
+let items = session "Get items"
+
+parallel:
+  session "Simple session"
+  do:
+    session "Do block"
+  if **condition**:
+    session "Conditional"
+  repeat 2:
+    session "Loop"
+  for item in items:
+    session "For each {item}"

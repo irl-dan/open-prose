@@ -1,0 +1,13 @@
+# Permutation: Repeat + Let + Context
+# Tests: Context with loop result
+
+let accumulated = session "Initial state"
+
+repeat 3 as i:
+  accumulated = session:
+    prompt: "Add iteration {i} to accumulated"
+    context: accumulated
+
+session:
+  prompt: "Final summary"
+  context: accumulated

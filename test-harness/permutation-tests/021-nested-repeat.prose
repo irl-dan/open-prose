@@ -1,0 +1,6 @@
+# Permutation: Repeat loop + Repeat loop (27x27)
+# Tests: Nested repeat loops with index variables
+
+repeat 3 as i:
+  repeat 2 as j:
+    session "Outer {i}, Inner {j}"

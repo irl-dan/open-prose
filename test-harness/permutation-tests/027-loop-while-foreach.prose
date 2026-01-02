@@ -1,0 +1,9 @@
+# Permutation: Unbounded loop + For-each loop (30x28)
+# Tests: Loop while containing for-each
+
+let queue = session "Initialize queue with items"
+
+loop while **queue has items**:
+  for item in queue:
+    session "Process {item}"
+  queue = session "Update queue"

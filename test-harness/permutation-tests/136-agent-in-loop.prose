@@ -1,0 +1,10 @@
+# Permutation: Agent definition + Repeat loop (08x27)
+# Tests: Agent used in loop iterations
+
+agent worker:
+  model: sonnet
+  prompt: "You process items"
+
+repeat 3 as i:
+  session: worker
+    "Process item {i}"

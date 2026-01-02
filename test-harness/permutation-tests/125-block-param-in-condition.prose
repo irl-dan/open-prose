@@ -1,0 +1,10 @@
+# Permutation: Block parameters + If/elif/else (22x35)
+# Tests: Block parameter used in condition
+
+block check(value):
+  if **{value} is valid**:
+    session "Value {value} is valid"
+  else:
+    session "Value {value} is invalid"
+
+do check("input")

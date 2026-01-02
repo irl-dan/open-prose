@@ -1,0 +1,10 @@
+# Permutation: Try/catch + If/elif/else (32x35)
+# Tests: Try/catch inside conditional
+
+if **operation is risky**:
+  try:
+    session "Risky operation"
+  catch:
+    session "Handle risky failure"
+else:
+  session "Safe operation"

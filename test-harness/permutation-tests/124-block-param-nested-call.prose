@@ -1,0 +1,11 @@
+# Permutation: Block parameters + Block invocation (22x23)
+# Tests: Block parameter passed to nested block call
+
+block inner(value):
+  session "Inner received: {value}"
+
+block outer(data):
+  session "Outer processing: {data}"
+  do inner(data)
+
+do outer("test")

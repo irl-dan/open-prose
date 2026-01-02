@@ -1,0 +1,9 @@
+# Permutation: Try/catch + Try/catch (32x32)
+# Tests: Try with both catch and finally
+
+try:
+  session "Main operation"
+catch as err:
+  session "Error was: {err}"
+finally:
+  session "Cleanup always runs"

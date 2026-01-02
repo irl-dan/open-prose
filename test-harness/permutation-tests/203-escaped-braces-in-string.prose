@@ -1,0 +1,6 @@
+# Permutation: String interpolation edge case
+# Tests: Literal braces that look like interpolation
+
+let code = session "Generate JSON example"
+
+session "The format is: {{key: value}} and variable is {code}"

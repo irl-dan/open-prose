@@ -1,0 +1,6 @@
+# Permutation: Context array (18)
+# Tests: Empty context array
+
+session:
+  prompt: "Process with no context"
+  context: []

@@ -1,0 +1,10 @@
+# Permutation: Loop until + If + condition
+# Tests: Early exit pattern in loop
+
+let found = "false"
+
+loop until **found is true**:
+  let result = session "Search for item"
+  if **item found**:
+    found = "true"
+    session "Found it!"

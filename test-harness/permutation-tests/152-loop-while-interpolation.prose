@@ -1,0 +1,7 @@
+# Permutation: Unbounded loop + String interpolation (30x04)
+# Tests: Interpolation in loop while condition
+
+let target = session "Set target"
+
+loop while **not yet reached {target}**:
+  session "Working toward {target}"

@@ -1,0 +1,14 @@
+# Permutation: Parallel block + Choice block (25x34)
+# Tests: Choice blocks inside parallel
+
+parallel:
+  choice **approach for task A**:
+    option "Fast":
+      session "A fast"
+    option "Thorough":
+      session "A thorough"
+  choice **approach for task B**:
+    option "Fast":
+      session "B fast"
+    option "Thorough":
+      session "B thorough"

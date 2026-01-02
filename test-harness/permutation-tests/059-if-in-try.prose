@@ -1,0 +1,12 @@
+# Permutation: If/elif/else + Try/catch (35x32)
+# Tests: Conditional inside try block
+
+try:
+  if **condition A**:
+    session "Path A"
+  elif **condition B**:
+    throw "Path B fails"
+  else:
+    session "Path C"
+catch:
+  session "Handle failure"

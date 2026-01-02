@@ -1,0 +1,13 @@
+# Permutation: If/elif/else + If/elif/else (35x35)
+# Tests: Nested if statements
+
+if **outer condition A**:
+  if **inner condition 1**:
+    session "A and 1"
+  else:
+    session "A and not 1"
+else:
+  if **inner condition 2**:
+    session "not A and 2"
+  else:
+    session "not A and not 2"

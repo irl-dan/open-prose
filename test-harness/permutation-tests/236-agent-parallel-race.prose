@@ -1,0 +1,18 @@
+# Permutation: Multiple agents racing
+# Tests: Parallel first with different agents
+
+agent fast_agent:
+  model: haiku
+  prompt: "Be very quick"
+
+agent thorough_agent:
+  model: opus
+  prompt: "Be very thorough"
+
+let winner = parallel("first"):
+  session: fast_agent
+    "Quick analysis"
+  session: thorough_agent
+    "Deep analysis"
+
+session "Winner provided: {winner}"

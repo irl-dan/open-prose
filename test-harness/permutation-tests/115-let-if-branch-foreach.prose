@@ -1,0 +1,9 @@
+# Permutation: Let binding + If/elif/else + For-each loop (14x35x28)
+# Tests: Variable defined in if branch, used in for-each
+
+if **need batch processing**:
+  let items = session "Get batch items"
+  for item in items:
+    session "Process {item}"
+else:
+  session "Single item mode"

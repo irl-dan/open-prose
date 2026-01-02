@@ -1,0 +1,10 @@
+# Permutation: String with comment-like content
+# Tests: Hash character in strings shouldn't be comment
+
+session "Use #hashtag for social media"
+session "Color code: #FF5733"
+session """
+# This looks like a comment
+But it's in a multi-line string
+# So it's not a comment
+"""

@@ -1,0 +1,17 @@
+# Permutation: Many let bindings + complex context
+# Tests: Large number of variables
+
+let v1 = session "Get v1"
+let v2 = session "Get v2"
+let v3 = session "Get v3"
+let v4 = session "Get v4"
+let v5 = session "Get v5"
+let v6 = session "Get v6"
+let v7 = session "Get v7"
+let v8 = session "Get v8"
+
+session:
+  prompt: "Combine all 8 values"
+  context: [v1, v2, v3, v4, v5, v6, v7, v8]
+
+session "Final with {v1}, {v2}, {v3}, {v4}, {v5}, {v6}, {v7}, {v8}"

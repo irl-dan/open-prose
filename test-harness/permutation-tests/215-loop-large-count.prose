@@ -1,0 +1,5 @@
+# Permutation: Repeat with large count
+# Tests: Large iteration count
+
+repeat 100 as i:
+  session "Iteration {i}"

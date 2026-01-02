@@ -1,0 +1,8 @@
+# Permutation: Session properties + Context single (07x17)
+# Tests: Session with context referencing variable
+
+let data = session "Get some data"
+
+session:
+  prompt: "Process this"
+  context: data

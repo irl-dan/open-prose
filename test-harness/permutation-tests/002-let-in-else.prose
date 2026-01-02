@@ -1,0 +1,9 @@
+# Permutation: Let binding + If/elif/else (14x35)
+# Tests: Variable defined in else branch, accessed after
+
+if **condition is true**:
+  session "Path A"
+else:
+  let fallback = session "Path B"
+
+session "Result was {fallback}"

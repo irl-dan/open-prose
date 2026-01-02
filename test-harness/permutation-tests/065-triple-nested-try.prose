@@ -1,0 +1,13 @@
+# Permutation: Try/catch + Try/catch + Try/catch (32x32x32)
+# Tests: Three levels of try/catch nesting
+
+try:
+  try:
+    try:
+      session "Innermost operation"
+    catch:
+      throw "Inner failed"
+  catch:
+    throw "Middle failed"
+catch:
+  session "Outermost catch"

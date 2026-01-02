@@ -1,0 +1,11 @@
+# Permutation: Import statement + Agent definition (13x08)
+# Tests: Import followed by agent definition
+
+import "utils" from "./utils.prose"
+
+agent helper:
+  model: sonnet
+  prompt: "You help with tasks"
+
+session: helper
+  "Do something"

@@ -1,0 +1,9 @@
+# Permutation: Session properties + If/elif/else (07x35)
+# Tests: Session with properties inside if branch
+
+let data = session "Get data"
+
+if **data needs processing**:
+  session:
+    prompt: "Process the data"
+    context: data

@@ -1,0 +1,5 @@
+# Permutation: Session properties (07)
+# Tests: Basic session with prompt property
+
+session:
+  prompt: "Hello world"

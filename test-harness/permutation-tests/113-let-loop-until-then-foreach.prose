@@ -1,0 +1,7 @@
+# Permutation: Let binding + Unbounded loop + For-each loop (14x30x28)
+# Tests: Variable defined in loop-until, used in for-each
+
+loop until **ready**:
+  let batch = session "Fetch next batch"
+  for item in batch:
+    session "Process {item}"

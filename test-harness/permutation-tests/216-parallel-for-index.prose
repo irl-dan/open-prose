@@ -1,0 +1,7 @@
+# Permutation: Parallel for with index
+# Tests: Index in parallel for
+
+let items = session "Generate items"
+
+parallel for item, i in items:
+  session "Parallel processing index {i}: {item}"

@@ -1,0 +1,20 @@
+# Permutation: Agent used in various constructs
+# Tests: Agent reference in different places
+
+agent helper:
+  model: sonnet
+  prompt: "General helper"
+
+# In simple session
+session: helper
+  "Direct use"
+
+# In do block
+do:
+  session: helper
+    "In do block"
+
+# In if
+if **need help**:
+  session: helper
+    "In conditional"

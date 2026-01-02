@@ -1,0 +1,10 @@
+# Permutation: Parallel block + Parallel block (25x25)
+# Tests: Nested parallel blocks
+
+parallel:
+  parallel:
+    session "A1"
+    session "A2"
+  parallel:
+    session "B1"
+    session "B2"

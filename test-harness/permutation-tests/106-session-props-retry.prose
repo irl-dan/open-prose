@@ -1,0 +1,7 @@
+# Permutation: Session properties (07)
+# Tests: Session with retry and backoff
+
+session:
+  prompt: "Flaky operation"
+  retry: 3
+  backoff: 1000

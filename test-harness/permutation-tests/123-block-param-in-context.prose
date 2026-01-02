@@ -1,0 +1,10 @@
+# Permutation: Block parameters + Context single (22x17)
+# Tests: Block parameter used in context
+
+block analyze(data):
+  session:
+    prompt: "Analyze the data"
+    context: data
+
+let input = session "Get input"
+do analyze(input)

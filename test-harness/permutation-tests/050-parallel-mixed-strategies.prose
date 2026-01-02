@@ -1,0 +1,11 @@
+# Permutation: Parallel modifiers + Parallel modifiers + Parallel modifiers (26x26x26)
+# Tests: Mixed parallel strategies at different levels
+
+parallel(on-fail: "continue"):
+  parallel("first"):
+    session "Race A1"
+    session "Race A2"
+  parallel("any", count: 2):
+    session "Need 2 of B1"
+    session "Need 2 of B2"
+    session "Need 2 of B3"

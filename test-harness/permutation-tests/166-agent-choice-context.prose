@@ -1,0 +1,22 @@
+# Permutation: Agent + Choice + Context (08x34x17)
+# Tests: Agent selection via choice with context
+
+agent expert:
+  model: opus
+  prompt: "Expert analysis"
+
+agent quick:
+  model: haiku
+  prompt: "Quick analysis"
+
+let data = session "Get data"
+
+choice **which analysis depth**:
+  option "Expert":
+    session: expert
+      prompt: "Analyze deeply"
+      context: data
+  option "Quick":
+    session: quick
+      prompt: "Analyze quickly"
+      context: data

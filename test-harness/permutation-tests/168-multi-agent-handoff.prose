@@ -1,0 +1,26 @@
+# Permutation: Agent + Agent + Arrow + Context (08x08x24x17)
+# Tests: Multiple agents in pipeline with context passing
+
+agent planner:
+  model: opus
+  prompt: "You create plans"
+
+agent executor:
+  model: sonnet
+  prompt: "You execute plans"
+
+agent reviewer:
+  model: sonnet
+  prompt: "You review results"
+
+let requirements = session "Get requirements"
+
+session: planner
+  prompt: "Create plan"
+  context: requirements
+->
+session: executor
+  prompt: "Execute plan"
+->
+session: reviewer
+  prompt: "Review execution"

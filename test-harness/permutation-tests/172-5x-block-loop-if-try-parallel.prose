@@ -1,0 +1,16 @@
+# Permutation: Block + Repeat + If + Try + Parallel (21x27x35x32x25)
+# Tests: Block containing deeply nested control flow
+
+block complex_operation:
+  repeat 3 as i:
+    if **iteration {i} is critical**:
+      try:
+        parallel:
+          session "Critical task A"
+          session "Critical task B"
+      catch:
+        session "Critical failure"
+    else:
+      session "Normal iteration {i}"
+
+do complex_operation

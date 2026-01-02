@@ -1,0 +1,10 @@
+# Permutation: Pipeline filter + Context + Let (31x17x14)
+# Tests: Filter using external context
+
+let items = session "Get items"
+let criteria = session "Get filter criteria"
+
+let filtered = items | filter:
+  session:
+    prompt: "Does {item} match criteria?"
+    context: criteria

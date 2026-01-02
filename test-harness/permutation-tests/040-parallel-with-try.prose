@@ -1,0 +1,12 @@
+# Permutation: Parallel block + Try/catch (25x32)
+# Tests: Try/catch inside parallel branches
+
+parallel:
+  try:
+    session "Risky task A"
+  catch:
+    session "Handle A failure"
+  try:
+    session "Risky task B"
+  catch:
+    session "Handle B failure"

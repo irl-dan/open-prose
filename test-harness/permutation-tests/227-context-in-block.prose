@@ -1,0 +1,11 @@
+# Permutation: Block + Context + Block param
+# Tests: Context using block parameter
+
+block analyze(data, config):
+  session:
+    prompt: "Analyze using config"
+    context: [data, config]
+
+let my_data = session "Get data"
+let my_config = session "Get config"
+do analyze(my_data, my_config)

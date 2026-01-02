@@ -1,0 +1,8 @@
+# Permutation: Repeat loop + If/elif/else (27x35)
+# Tests: Loop inside conditional branch
+
+if **batch processing needed**:
+  repeat 3:
+    session "Process batch item"
+else:
+  session "Single item processing"

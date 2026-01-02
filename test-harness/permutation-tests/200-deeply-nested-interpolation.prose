@@ -1,0 +1,19 @@
+# Permutation: String interpolation + Let + Let + Let + Let (04x14x14x14x14)
+# Tests: Many variables in interpolation
+
+let a = session "Get A"
+let b = session "Get B"
+let c = session "Get C"
+let d = session "Get D"
+let e = session "Get E"
+
+session "Combined: {a}, {b}, {c}, {d}, {e}"
+
+session """
+Multi-line with all:
+- A: {a}
+- B: {b}
+- C: {c}
+- D: {d}
+- E: {e}
+"""

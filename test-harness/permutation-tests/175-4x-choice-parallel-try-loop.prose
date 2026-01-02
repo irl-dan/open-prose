@@ -1,0 +1,19 @@
+# Permutation: Choice + Parallel + Try + Unbounded loop (34x25x32x30)
+# Tests: AI choice leading to complex execution
+
+choice **execution strategy**:
+  option "Redundant":
+    parallel:
+      try:
+        loop until **task A done**:
+          session "Task A work"
+      catch:
+        session "Task A failed"
+      try:
+        loop until **task B done**:
+          session "Task B work"
+      catch:
+        session "Task B failed"
+  option "Sequential":
+    loop until **all done**:
+      session "Sequential work"

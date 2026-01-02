@@ -1,0 +1,10 @@
+# Permutation: Let binding + Let binding (14x14)
+# Tests: Variable shadowing in nested scope
+
+let x = session "First x"
+
+do:
+  let x = session "Shadow x"
+  session "Inner x is: {x}"
+
+session "Outer x is: {x}"

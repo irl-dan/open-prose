@@ -1,0 +1,11 @@
+# Permutation: Variable reassignment + If/elif/else (16x35)
+# Tests: Reassignment inside conditional branches
+
+let status = session "Initial status"
+
+if **needs update**:
+  status = session "Updated status"
+elif **needs reset**:
+  status = session "Reset status"
+
+session "Final status: {status}"

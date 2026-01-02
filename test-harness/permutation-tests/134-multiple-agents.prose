@@ -1,0 +1,16 @@
+# Permutation: Agent definition + Agent definition (08x08)
+# Tests: Multiple agent definitions used together
+
+agent planner:
+  model: opus
+  prompt: "You create plans"
+
+agent executor:
+  model: sonnet
+  prompt: "You execute plans"
+
+session: planner
+  "Create a plan for the project"
+
+session: executor
+  "Execute the plan"

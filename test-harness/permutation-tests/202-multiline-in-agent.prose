@@ -1,0 +1,16 @@
+# Permutation: Agent definition + Multi-line string (08x03)
+# Tests: Multi-line prompt in agent
+
+agent detailed:
+  model: opus
+  prompt: """
+  You are an expert assistant.
+
+  Your responsibilities:
+  - Answer questions thoroughly
+  - Provide examples when helpful
+  - Be concise but complete
+  """
+
+session: detailed
+  "Help me understand recursion"

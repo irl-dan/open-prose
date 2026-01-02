@@ -1,0 +1,9 @@
+# Permutation: Session properties + Context object (07x19)
+# Tests: Session with object context
+
+let name = session "Get name"
+let value = session "Get value"
+
+session:
+  prompt: "Format output"
+  context: { name, value }

@@ -1,0 +1,12 @@
+# Permutation: Let binding + Parallel block + For-each loop (14x25x28)
+# Tests: Variables from parallel branches used in for-each
+
+parallel:
+  let a_items = session "Fetch A items"
+  let b_items = session "Fetch B items"
+
+for item in a_items:
+  session "Process A: {item}"
+
+for item in b_items:
+  session "Process B: {item}"

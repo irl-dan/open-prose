@@ -1,0 +1,4 @@
+# Permutation: Arrow sequence (24)
+# Tests: Long arrow chain
+
+session "Step 1" -> session "Step 2" -> session "Step 3" -> session "Step 4" -> session "Step 5" -> session "Step 6"

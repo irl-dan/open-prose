@@ -1,0 +1,11 @@
+# Permutation: Let binding + Do block + Let binding (14x20x14)
+# Tests: Nested variable scopes
+
+let outer = session "Outer value"
+
+do:
+  let inner = session "Inner value with {outer}"
+  do:
+    let deepest = session "Deepest with {outer} and {inner}"
+
+session "Access all: {outer}, {inner}, {deepest}"

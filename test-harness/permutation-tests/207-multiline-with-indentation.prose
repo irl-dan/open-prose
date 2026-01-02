@@ -1,0 +1,9 @@
+# Permutation: Multi-line string + indentation
+# Tests: Preserved indentation in multi-line
+
+session """
+def example():
+    if True:
+        print("indented")
+    return None
+"""

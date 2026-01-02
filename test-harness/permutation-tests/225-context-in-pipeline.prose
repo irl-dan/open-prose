@@ -1,0 +1,10 @@
+# Permutation: Pipeline map + external context
+# Tests: External variable in pipeline body
+
+let config = session "Get configuration"
+let items = session "Get items"
+
+items | map:
+  session:
+    prompt: "Process {item} with config"
+    context: config

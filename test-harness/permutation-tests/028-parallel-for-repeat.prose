@@ -1,0 +1,8 @@
+# Permutation: Parallel for + Repeat loop (29x27)
+# Tests: Parallel for with repeat inside
+
+let items = session "Generate items"
+
+parallel for item in items:
+  repeat 2:
+    session "Process {item} twice"

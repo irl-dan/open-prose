@@ -1,0 +1,13 @@
+# Permutation: Arrow sequence + Multi-line string (24x03)
+# Tests: Arrow sequence with multi-line prompts
+
+session """
+Step 1: Research the topic thoroughly.
+Consider multiple perspectives.
+""" -> session """
+Step 2: Synthesize the research.
+Create a coherent narrative.
+""" -> session """
+Step 3: Present the findings.
+Make it accessible.
+"""

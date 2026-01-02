@@ -1,0 +1,9 @@
+# Permutation: Session properties + Repeat loop (07x27)
+# Tests: Session with properties inside loop
+
+let config = session "Get config"
+
+repeat 3 as i:
+  session:
+    prompt: "Iteration {i}"
+    context: config

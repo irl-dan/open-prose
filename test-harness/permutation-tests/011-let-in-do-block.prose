@@ -1,0 +1,7 @@
+# Permutation: Let binding + Do block (14x20)
+# Tests: Variable defined in do block, accessed outside
+
+do:
+  let inner = session "Inner work"
+
+session "Inner was: {inner}"

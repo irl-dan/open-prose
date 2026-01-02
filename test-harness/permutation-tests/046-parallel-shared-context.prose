@@ -1,0 +1,12 @@
+# Permutation: Parallel block + Context array (25x18)
+# Tests: Multiple parallel branches sharing context
+
+let shared = session "Create shared data"
+
+parallel:
+  session:
+    prompt: "Task A uses shared"
+    context: shared
+  session:
+    prompt: "Task B uses shared"
+    context: shared

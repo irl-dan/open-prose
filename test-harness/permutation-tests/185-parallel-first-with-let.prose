@@ -1,0 +1,14 @@
+# Permutation: Parallel("first") + Let + Context (26x14x17)
+# Tests: Race with result capture
+
+let context = session "Get shared context"
+
+let winner = parallel("first"):
+  session:
+    prompt: "Fast path"
+    context: context
+  session:
+    prompt: "Slow path"
+    context: context
+
+session "Winner: {winner}"

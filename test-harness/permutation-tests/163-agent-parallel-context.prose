@@ -1,0 +1,20 @@
+# Permutation: Agent + Parallel + Session with agent + Context (08x25x06x17)
+# Tests: Multiple agents in parallel with shared context
+
+agent fast:
+  model: haiku
+  prompt: "Quick analysis"
+
+agent deep:
+  model: opus
+  prompt: "Deep analysis"
+
+let shared = session "Get shared context"
+
+parallel:
+  session: fast
+    prompt: "Quick take"
+    context: shared
+  session: deep
+    prompt: "Deep dive"
+    context: shared

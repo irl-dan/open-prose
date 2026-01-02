@@ -1,0 +1,9 @@
+# Permutation: Context with different value sources
+# Tests: Mix of inline and variable contexts
+
+let var1 = session "Get var1"
+let var2 = session "Get var2"
+
+session:
+  prompt: "Process with mixed context"
+  context: [var1, var2]

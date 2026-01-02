@@ -1,0 +1,15 @@
+# Permutation: Block + Block + Block (chain)
+# Tests: Block calling block calling block
+
+block level3(x):
+  session "Level 3: {x}"
+
+block level2(x):
+  do level3(x)
+  session "Level 2: {x}"
+
+block level1(x):
+  do level2(x)
+  session "Level 1: {x}"
+
+do level1("start")

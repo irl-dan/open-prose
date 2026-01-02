@@ -1,0 +1,7 @@
+# Permutation: Let binding + Try/catch (14x32)
+# Tests: Variable defined in try block, accessed in catch
+
+try:
+  let data = session "Fetch data"
+catch:
+  session "Failed to get {data}"

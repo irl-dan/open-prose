@@ -1,0 +1,11 @@
+# Permutation: Parallel + Context array
+# Tests: Context from parallel results
+
+parallel:
+  let research = session "Do research"
+  let analysis = session "Do analysis"
+  let summary = session "Create summary"
+
+session:
+  prompt: "Combine all results"
+  context: [research, analysis, summary]

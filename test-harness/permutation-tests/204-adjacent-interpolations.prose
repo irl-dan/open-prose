@@ -1,0 +1,10 @@
+# Permutation: String interpolation + String interpolation (04x04)
+# Tests: Multiple adjacent interpolations
+
+let a = session "Get A"
+let b = session "Get B"
+let c = session "Get C"
+
+session "{a}{b}{c} - combined"
+session "{a} {b} {c} - spaced"
+session "Start{a}middle{b}end{c}finish"

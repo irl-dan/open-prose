@@ -1,0 +1,8 @@
+# Permutation: Repeat + For-each + Repeat (27x28x27)
+# Tests: Three levels of nesting
+
+repeat 2 as i:
+  let items = session "Get items for iteration {i}"
+  for item in items:
+    repeat 2 as j:
+      session "i={i}, item={item}, j={j}"

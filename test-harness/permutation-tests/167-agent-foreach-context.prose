@@ -1,0 +1,14 @@
+# Permutation: Agent + For-each + Context + Let (08x28x17x14)
+# Tests: Agent processing collection with context
+
+agent processor:
+  model: sonnet
+  prompt: "You process items"
+
+let config = session "Get processing config"
+let items = session "Get items to process"
+
+for item in items:
+  let result = session: processor
+    prompt: "Process this item"
+    context: [item, config]

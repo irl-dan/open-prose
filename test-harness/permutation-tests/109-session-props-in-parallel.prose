@@ -1,0 +1,12 @@
+# Permutation: Session properties + Parallel block (07x25)
+# Tests: Session with properties in parallel branches
+
+let shared = session "Get shared context"
+
+parallel:
+  session:
+    prompt: "Task A"
+    context: shared
+  session:
+    prompt: "Task B"
+    context: shared

@@ -1,0 +1,9 @@
+# Permutation: For-each + For-each with distinct names
+# Tests: Different variable names in nested loops
+
+let outer_list = session "Get outer list"
+
+for outer_item, outer_idx in outer_list:
+  let inner_list = session "Get inner list for {outer_item}"
+  for inner_item, inner_idx in inner_list:
+    session "Outer[{outer_idx}]={outer_item}, Inner[{inner_idx}]={inner_item}"

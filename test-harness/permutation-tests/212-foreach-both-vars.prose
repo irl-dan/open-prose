@@ -1,0 +1,7 @@
+# Permutation: For-each with item and index
+# Tests: Both loop variables used
+
+let items = session "Generate items"
+
+for item, idx in items:
+  session "Index {idx}: {item}"

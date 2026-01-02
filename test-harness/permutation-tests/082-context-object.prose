@@ -1,0 +1,10 @@
+# Permutation: Context object + Let binding (19x14)
+# Tests: Named context fields
+
+let name = session "Get name"
+let age = session "Get age"
+let role = session "Get role"
+
+session:
+  prompt: "Describe the person"
+  context: { name, age, role }

@@ -1,0 +1,11 @@
+# Permutation: Let binding + For-each + Let binding + For-each (14x28x14x28)
+# Tests: Three levels of let+foreach nesting
+
+let level1 = session "Get level 1 items"
+
+for l1 in level1:
+  let level2 = session "Get level 2 for {l1}"
+  for l2 in level2:
+    let level3 = session "Get level 3 for {l2}"
+    for l3 in level3:
+      session "Process {l1}/{l2}/{l3}"

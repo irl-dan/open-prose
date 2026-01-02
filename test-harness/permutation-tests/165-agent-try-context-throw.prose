@@ -1,0 +1,17 @@
+# Permutation: Agent + Try/catch + Context + Throw (08x32x17x33)
+# Tests: Agent with error handling and context
+
+agent validator:
+  model: sonnet
+  prompt: "You validate data"
+
+let data = session "Get data"
+
+try:
+  let result = session: validator
+    prompt: "Validate this data"
+    context: data
+  if **validation failed**:
+    throw "Validation error"
+catch as err:
+  session "Handle: {err}"

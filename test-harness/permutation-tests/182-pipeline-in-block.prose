@@ -1,0 +1,10 @@
+# Permutation: Pipeline + Block + Block params (31x21x22)
+# Tests: Pipeline inside parameterized block
+
+block process_batch(items, mode):
+  items | map:
+    session "Process {item} in {mode} mode"
+
+let batch = session "Get batch"
+do process_batch(batch, "fast")
+do process_batch(batch, "thorough")

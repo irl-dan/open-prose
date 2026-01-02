@@ -1,0 +1,9 @@
+# Permutation: Parallel(on-fail) + Throw + Let (26x33x14)
+# Tests: Continue on failure with throw
+
+let results = parallel(on-fail: "continue"):
+  let a = session "Task A succeeds"
+  throw "Task B fails"
+  let c = session "Task C succeeds"
+
+session "Partial results collected"

@@ -1,0 +1,5 @@
+# Permutation: Repeat loop + index + interpolation
+# Tests: Loop index in expressions
+
+repeat 5 as i:
+  session "Item {i} of 5, remaining: unknown"

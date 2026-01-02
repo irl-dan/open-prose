@@ -1,0 +1,9 @@
+# Permutation: Parallel for + Parallel for (29x29)
+# Tests: Nested parallel for loops
+
+let categories = session "Get categories"
+
+parallel for cat in categories:
+  let items = session "Get items for {cat}"
+  parallel for item in items:
+    session "Process {cat}/{item}"

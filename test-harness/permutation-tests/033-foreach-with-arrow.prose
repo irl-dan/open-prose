@@ -1,0 +1,7 @@
+# Permutation: For-each loop + Arrow sequence (28x24)
+# Tests: Arrow sequence inside for-each
+
+let items = session "Generate items"
+
+for item in items:
+  session "Validate {item}" -> session "Process {item}" -> session "Store {item}"

@@ -1,0 +1,12 @@
+# Permutation: Pipeline ops + Let binding (31x14)
+# Tests: Let binding with pipeline result
+
+let items = session "Generate items"
+
+let filtered = items | filter:
+  session "Should keep {item}?"
+
+let transformed = filtered | map:
+  session "Transform {item}"
+
+session "Results: {transformed}"

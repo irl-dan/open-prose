@@ -1,0 +1,9 @@
+# Permutation: Parallel modifiers + Throw (26x33)
+# Tests: Parallel with on-fail continue and throw
+
+parallel(on-fail: "continue"):
+  session "Task 1 succeeds"
+  throw "Task 2 fails"
+  session "Task 3 succeeds"
+
+session "Continue after partial failure"

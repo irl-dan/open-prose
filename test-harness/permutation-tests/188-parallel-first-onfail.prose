@@ -1,0 +1,8 @@
+# Permutation: Parallel("first") + Parallel(on-fail) (26x26)
+# Tests: Combined parallel modifiers
+
+parallel("first"):
+  parallel(on-fail: "continue"):
+    session "Risky A1"
+    throw "A2 fails"
+  session "Alternative B"

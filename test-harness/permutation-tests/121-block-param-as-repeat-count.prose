@@ -1,0 +1,8 @@
+# Permutation: Block parameters + Repeat loop (22x27)
+# Tests: Block parameter used as repeat count
+
+block iterate(times):
+  repeat times:
+    session "Iteration"
+
+do iterate(3)

@@ -1,0 +1,16 @@
+# Permutation: Parallel + Try + Try + Try (25x32x32x32)
+# Tests: Each parallel branch has own error handling
+
+parallel:
+  try:
+    session "Task A"
+  catch as err:
+    session "A failed: {err}"
+  finally:
+    session "A cleanup"
+  try:
+    session "Task B"
+  catch as err:
+    session "B failed: {err}"
+  finally:
+    session "B cleanup"

@@ -1,0 +1,12 @@
+# Permutation: Choice block + Choice block (34x34)
+# Tests: Nested choice blocks
+
+choice **main approach**:
+  option "Approach A":
+    choice **sub-approach for A**:
+      option "A1":
+        session "Do A1"
+      option "A2":
+        session "Do A2"
+  option "Approach B":
+    session "Do B"

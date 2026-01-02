@@ -1,0 +1,10 @@
+# Permutation: Named block + Parallel block (21x25)
+# Tests: Same block invoked in parallel
+
+block task(id):
+  session "Execute task {id}"
+
+parallel:
+  do task("A")
+  do task("B")
+  do task("C")

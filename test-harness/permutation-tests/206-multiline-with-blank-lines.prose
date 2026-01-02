@@ -1,0 +1,13 @@
+# Permutation: Multi-line string edge case
+# Tests: Blank lines in multi-line string
+
+session """
+First paragraph.
+
+
+Third paragraph after two blank lines.
+
+
+
+Fifth paragraph after three blank lines.
+"""

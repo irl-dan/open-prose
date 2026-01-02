@@ -1,0 +1,10 @@
+# Permutation: Pipeline ops + Try/catch (31x32)
+# Tests: Pipeline inside try block
+
+let items = session "Get items"
+
+try:
+  items | map:
+    session "Process {item} - might fail"
+catch:
+  session "Pipeline failed"

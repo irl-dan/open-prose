@@ -1,0 +1,9 @@
+# Permutation: Let binding + Try/catch (14x32)
+# Tests: Variable defined in catch block, accessed after
+
+try:
+  session "Attempt operation"
+catch as err:
+  let recovery = session "Handle {err}"
+
+session "Recovery result: {recovery}"

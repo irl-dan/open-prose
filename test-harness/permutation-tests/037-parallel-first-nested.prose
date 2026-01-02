@@ -1,0 +1,8 @@
+# Permutation: Parallel modifiers + Parallel block (26x25)
+# Tests: Nested parallel with different strategies
+
+parallel("first"):
+  parallel:
+    session "Fast path A"
+    session "Fast path B"
+  session "Slow alternative"

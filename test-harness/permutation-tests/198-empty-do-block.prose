@@ -1,0 +1,8 @@
+# Permutation: Do block + Comment (20x01)
+# Tests: Do block with only comments
+
+do:
+  # This block has no statements
+  # Just comments
+
+session "After empty do block"

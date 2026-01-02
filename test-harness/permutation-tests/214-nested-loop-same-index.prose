@@ -1,0 +1,8 @@
+# Permutation: Repeat + Repeat with same index name
+# Tests: Index shadowing in nested loops
+
+repeat 3 as i:
+  session "Outer i: {i}"
+  repeat 2 as i:
+    session "Inner i: {i}"
+  session "Back to outer i: {i}"

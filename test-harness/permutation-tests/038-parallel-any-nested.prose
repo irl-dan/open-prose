@@ -1,0 +1,13 @@
+# Permutation: Parallel modifiers + Parallel modifiers (26x26)
+# Tests: Nested parallel with any+count
+
+parallel("any", count: 2):
+  parallel("first"):
+    session "Option 1A"
+    session "Option 1B"
+  parallel("first"):
+    session "Option 2A"
+    session "Option 2B"
+  parallel("first"):
+    session "Option 3A"
+    session "Option 3B"

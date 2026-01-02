@@ -1,0 +1,8 @@
+# Permutation: Loop while + Let + reassignment
+# Tests: Manual counter in unbounded loop
+
+let count = "0"
+
+loop while **count less than 5**:
+  session "Count is {count}"
+  count = session "Increment {count}"

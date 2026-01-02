@@ -1,0 +1,8 @@
+# Permutation: Unbounded loop + Let binding (30x14)
+# Tests: Let inside loop until with interpolation in condition
+
+let threshold = session "Get threshold"
+
+loop until **value exceeds {threshold}**:
+  let current = session "Get current value"
+  session "Current: {current}, Target: {threshold}"

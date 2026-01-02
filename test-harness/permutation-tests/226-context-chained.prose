@@ -1,0 +1,16 @@
+# Permutation: Context passing through multiple sessions
+# Tests: Chain of context
+
+let step1 = session "Step 1"
+
+let step2 = session:
+  prompt: "Step 2"
+  context: step1
+
+let step3 = session:
+  prompt: "Step 3"
+  context: step2
+
+session:
+  prompt: "Final step"
+  context: [step1, step2, step3]

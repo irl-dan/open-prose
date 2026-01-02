@@ -1,0 +1,14 @@
+# Permutation: Parallel + If + Loop + Choice (25x35x30x34)
+# Tests: Complex logic in parallel branches
+
+parallel:
+  if **branch A enabled**:
+    loop until **A complete**:
+      session "Work on A"
+  choice **B strategy**:
+    option "Fast B":
+      session "Quick B"
+    option "Thorough B":
+      loop until **B complete**:
+        session "Thorough B work"
+  session "Simple C"

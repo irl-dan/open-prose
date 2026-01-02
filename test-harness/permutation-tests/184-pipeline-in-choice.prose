@@ -1,0 +1,16 @@
+# Permutation: Pipeline + Choice + Let (31x34x14)
+# Tests: Different pipelines based on choice
+
+let items = session "Get items"
+
+choice **processing mode**:
+  option "Filter first":
+    let filtered = items | filter:
+      session "Keep {item}?"
+    filtered | map:
+      session "Transform {item}"
+  option "Transform first":
+    let transformed = items | map:
+      session "Transform {item}"
+    transformed | filter:
+      session "Keep {item}?"

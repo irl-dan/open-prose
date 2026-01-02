@@ -1,0 +1,7 @@
+# Permutation: String interpolation + For-each loop (04x28)
+# Tests: Interpolation with loop variables
+
+let items = session "Generate items"
+
+for item, index in items:
+  session "Item {index}: {item}"

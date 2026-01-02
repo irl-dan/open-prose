@@ -1,0 +1,11 @@
+# Permutation: Agent + session with retry
+# Tests: Retry with named agent
+
+agent flaky:
+  model: sonnet
+  prompt: "You sometimes fail"
+
+session: flaky
+  prompt: "Try this operation"
+  retry: 3
+  backoff: "exponential"

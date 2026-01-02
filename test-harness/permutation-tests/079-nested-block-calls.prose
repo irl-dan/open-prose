@@ -1,0 +1,11 @@
+# Permutation: Block invocation + Block invocation (23x23)
+# Tests: Block calling another block
+
+block inner(x):
+  session "Inner: {x}"
+
+block outer(y):
+  do inner(y)
+  session "Outer: {y}"
+
+do outer("test")

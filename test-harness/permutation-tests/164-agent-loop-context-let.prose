@@ -1,0 +1,14 @@
+# Permutation: Agent + Repeat + Let + Context (08x27x14x17)
+# Tests: Agent in loop with accumulating context
+
+agent refiner:
+  model: sonnet
+  prompt: "You refine content"
+
+let content = session "Initial draft"
+
+repeat 3 as i:
+  let feedback = session "Get feedback on draft"
+  content = session: refiner
+    prompt: "Refine based on feedback, iteration {i}"
+    context: [content, feedback]

@@ -1,0 +1,25 @@
+# Permutation: Multiple agents in sequence
+# Tests: Agent handoff pattern
+
+agent researcher:
+  model: opus
+  prompt: "You research topics deeply"
+
+agent writer:
+  model: sonnet
+  prompt: "You write clear content"
+
+agent editor:
+  model: haiku
+  prompt: "You edit for clarity"
+
+let research = session: researcher
+  "Research quantum computing"
+
+let draft = session: writer
+  prompt: "Write an article"
+  context: research
+
+session: editor
+  prompt: "Edit for clarity"
+  context: draft

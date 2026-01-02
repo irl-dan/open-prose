@@ -1,0 +1,8 @@
+# Permutation: Let binding + Do block + For-each loop (14x20x28)
+# Tests: Variable defined in do block, used in for-each after
+
+do:
+  let items = session "Prepare items"
+
+for item in items:
+  session "Process {item}"

@@ -1,0 +1,22 @@
+# Permutation: Agent with each model type
+# Tests: All valid model values
+
+agent fast:
+  model: haiku
+  prompt: "Fast responses"
+
+agent balanced:
+  model: sonnet
+  prompt: "Balanced responses"
+
+agent powerful:
+  model: opus
+  prompt: "Powerful responses"
+
+parallel:
+  session: fast
+    "Quick answer"
+  session: balanced
+    "Balanced answer"
+  session: powerful
+    "Thorough answer"

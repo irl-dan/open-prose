@@ -1,0 +1,9 @@
+# Permutation: String interpolation + Unbounded loop + Let (04x30x14)
+# Tests: Interpolation in discretion markers
+
+let target = session "Set target value"
+let threshold = session "Set threshold"
+
+loop until **value exceeds {threshold} and approaches {target}**:
+  let current = session "Get current value"
+  session "Current: {current}, Target: {target}"

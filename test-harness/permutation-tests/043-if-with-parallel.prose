@@ -1,0 +1,9 @@
+# Permutation: If/elif/else + Parallel block (35x25)
+# Tests: Parallel block inside conditional branch
+
+if **need parallel processing**:
+  parallel:
+    session "Parallel A"
+    session "Parallel B"
+else:
+  session "Sequential fallback"

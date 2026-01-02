@@ -1,0 +1,19 @@
+# Permutation: Every control flow type in one program
+# Tests: All constructs together
+
+let items = session "Get items"
+
+if **start condition**:
+  repeat 2 as i:
+    for item in items:
+      loop until **done with {item}**:
+        choice **approach**:
+          option "A":
+            try:
+              parallel:
+                session "Task A1"
+                session "Task A2"
+            catch:
+              session "Handle A error"
+          option "B":
+            session "Simple B"

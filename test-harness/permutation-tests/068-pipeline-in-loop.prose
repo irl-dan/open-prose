@@ -1,0 +1,7 @@
+# Permutation: Pipeline ops + Repeat loop (31x27)
+# Tests: Pipeline inside loop
+
+repeat 3 as round:
+  let items = session "Get items for round {round}"
+  items | map:
+    session "Process {item} in round {round}"

@@ -1,0 +1,16 @@
+# Permutation: Choice + Context in each option
+# Tests: Different contexts per choice option
+
+let data = session "Get data"
+let fast_config = session "Get fast config"
+let thorough_config = session "Get thorough config"
+
+choice **processing mode**:
+  option "Fast":
+    session:
+      prompt: "Fast process"
+      context: [data, fast_config]
+  option "Thorough":
+    session:
+      prompt: "Thorough process"
+      context: [data, thorough_config]

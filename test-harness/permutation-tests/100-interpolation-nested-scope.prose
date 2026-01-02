@@ -1,0 +1,10 @@
+# Permutation: String interpolation + Do block + Let binding (04x20x14)
+# Tests: Interpolation referencing variables from multiple scopes
+
+let outer = session "Get outer"
+
+do:
+  let inner = session "Get inner"
+  session "Outer: {outer}, Inner: {inner}"
+
+session "Back to outer: {outer}"

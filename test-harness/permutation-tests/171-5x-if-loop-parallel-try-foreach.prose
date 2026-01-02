@@ -1,0 +1,14 @@
+# Permutation: If + Repeat + Parallel + Try + For-each (35x27x25x32x28)
+# Tests: Five levels of control nesting
+
+let batch = session "Get batch"
+
+if **batch processing enabled**:
+  repeat 2 as round:
+    parallel:
+      try:
+        for item in batch:
+          session "Process {item} in round {round}"
+      catch:
+        session "Processing failed"
+      session "Monitor round {round}"

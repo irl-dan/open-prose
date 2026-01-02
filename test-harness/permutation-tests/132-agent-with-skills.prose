@@ -1,0 +1,7 @@
+# Permutation: Agent definition + Agent skills (08x11)
+# Tests: Agent with skills array
+
+agent coder:
+  model: sonnet
+  prompt: "You are a software developer"
+  skills: ["Edit", "Bash", "Read"]

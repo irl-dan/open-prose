@@ -1,0 +1,8 @@
+# Permutation: Block parameters + Block parameters (22x22)
+# Tests: Block with multiple parameters
+
+block process(input, mode, count):
+  repeat count:
+    session "Process {input} in {mode} mode"
+
+do process("data", "fast", 3)

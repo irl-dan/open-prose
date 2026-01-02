@@ -1,0 +1,12 @@
+# Permutation: Agent defined after block that uses it
+# Tests: Declaration order
+
+block use_agent:
+  session: late_agent
+    "Use the agent"
+
+agent late_agent:
+  model: sonnet
+  prompt: "Defined after block"
+
+do use_agent

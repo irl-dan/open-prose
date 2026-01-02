@@ -1,0 +1,16 @@
+# Permutation: Try + Parallel + Repeat + If + For-each (32x25x27x35x28)
+# Tests: Error handling around complex parallel nested structure
+
+let data = session "Get data"
+
+try:
+  parallel:
+    repeat 2 as round:
+      if **round {round} has items**:
+        for item in data:
+          session "Process {item} round {round}"
+    session "Parallel monitor"
+catch:
+  session "Complex operation failed"
+finally:
+  session "Cleanup"

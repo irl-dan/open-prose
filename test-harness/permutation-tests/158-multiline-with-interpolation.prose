@@ -1,0 +1,13 @@
+# Permutation: Multi-line string + String interpolation (03x04)
+# Tests: Interpolation inside multi-line string
+
+let name = session "Get name"
+let topic = session "Get topic"
+
+session """
+Hello {name},
+
+Please write about {topic}.
+
+Thanks!
+"""

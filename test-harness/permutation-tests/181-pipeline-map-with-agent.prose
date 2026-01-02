@@ -1,0 +1,12 @@
+# Permutation: Pipeline map + Agent + Session with agent (31x08x06)
+# Tests: Map using named agent
+
+agent transformer:
+  model: sonnet
+  prompt: "You transform data"
+
+let items = session "Get items"
+
+items | map:
+  session: transformer
+    "Transform {item}"

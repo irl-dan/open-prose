@@ -1,0 +1,13 @@
+# Permutation: If/elif/else (35)
+# Tests: Long elif chain
+
+if **priority is critical**:
+  session "Handle critical"
+elif **priority is high**:
+  session "Handle high"
+elif **priority is medium**:
+  session "Handle medium"
+elif **priority is low**:
+  session "Handle low"
+else:
+  session "Handle unknown priority"

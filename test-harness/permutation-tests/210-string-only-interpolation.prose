@@ -1,0 +1,5 @@
+# Permutation: String that is only interpolation
+# Tests: String with nothing but variable
+
+let value = session "Get value"
+session "{value}"

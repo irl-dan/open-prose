@@ -1,0 +1,10 @@
+# Permutation: Multi-line string (03)
+# Tests: Basic multi-line string
+
+session """
+This is a multi-line prompt.
+
+It has multiple paragraphs.
+
+And preserves formatting.
+"""

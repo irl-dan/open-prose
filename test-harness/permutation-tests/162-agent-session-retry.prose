@@ -1,0 +1,11 @@
+# Permutation: Agent definition + Session with agent + Session properties (08x06x07)
+# Tests: Named agent session with retry
+
+agent flaky:
+  model: haiku
+  prompt: "You might fail"
+
+session: flaky
+  prompt: "Try this operation"
+  retry: 3
+  backoff: 500

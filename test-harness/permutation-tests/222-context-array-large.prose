@@ -1,0 +1,13 @@
+# Permutation: Context array with many elements
+# Tests: Large array context
+
+let a = session "Get A"
+let b = session "Get B"
+let c = session "Get C"
+let d = session "Get D"
+let e = session "Get E"
+let f = session "Get F"
+
+session:
+  prompt: "Synthesize all inputs"
+  context: [a, b, c, d, e, f]

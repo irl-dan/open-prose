@@ -1,0 +1,8 @@
+# Permutation: Try/catch + Throw (32x33)
+# Tests: Catch and rethrow
+
+try:
+  session "Risky operation"
+catch as err:
+  session "Log error: {err}"
+  throw "Wrapped: {err}"

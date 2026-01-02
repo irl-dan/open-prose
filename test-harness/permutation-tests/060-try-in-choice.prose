@@ -1,0 +1,11 @@
+# Permutation: Try/catch + Choice block (32x34)
+# Tests: Try/catch inside choice option
+
+choice **which approach**:
+  option "Risky":
+    try:
+      session "Try risky approach"
+    catch:
+      session "Risky failed"
+  option "Safe":
+    session "Safe approach"

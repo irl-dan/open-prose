@@ -1,0 +1,11 @@
+# Permutation: Try/catch + Do block (32x20)
+# Tests: Try/catch inside named block
+
+block risky_operation:
+  try:
+    session "Perform risky work"
+  catch as err:
+    session "Handle: {err}"
+
+do risky_operation
+do risky_operation

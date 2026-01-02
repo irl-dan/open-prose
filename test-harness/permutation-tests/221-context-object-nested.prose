@@ -1,0 +1,11 @@
+# Permutation: Context object + multiple variables
+# Tests: Complex object context
+
+let name = session "Get name"
+let age = session "Get age"
+let address = session "Get address"
+let occupation = session "Get occupation"
+
+session:
+  prompt: "Create a profile"
+  context: { name, age, address, occupation }

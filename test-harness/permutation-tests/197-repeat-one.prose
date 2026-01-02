@@ -1,0 +1,7 @@
+# Permutation: Repeat loop (27)
+# Tests: Edge case - repeat 1 time
+
+repeat 1 as i:
+  session "Single iteration {i}"
+
+session "After single loop"

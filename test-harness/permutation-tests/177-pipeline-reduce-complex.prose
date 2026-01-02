@@ -1,0 +1,13 @@
+# Permutation: Pipeline reduce + Let + If (31x14x35)
+# Tests: Complex reduce body with control flow
+
+let items = session "Get items"
+
+let summary = items | reduce(acc, item):
+  let processed = session "Process {item}"
+  if **{processed} is significant**:
+    session "Add {processed} to {acc}"
+  else:
+    session "Skip {processed}, keep {acc}"
+
+session "Final: {summary}"

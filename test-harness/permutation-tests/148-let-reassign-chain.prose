@@ -1,0 +1,9 @@
+# Permutation: Variable reassignment + Variable reassignment (16x16)
+# Tests: Multiple reassignments
+
+let value = session "Initial"
+value = session "Update 1 from {value}"
+value = session "Update 2 from {value}"
+value = session "Update 3 from {value}"
+
+session "Final: {value}"

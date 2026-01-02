@@ -1,0 +1,8 @@
+# Permutation: Block parameters + Block invocation (22x23)
+# Tests: Basic parameterized block
+
+block greet(name):
+  session "Hello, {name}!"
+
+do greet("Alice")
+do greet("Bob")

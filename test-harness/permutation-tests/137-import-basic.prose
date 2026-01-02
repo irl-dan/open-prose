@@ -1,0 +1,6 @@
+# Permutation: Import statement (13)
+# Tests: Basic import syntax
+
+import "helper" from "./helpers.prose"
+
+session "Use imported helper"

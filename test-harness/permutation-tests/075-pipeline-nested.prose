@@ -1,0 +1,10 @@
+# Permutation: Pipeline ops + For-each loop (31x28)
+# Tests: Pipeline result used in for-each
+
+let items = session "Generate items"
+
+let filtered = items | filter:
+  session "Keep {item}?"
+
+for result in filtered:
+  session "Process filtered result: {result}"

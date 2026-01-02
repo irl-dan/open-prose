@@ -1,0 +1,11 @@
+# Permutation: Named block + Context single (21x17)
+# Tests: Block using external context
+
+let data = session "Generate data"
+
+block process:
+  session:
+    prompt: "Process the data"
+    context: data
+
+do process

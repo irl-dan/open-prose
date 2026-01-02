@@ -1,0 +1,13 @@
+# Permutation: Block + Agent parameter (conceptual)
+# Tests: Block that uses specific agent
+
+agent default_agent:
+  model: sonnet
+  prompt: "Default behavior"
+
+block process_with_agent:
+  session: default_agent
+    "Process something"
+
+do process_with_agent
+do process_with_agent

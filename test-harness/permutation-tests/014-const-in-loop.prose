@@ -1,0 +1,6 @@
+# Permutation: Const binding + Repeat loop (15x27)
+# Tests: Const redefinition inside loop
+
+repeat 3:
+  const value = session "Generate value"
+  session "Value is {value}"

@@ -1,0 +1,12 @@
+# Permutation: Try/catch + For-each loop (32x28)
+# Tests: Try block followed by for-each
+
+let items = session "Get items"
+
+try:
+  session "Prepare processing"
+catch:
+  session "Preparation failed"
+
+for item in items:
+  session "Process {item}"

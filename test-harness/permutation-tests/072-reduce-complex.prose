@@ -1,0 +1,10 @@
+# Permutation: Pipeline ops + Let binding (31x14)
+# Tests: Complex reduce with multiple variables
+
+let items = session "Generate items"
+
+let summary = items | reduce(acc, item):
+  let processed = session "Process {item}"
+  session "Add {processed} to {acc}"
+
+session "Final summary: {summary}"

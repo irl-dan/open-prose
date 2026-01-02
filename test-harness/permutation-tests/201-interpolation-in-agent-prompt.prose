@@ -1,0 +1,11 @@
+# Permutation: Agent definition + String interpolation (08x04)
+# Tests: Interpolation in agent prompt definition
+
+let role = session "Define the role"
+
+agent dynamic:
+  model: sonnet
+  prompt: "You are a {role}"
+
+session: dynamic
+  "Do your job"

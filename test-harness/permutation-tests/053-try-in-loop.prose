@@ -1,0 +1,8 @@
+# Permutation: Try/catch + Repeat loop (32x27)
+# Tests: Try/catch inside loop
+
+repeat 3 as i:
+  try:
+    session "Attempt {i}"
+  catch:
+    session "Failed attempt {i}"

@@ -1,0 +1,13 @@
+# Permutation: If/elif/else + Context single (35x17)
+# Tests: Context in conditional branches
+
+let data = session "Get data"
+
+if **data is complete**:
+  session:
+    prompt: "Process complete data"
+    context: data
+else:
+  session:
+    prompt: "Request missing data"
+    context: data

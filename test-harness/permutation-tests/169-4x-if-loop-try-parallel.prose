@@ -1,0 +1,11 @@
+# Permutation: If + Repeat + Try + Parallel (35x27x32x25)
+# Tests: Four levels of control nesting
+
+if **complex processing needed**:
+  repeat 2 as round:
+    try:
+      parallel:
+        session "Worker A round {round}"
+        session "Worker B round {round}"
+    catch:
+      session "Round {round} failed"

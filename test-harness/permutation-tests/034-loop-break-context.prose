@@ -1,0 +1,11 @@
+# Permutation: Unbounded loop + Context single (30x17)
+# Tests: Loop variable in context after loop
+
+let result = "initial"
+
+loop until **done**:
+  result = session "Update result"
+
+session:
+  prompt: "Final summary"
+  context: result

@@ -1,0 +1,9 @@
+# Permutation: Variable reassignment + Repeat loop (16x27)
+# Tests: Reassigning variable inside loop
+
+let counter = session "Start at zero"
+
+repeat 5:
+  counter = session "Increment from {counter}"
+
+session "Final counter: {counter}"

@@ -1,0 +1,6 @@
+# Permutation: Arrow sequence + String interpolation (24x04)
+# Tests: Interpolation in arrow sequence
+
+let topic = session "Choose a topic"
+
+session "Research {topic}" -> session "Summarize {topic}" -> session "Present {topic}"

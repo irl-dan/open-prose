@@ -1,0 +1,13 @@
+# Permutation: Parallel + For-each + If + Unbounded loop (25x28x35x30)
+# Tests: Parallel branches with deep nesting
+
+let items_a = session "Get items A"
+let items_b = session "Get items B"
+
+parallel:
+  for item in items_a:
+    if **{item} needs iteration**:
+      loop until **{item} complete**:
+        session "Iterate on {item}"
+  for item in items_b:
+    session "Simple process {item}"

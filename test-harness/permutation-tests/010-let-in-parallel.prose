@@ -1,0 +1,8 @@
+# Permutation: Let binding + Parallel block (14x25)
+# Tests: Variable defined inside parallel branch
+
+parallel:
+  let a = session "Task A"
+  let b = session "Task B"
+
+session "Results: {a} and {b}"

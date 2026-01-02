@@ -1,0 +1,12 @@
+# Permutation: Try + Choice + Loop (interleaved)
+# Tests: Error handling with AI discretion in loop
+
+repeat 3 as round:
+  choice **strategy for round {round}**:
+    option "Risky":
+      try:
+        session "Risky operation {round}"
+      catch:
+        session "Handle risk failure {round}"
+    option "Safe":
+      session "Safe operation {round}"

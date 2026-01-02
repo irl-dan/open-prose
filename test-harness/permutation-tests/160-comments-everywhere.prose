@@ -1,0 +1,19 @@
+# Permutation: Comment (01)
+# Tests: Comments in various positions
+
+# Before agent
+agent helper:
+  # Inside agent
+  model: sonnet
+  prompt: "Helper"
+
+# Before block
+block work:
+  # Inside block
+  session "Do work"
+
+# Before session
+session "Main work"
+
+# After session
+# End of file

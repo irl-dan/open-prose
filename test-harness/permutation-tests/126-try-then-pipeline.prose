@@ -1,0 +1,12 @@
+# Permutation: Try/catch + Pipeline ops (32x31)
+# Tests: Try block followed by pipeline operation
+
+let items = session "Get items"
+
+try:
+  session "Validate items"
+catch:
+  session "Validation failed"
+
+items | map:
+  session "Transform {item}"

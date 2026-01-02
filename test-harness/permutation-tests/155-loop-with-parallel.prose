@@ -1,0 +1,8 @@
+# Permutation: Unbounded loop + Parallel block (30x25)
+# Tests: Parallel inside loop
+
+loop until **convergence reached**:
+  parallel:
+    session "Worker A"
+    session "Worker B"
+  session "Check convergence"

@@ -1,0 +1,9 @@
+# Permutation: Choice block + Repeat loop (34x27)
+# Tests: Choice block inside loop
+
+repeat 3 as round:
+  choice **strategy for round {round}**:
+    option "Aggressive":
+      session "Aggressive in round {round}"
+    option "Conservative":
+      session "Conservative in round {round}"

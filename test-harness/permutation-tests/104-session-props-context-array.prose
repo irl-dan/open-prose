@@ -1,0 +1,9 @@
+# Permutation: Session properties + Context array (07x18)
+# Tests: Session with array context
+
+let a = session "Get A"
+let b = session "Get B"
+
+session:
+  prompt: "Combine inputs"
+  context: [a, b]

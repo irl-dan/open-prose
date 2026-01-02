@@ -1,0 +1,10 @@
+# Permutation: Pipeline ops + Parallel block (31x25)
+# Tests: Different pipelines in parallel
+
+let items = session "Generate items"
+
+parallel:
+  items | filter:
+    session "Filter A: keep {item}?"
+  items | filter:
+    session "Filter B: keep {item}?"

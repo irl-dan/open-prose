@@ -1,0 +1,9 @@
+# Permutation: Let binding + For-each loop + For-each loop (14x28x28)
+# Tests: Variable defined in outer for-each, used in inner for-each
+
+let categories = session "Get categories"
+
+for cat in categories:
+  let items = session "Get items for {cat}"
+  for item in items:
+    session "Process {cat}/{item}"

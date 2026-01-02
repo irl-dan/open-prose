@@ -1,0 +1,7 @@
+# Permutation: Repeat loop + Parallel for (27x29)
+# Tests: Repeat containing parallel for
+
+repeat 2 as round:
+  let batch = session "Get batch for round {round}"
+  parallel for item in batch:
+    session "Process {item} in parallel"

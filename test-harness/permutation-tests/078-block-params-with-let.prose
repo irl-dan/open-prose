@@ -1,0 +1,9 @@
+# Permutation: Block parameters + Let binding (22x14)
+# Tests: Block parameter used in let binding
+
+block compute(value):
+  let doubled = session "Double {value}"
+  let result = session "Square {doubled}"
+  session "Final: {result}"
+
+do compute("5")

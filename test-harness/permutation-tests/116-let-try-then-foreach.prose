@@ -1,0 +1,9 @@
+# Permutation: Let binding + Try/catch + For-each loop (14x32x28)
+# Tests: Variable defined in try block, used in for-each
+
+try:
+  let items = session "Fetch items"
+  for item in items:
+    session "Process {item}"
+catch:
+  session "Failed to fetch items"

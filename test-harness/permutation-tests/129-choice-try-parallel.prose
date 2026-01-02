@@ -1,0 +1,15 @@
+# Permutation: Choice block + Try/catch + Parallel block (34x32x25)
+# Tests: Choice containing try containing parallel
+
+choice **execution mode**:
+  option "Safe":
+    try:
+      parallel:
+        session "Safe task A"
+        session "Safe task B"
+    catch:
+      session "Safe mode failed"
+  option "Fast":
+    parallel:
+      session "Fast task A"
+      session "Fast task B"

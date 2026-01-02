@@ -1,0 +1,10 @@
+# Permutation: Pipeline ops + Context single (31x17)
+# Tests: Parallel map with context
+
+let items = session "Generate items"
+let config = session "Get configuration"
+
+items | pmap:
+  session:
+    prompt: "Process {item}"
+    context: config

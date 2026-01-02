@@ -1,0 +1,9 @@
+# Permutation: Agent definition + Session with agent (08x06)
+# Tests: Define agent then use in session
+
+agent reviewer:
+  model: sonnet
+  prompt: "You are a code reviewer"
+
+session: reviewer
+  "Review this code for bugs"

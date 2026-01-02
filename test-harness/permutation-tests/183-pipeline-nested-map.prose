@@ -1,0 +1,9 @@
+# Permutation: Pipeline map + For-each + Let (31x28x14)
+# Tests: Nested iteration with pipeline
+
+let categories = session "Get categories"
+
+for cat in categories:
+  let items = session "Get items for {cat}"
+  items | map:
+    session "Process {cat}/{item}"

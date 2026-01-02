@@ -1,0 +1,5 @@
+# Permutation: Parallel block (25)
+# Tests: Parallel with single branch (edge case)
+
+parallel:
+  session "Only one branch"

@@ -1,0 +1,9 @@
+# Permutation: Agent with underscore in name
+# Tests: Valid identifier characters
+
+agent my_special_agent_v2:
+  model: sonnet
+  prompt: "Agent with underscores"
+
+session: my_special_agent_v2
+  "Test underscore names"

@@ -1,0 +1,10 @@
+# Permutation: Context array + Let binding (18x14)
+# Tests: Complex context array
+
+let a = session "Get A"
+let b = session "Get B"
+let c = session "Get C"
+
+session:
+  prompt: "Combine all inputs"
+  context: [a, b, c]

@@ -1,0 +1,27 @@
+# Permutation: Comments in unusual positions
+# Tests: Comment handling
+
+# Comment before agent
+agent helper:
+  # Comment in agent
+  model: sonnet
+  # Between properties
+  prompt: "Test"
+
+# Comment before block
+block work:
+  # Comment in block
+  session "Work"
+  # Comment after session
+
+# Comment before let
+let x = session "Get x"
+# Comment after let
+
+# Comment before if
+if **condition**:
+  # Comment in if body
+  session "Do it"
+# Comment after if
+
+# Final comment

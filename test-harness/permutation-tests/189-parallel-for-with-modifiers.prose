@@ -1,0 +1,9 @@
+# Permutation: Parallel for + Parallel modifiers (29x26)
+# Tests: Parallel for with failure handling
+
+let items = session "Get items"
+
+parallel for item in items (on-fail: "continue"):
+  if **{item} is risky**:
+    throw "Item {item} failed"
+  session "Process {item}"

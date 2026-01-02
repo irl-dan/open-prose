@@ -1,0 +1,8 @@
+# Permutation: Repeat loop + For-each loop (27x28)
+# Tests: Repeat nested inside for-each
+
+let items = session "Generate 3 items"
+
+for item in items:
+  repeat 2:
+    session "Process {item} again"

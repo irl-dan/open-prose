@@ -1,0 +1,7 @@
+# Permutation: Throw + String interpolation (33x04)
+# Tests: Throw with interpolated message
+
+let context = session "Get context"
+let reason = session "Get failure reason"
+
+throw "Operation failed: {reason} in context {context}"

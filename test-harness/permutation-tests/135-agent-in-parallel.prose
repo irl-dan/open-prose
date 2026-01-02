@@ -1,0 +1,16 @@
+# Permutation: Agent definition + Parallel block (08x25)
+# Tests: Different agents in parallel
+
+agent fast:
+  model: haiku
+  prompt: "Be quick"
+
+agent thorough:
+  model: opus
+  prompt: "Be thorough"
+
+parallel:
+  session: fast
+    "Quick analysis"
+  session: thorough
+    "Deep analysis"

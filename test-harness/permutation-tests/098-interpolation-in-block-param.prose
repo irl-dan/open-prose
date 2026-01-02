@@ -1,0 +1,8 @@
+# Permutation: String interpolation + Block parameters (04x22)
+# Tests: Interpolation with block parameter
+
+block format(template, value):
+  session "Fill {template} with {value}"
+
+let tmpl = session "Get template"
+do format(tmpl, "test data")

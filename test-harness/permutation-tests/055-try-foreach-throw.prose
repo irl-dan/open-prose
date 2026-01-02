@@ -1,0 +1,12 @@
+# Permutation: Try/catch + For-each loop + Throw (32x28x33)
+# Tests: Throw inside for-each inside try
+
+let items = session "Generate items"
+
+try:
+  for item in items:
+    if **item is invalid**:
+      throw "Invalid item: {item}"
+    session "Process {item}"
+catch as err:
+  session "Error processing: {err}"

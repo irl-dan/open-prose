@@ -1,0 +1,8 @@
+# Permutation: Let binding + Parallel for (14x29)
+# Tests: Variable defined before parallel for, modified inside
+
+let items = session "Generate items"
+let results = []
+
+parallel for item in items:
+  let processed = session "Process {item}"

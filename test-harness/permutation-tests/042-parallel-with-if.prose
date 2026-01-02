@@ -1,0 +1,12 @@
+# Permutation: Parallel block + If/elif/else (25x35)
+# Tests: Conditionals inside parallel branches
+
+parallel:
+  if **condition A**:
+    session "A is true"
+  else:
+    session "A is false"
+  if **condition B**:
+    session "B is true"
+  else:
+    session "B is false"

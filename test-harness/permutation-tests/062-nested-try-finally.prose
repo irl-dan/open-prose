@@ -1,0 +1,10 @@
+# Permutation: Try/catch + Try/catch (32x32)
+# Tests: Nested try with finally at both levels
+
+try:
+  try:
+    session "Inner operation"
+  finally:
+    session "Inner cleanup"
+finally:
+  session "Outer cleanup"

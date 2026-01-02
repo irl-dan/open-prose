@@ -1,0 +1,12 @@
+# Permutation: For-each + Let with same name
+# Tests: Loop variable shadows outer variable
+
+let item = session "Outer item"
+
+session "Before loop: {item}"
+
+let items = session "Get items"
+for item in items:
+  session "Loop item: {item}"
+
+session "After loop: {item}"

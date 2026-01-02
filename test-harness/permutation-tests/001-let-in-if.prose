@@ -1,0 +1,7 @@
+# Permutation: Let binding + If/elif/else (14x35)
+# Tests: Variable defined inside if block, accessed after
+
+if **the input is valid**:
+  let result = session "Process the input"
+
+session "Summarize {result}"

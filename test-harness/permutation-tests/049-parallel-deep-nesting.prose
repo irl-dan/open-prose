@@ -1,0 +1,10 @@
+# Permutation: Parallel + Parallel + Parallel (25x25x25)
+# Tests: Three levels of parallel nesting
+
+parallel:
+  parallel:
+    parallel:
+      session "Deep A"
+      session "Deep B"
+    session "Mid level"
+  session "Top level"

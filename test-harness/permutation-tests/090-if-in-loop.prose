@@ -1,0 +1,8 @@
+# Permutation: If/elif/else + Repeat loop (35x27)
+# Tests: Conditional inside loop
+
+repeat 5 as i:
+  if **iteration {i} is even**:
+    session "Even iteration {i}"
+  else:
+    session "Odd iteration {i}"

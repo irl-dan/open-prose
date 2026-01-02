@@ -1,0 +1,8 @@
+# Permutation: Repeat loop + Try/catch (27x32)
+# Tests: Loop inside try block
+
+try:
+  repeat 5:
+    session "Iteration that might fail"
+catch:
+  session "Loop failed somewhere"

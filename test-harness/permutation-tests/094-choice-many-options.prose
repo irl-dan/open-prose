@@ -1,0 +1,12 @@
+# Permutation: Choice block (34)
+# Tests: Choice with many options
+
+choice **which framework to use**:
+  option "React":
+    session "Set up React project"
+  option "Vue":
+    session "Set up Vue project"
+  option "Angular":
+    session "Set up Angular project"
+  option "Svelte":
+    session "Set up Svelte project"

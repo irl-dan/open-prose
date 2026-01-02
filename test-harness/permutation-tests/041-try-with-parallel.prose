@@ -1,0 +1,10 @@
+# Permutation: Try/catch + Parallel block (32x25)
+# Tests: Parallel block inside try
+
+try:
+  parallel:
+    session "Parallel task A"
+    session "Parallel task B"
+    throw "One task fails"
+catch:
+  session "Handle parallel failure"

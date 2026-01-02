@@ -1,0 +1,8 @@
+# Permutation: For-each + Let reassignment
+# Tests: Collection variable reassigned during iteration
+
+let items = session "Initial items"
+
+for item in items:
+  session "Process {item}"
+  items = session "Add new item to collection"

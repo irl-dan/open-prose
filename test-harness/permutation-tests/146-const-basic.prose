@@ -1,0 +1,6 @@
+# Permutation: Const binding (15)
+# Tests: Basic const usage
+
+const config = session "Get configuration"
+
+session "Use {config}"

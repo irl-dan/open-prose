@@ -1,0 +1,6 @@
+# Permutation: Arrow sequence + Parallel block (24x25)
+# Tests: Arrow sequences in parallel branches
+
+parallel:
+  session "A1" -> session "A2" -> session "A3"
+  session "B1" -> session "B2" -> session "B3"

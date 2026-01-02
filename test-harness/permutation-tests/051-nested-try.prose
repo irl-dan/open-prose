@@ -1,0 +1,10 @@
+# Permutation: Try/catch + Try/catch (32x32)
+# Tests: Nested try/catch blocks
+
+try:
+  try:
+    session "Inner risky operation"
+  catch:
+    session "Handle inner error"
+catch:
+  session "Handle outer error"

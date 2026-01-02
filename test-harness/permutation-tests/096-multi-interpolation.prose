@@ -1,0 +1,8 @@
+# Permutation: String interpolation + String interpolation (04x04)
+# Tests: Multiple interpolations in one string
+
+let name = session "Get name"
+let action = session "Get action"
+let target = session "Get target"
+
+session "{name} will {action} the {target}"
