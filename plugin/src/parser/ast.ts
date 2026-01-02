@@ -236,7 +236,8 @@ export type ExpressionNode =
   | ObjectExpressionNode
   | PipeExpressionNode
   | ArrowExpressionNode
-  | DoBlockNode;
+  | DoBlockNode
+  | ParallelBlockNode;
 
 /**
  * Array expression

@@ -1,0 +1,24 @@
+# Tier 6.4: Mixed Composition
+# Tests parallel inside do and do inside parallel
+
+# Sequential workflow with parallel middle section
+do:
+  session "Introduce yourself as a research assistant"
+
+  # Parallel section within sequential workflow
+  parallel:
+    session "Research benefit 1 of exercise"
+    session "Research benefit 2 of exercise"
+
+  session "Briefly summarize the exercise benefits mentioned above"
+
+# Also test do blocks inside parallel branches
+parallel:
+  do:
+    session "Think of a breakfast food"
+    session "Describe why that breakfast food is good"
+  do:
+    session "Think of a lunch food"
+    session "Describe why that lunch food is good"
+
+session "Compare the breakfast and lunch foods discussed"

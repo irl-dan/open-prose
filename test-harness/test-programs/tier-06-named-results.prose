@@ -1,0 +1,15 @@
+# Tier 6.2: Named Parallel Results
+# Tests capturing parallel branch results into variables
+
+agent analyst:
+  model: haiku
+  prompt: "You are a brief analyst"
+
+# Named results in parallel block
+parallel:
+  colors = session "List 3 colors and briefly describe each"
+  numbers = session "List 3 numbers and briefly describe each"
+
+# Use both results together
+session "Creatively combine the colors and numbers into a short poem"
+  context: { colors, numbers }

@@ -27,12 +27,14 @@ import {
   ExpressionNode,
   EscapeSequence,
   ArrayExpressionNode,
+  ObjectExpressionNode,
   LetBindingNode,
   ConstBindingNode,
   AssignmentNode,
   DoBlockNode,
   BlockDefinitionNode,
   ArrowExpressionNode,
+  ParallelBlockNode,
   createProgramNode,
   createCommentNode,
 } from './ast';
@@ -151,6 +153,11 @@ export class Parser {
     // Handle do block or block invocation
     if (this.check(TokenType.DO)) {
       return this.parseDoBlock();
+    }
+
+    // Handle parallel block
+    if (this.check(TokenType.PARALLEL)) {
+      return this.parseParallelBlock();
     }
 
     // Handle session keyword (may be followed by -> for arrow sequences)
@@ -378,6 +385,11 @@ export class Parser {
       return this.parseDoBlock();
     }
 
+    // If it's a parallel block
+    if (this.check(TokenType.PARALLEL)) {
+      return this.parseParallelBlock();
+    }
+
     // If it's a string literal
     if (this.check(TokenType.STRING)) {
       return this.parseStringLiteral();
@@ -518,7 +530,10 @@ export class Parser {
     // Parse value based on property name or what comes next
     let value: ExpressionNode;
 
-    if (this.check(TokenType.LBRACKET)) {
+    if (this.check(TokenType.LBRACE)) {
+      // Object expression (shorthand): { a, b, c }
+      value = this.parseObjectContextExpression();
+    } else if (this.check(TokenType.LBRACKET)) {
       // Array expression: ["item1", "item2"]
       value = this.parseArrayExpression();
     } else if (this.check(TokenType.STRING)) {
@@ -613,6 +628,56 @@ export class Parser {
     return {
       type: 'ArrayExpression',
       elements,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse an object context expression (shorthand)
+   * Syntax: { a, b, c } - equivalent to { a: a, b: b, c: c }
+   */
+  private parseObjectContextExpression(): ObjectExpressionNode {
+    const start = this.peek().span.start;
+    this.advance(); // consume '{'
+
+    const properties: PropertyNode[] = [];
+
+    while (!this.isAtEnd() && !this.check(TokenType.RBRACE)) {
+      // Parse identifier for shorthand property
+      if (this.check(TokenType.IDENTIFIER)) {
+        const id = this.parseIdentifier();
+
+        // Create shorthand property: identifier becomes both name and value
+        const prop: PropertyNode = {
+          type: 'Property',
+          name: id,
+          value: { ...id }, // Clone the identifier for the value
+          span: id.span,
+        };
+        properties.push(prop);
+      } else {
+        this.addError('Expected identifier in object context');
+        break;
+      }
+
+      // Expect comma or closing brace
+      if (!this.check(TokenType.RBRACE)) {
+        if (!this.match(TokenType.COMMA)) {
+          this.addError('Expected "," or "}" after property');
+          break;
+        }
+      }
+    }
+
+    if (!this.match(TokenType.RBRACE)) {
+      this.addError('Expected "}" to close object context');
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ObjectExpression',
+      properties,
       span: { start, end },
     };
   }
@@ -1105,6 +1170,109 @@ export class Parser {
         span: { start, end: this.peek().span.end },
       };
     }
+  }
+
+  /**
+   * Parse a parallel block
+   * Syntax: parallel:
+   *           statement...
+   *           name = statement (named result)
+   */
+  private parseParallelBlock(): ParallelBlockNode {
+    const parallelToken = this.advance(); // consume 'parallel'
+    const start = parallelToken.span.start;
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after "parallel"');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse indented body
+    const body: StatementNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        // Check for named result assignment: name = session "..."
+        if (this.check(TokenType.IDENTIFIER) && this.peekNext().type === TokenType.EQUALS) {
+          const assignStmt = this.parseParallelAssignment();
+          if (assignStmt) {
+            body.push(assignStmt);
+          }
+        } else {
+          const stmt = this.parseStatement();
+          if (stmt) {
+            body.push(stmt);
+          }
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ParallelBlock',
+      joinStrategy: null, // Default is 'all', handled by orchestrator
+      body,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a named assignment inside a parallel block
+   * Syntax: name = session "..." or name = do: ...
+   */
+  private parseParallelAssignment(): AssignmentNode | null {
+    const start = this.peek().span.start;
+
+    // Parse the variable name
+    const name = this.parseIdentifier();
+
+    // Consume the equals sign
+    this.advance(); // consume '='
+
+    // Parse the value expression
+    const value = this.parseBindingExpression();
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'Assignment',
+      name,
+      value,
+      span: { start, end },
+    };
   }
 
   /**

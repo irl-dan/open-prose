@@ -28,6 +28,7 @@ import {
   DoBlockNode,
   BlockDefinitionNode,
   ArrowExpressionNode,
+  ParallelBlockNode,
 } from '../parser';
 import { SourceSpan } from '../parser/tokens';
 
@@ -132,6 +133,9 @@ export class Compiler {
         break;
       case 'DoBlock':
         this.compileDoBlock(statement);
+        break;
+      case 'ParallelBlock':
+        this.compileParallelBlock(statement);
         break;
       case 'ArrowExpression':
         this.compileArrowExpression(statement);
@@ -263,6 +267,15 @@ export class Compiler {
           this.compileStatementInline(stmt);
         }
       }
+    } else if (value.type === 'ParallelBlock') {
+      // Parallel block as value
+      const parallel = value as ParallelBlockNode;
+      this.emit('parallel:');
+      this.emitNewline();
+      for (const stmt of parallel.body) {
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
     } else if (value.type === 'ArrowExpression') {
       // Arrow expression as value
       this.compileExpressionInArrow(value.left);
@@ -384,6 +397,27 @@ export class Compiler {
   }
 
   /**
+   * Compile a parallel block
+   */
+  private compileParallelBlock(parallel: ParallelBlockNode, indentLevel: number = 0): void {
+    // Add source mapping
+    this.addSourceMapping(parallel.span.start.line, parallel.span.start.column);
+
+    const indent = this.options.indent.repeat(indentLevel);
+
+    this.emit(indent);
+    this.emit('parallel:');
+    this.emitNewline();
+
+    // Emit body with indentation
+    for (const stmt of parallel.body) {
+      this.emit(indent);
+      this.emit(this.options.indent);
+      this.compileStatementInline(stmt);
+    }
+  }
+
+  /**
    * Compile an arrow expression (session "A" -> session "B")
    */
   private compileArrowExpression(arrow: ArrowExpressionNode, indentLevel: number = 0): void {
@@ -458,6 +492,9 @@ export class Compiler {
         break;
       case 'DoBlock':
         this.compileDoBlock(stmt, 0);
+        break;
+      case 'ParallelBlock':
+        this.compileParallelBlock(stmt, 0);
         break;
       case 'ArrowExpression':
         this.compileArrowExpression(stmt, 0);
@@ -538,19 +575,37 @@ export class Compiler {
   }
 
   /**
-   * Compile an object expression (for permissions block)
+   * Compile an object expression (for permissions block or context shorthand)
    */
-  private compileObjectExpression(obj: ObjectExpressionNode, indentLevel: number): void {
-    // Object expressions in permissions are rendered as nested blocks
+  private compileObjectExpression(obj: ObjectExpressionNode, indentLevel: number, isContextShorthand: boolean = false): void {
     if (obj.properties.length === 0) {
       this.emit('{}');
       return;
     }
 
-    // Emit a newline and then each property with increased indentation
-    this.emitNewline();
-    for (const prop of obj.properties) {
-      this.compileProperty(prop, indentLevel + 1);
+    // Check if this is a shorthand context expression { a, b, c }
+    // These have properties where name === value (both are identifiers with same name)
+    const isShorthand = isContextShorthand || obj.properties.every(p =>
+      p.value.type === 'Identifier' && p.name.name === (p.value as IdentifierNode).name
+    );
+
+    if (isShorthand) {
+      // Emit inline shorthand: { a, b, c }
+      this.emit('{ ');
+      for (let i = 0; i < obj.properties.length; i++) {
+        if (i > 0) {
+          this.emit(', ');
+        }
+        this.emit(obj.properties[i].name.name);
+      }
+      this.emit(' }');
+    } else {
+      // Object expressions in permissions are rendered as nested blocks
+      // Emit a newline and then each property with increased indentation
+      this.emitNewline();
+      for (const prop of obj.properties) {
+        this.compileProperty(prop, indentLevel + 1);
+      }
     }
   }
 

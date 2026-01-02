@@ -1,0 +1,12 @@
+# Tier 6.3: Object Context Shorthand
+# Tests context: { a, b, c } syntax for passing multiple named values
+
+# Run parallel analysis
+parallel:
+  pros = session "List 3 pros of working from home"
+  cons = session "List 3 cons of working from home"
+  tips = session "List 3 tips for productive remote work"
+
+# Use object context shorthand to combine all results
+session "Write a brief balanced summary about remote work"
+  context: { pros, cons, tips }

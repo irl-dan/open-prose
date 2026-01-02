@@ -1,0 +1,11 @@
+# Tier 6.1: Basic Parallel Blocks
+# Tests parallel: block for concurrent execution
+
+# Basic parallel block - run all branches concurrently
+parallel:
+  session "Generate three random colors"
+  session "Generate three random numbers between 1 and 100"
+  session "Generate three random animal names"
+
+# Session after parallel waits for all branches to complete
+session "Summarize all the random items that were generated above"

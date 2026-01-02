@@ -15,10 +15,11 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. Thi
 7. [Session Statement](#session-statement)
 8. [Variables & Context](#variables--context)
 9. [Composition Blocks](#composition-blocks)
-10. [Execution Model](#execution-model)
-11. [Validation Rules](#validation-rules)
-12. [Examples](#examples)
-13. [Future Features](#future-features)
+10. [Parallel Blocks](#parallel-blocks)
+11. [Execution Model](#execution-model)
+12. [Validation Rules](#validation-rules)
+13. [Examples](#examples)
+14. [Future Features](#future-features)
 
 ---
 
@@ -54,6 +55,9 @@ The following features are implemented:
 | do: blocks | Implemented | Explicit sequential blocks |
 | Inline sequence | Implemented | `session "A" -> session "B"` |
 | Named blocks | Implemented | `block name:` with `do name` invocation |
+| Parallel blocks | Implemented | `parallel:` for concurrent execution |
+| Named parallel results | Implemented | `x = session "..."` inside parallel |
+| Object context | Implemented | `context: { a, b, c }` shorthand |
 
 ---
 
@@ -591,6 +595,21 @@ session "Independent task"
   context: []
 ```
 
+#### Object Context Shorthand
+
+For passing multiple named results (especially from parallel blocks), use object shorthand:
+
+```prose
+parallel:
+  a = session "Task A"
+  b = session "Task B"
+
+session "Combine results"
+  context: { a, b }
+```
+
+This is equivalent to passing an object where each property is a variable reference.
+
 ### Complete Example
 
 ```prose
@@ -785,6 +804,128 @@ session "Write report"
 | Duplicate block definition | Error | Block already defined |
 | Block name conflicts with agent | Error | Block name conflicts with agent name |
 | Empty block name | Error | Block definition must have a name |
+
+---
+
+## Parallel Blocks
+
+Parallel blocks allow multiple sessions to run concurrently. All branches execute simultaneously, and the block waits for all to complete before continuing.
+
+### Basic Syntax
+
+```prose
+parallel:
+  session "Security review"
+  session "Performance review"
+  session "Style review"
+```
+
+All three sessions start at the same time and run concurrently. The program waits for all of them to complete before proceeding.
+
+### Named Parallel Results
+
+Capture the results of parallel branches into variables:
+
+```prose
+parallel:
+  security = session "Security review"
+  perf = session "Performance review"
+  style = session "Style review"
+```
+
+These variables can then be used in subsequent sessions.
+
+### Object Context Shorthand
+
+Pass multiple parallel results to a session using object shorthand:
+
+```prose
+parallel:
+  security = session "Security review"
+  perf = session "Performance review"
+  style = session "Style review"
+
+session "Synthesize all reviews"
+  context: { security, perf, style }
+```
+
+The object shorthand `{ a, b, c }` is equivalent to passing an object with properties `a`, `b`, and `c` where each property's value is the corresponding variable.
+
+### Mixed Composition
+
+#### Parallel Inside Sequential
+
+```prose
+do:
+  session "Setup"
+  parallel:
+    session "Task A"
+    session "Task B"
+  session "Cleanup"
+```
+
+The setup runs first, then Task A and Task B run in parallel, and finally cleanup runs.
+
+#### Sequential Inside Parallel
+
+```prose
+parallel:
+  do:
+    session "Multi-step task 1a"
+    session "Multi-step task 1b"
+  do:
+    session "Multi-step task 2a"
+    session "Multi-step task 2b"
+```
+
+Each parallel branch contains a sequential workflow. The two workflows run concurrently.
+
+### Assigning Parallel Blocks to Variables
+
+```prose
+let results = parallel:
+  session "Task A"
+  session "Task B"
+```
+
+### Complete Example
+
+```prose
+agent reviewer:
+  model: sonnet
+
+# Run parallel reviews
+parallel:
+  sec = session: reviewer
+    prompt: "Review for security issues"
+  perf = session: reviewer
+    prompt: "Review for performance issues"
+  style = session: reviewer
+    prompt: "Review for style issues"
+
+# Combine all reviews
+session "Create unified review report"
+  context: { sec, perf, style }
+```
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Duplicate variable in parallel | Error | Variable already defined |
+| Variable conflicts with agent | Error | Variable name conflicts with agent name |
+| Undefined variable in object context | Error | Undefined variable in context |
+
+### Execution Semantics
+
+When the Orchestrator encounters a `parallel:` block:
+
+1. **Fork**: Start all branches concurrently
+2. **Execute**: Each branch runs independently
+3. **Join**: Wait for all branches to complete
+4. **Continue**: Proceed to the next statement with all results available
+
+By default, parallel blocks use "all" strategy (wait for all) with "fail-fast" policy (if any fails, fail immediately).
 
 ---
 
@@ -1015,10 +1156,9 @@ session: writer
 
 The following features are specified but not yet implemented:
 
-### Tier 6-7: Parallel Execution
-- `parallel:` blocks
-- Join strategies (all, first, any)
-- Failure policies
+### Tier 7: Advanced Parallel
+- Join strategies (`parallel ("first"):`, `parallel ("any"):`)
+- Failure policies (`on-fail: "continue"`, `on-fail: "ignore"`)
 
 ### Tier 8-9: Loops
 - `repeat N:` fixed iterations
@@ -1045,9 +1185,11 @@ The following features are specified but not yet implemented:
 
 ```
 program     → statement* EOF
-statement   → agentDef | blockDef | session | doBlock | arrowExpr | letBinding | constBinding | assignment | comment
+statement   → agentDef | blockDef | parallelBlock | session | doBlock | arrowExpr | letBinding | constBinding | assignment | comment
 agentDef    → "agent" IDENTIFIER ":" NEWLINE INDENT property* DEDENT
 blockDef    → "block" IDENTIFIER ":" NEWLINE INDENT statement* DEDENT
+parallelBlock → "parallel" ":" NEWLINE INDENT parallelBranch* DEDENT
+parallelBranch → ( IDENTIFIER "=" )? statement
 doBlock     → "do" ( ":" NEWLINE INDENT statement* DEDENT | IDENTIFIER )
 arrowExpr   → session "->" session ( "->" session )*
 session     → "session" ( string | ":" IDENTIFIER | IDENTIFIER ":" IDENTIFIER )
@@ -1055,9 +1197,10 @@ session     → "session" ( string | ":" IDENTIFIER | IDENTIFIER ":" IDENTIFIER 
 letBinding  → "let" IDENTIFIER "=" expression
 constBinding → "const" IDENTIFIER "=" expression
 assignment  → IDENTIFIER "=" expression
-expression  → session | doBlock | arrowExpr | string | IDENTIFIER | array
-property    → ( "model" | "prompt" | "context" | IDENTIFIER ) ":" ( IDENTIFIER | string | array )
+expression  → session | doBlock | parallelBlock | arrowExpr | string | IDENTIFIER | array | objectContext
+property    → ( "model" | "prompt" | "context" | IDENTIFIER ) ":" ( IDENTIFIER | string | array | objectContext )
 array       → "[" ( expression ( "," expression )* )? "]"
+objectContext → "{" ( IDENTIFIER ( "," IDENTIFIER )* )? "}"
 comment     → "#" text NEWLINE
 string      → '"' character* '"'
 character   → escape | non-quote

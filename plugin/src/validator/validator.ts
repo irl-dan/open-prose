@@ -27,6 +27,7 @@ import {
   DoBlockNode,
   BlockDefinitionNode,
   ArrowExpressionNode,
+  ParallelBlockNode,
   walkAST,
   ASTVisitor,
 } from '../parser';
@@ -209,6 +210,9 @@ export class Validator {
       case 'DoBlock':
         this.validateDoBlock(statement);
         break;
+      case 'ParallelBlock':
+        this.validateParallelBlock(statement);
+        break;
       case 'ArrowExpression':
         this.validateArrowExpression(statement);
         break;
@@ -341,6 +345,37 @@ export class Validator {
   }
 
   /**
+   * Validate a parallel block
+   */
+  private validateParallelBlock(parallel: ParallelBlockNode): void {
+    // Collect any variable assignments inside the parallel block
+    for (const stmt of parallel.body) {
+      // For assignments inside parallel blocks, register them as variables
+      if (stmt.type === 'Assignment') {
+        const assignment = stmt as AssignmentNode;
+        const name = assignment.name.name;
+
+        // Check for duplicates with existing variables
+        if (this.definedVariables.has(name)) {
+          this.addError(`Duplicate variable definition: "${name}"`, assignment.name.span);
+        } else if (this.definedAgents.has(name)) {
+          this.addError(`Variable "${name}" conflicts with agent name`, assignment.name.span);
+        } else {
+          // Register the variable (parallel assignments are implicitly const-like but we treat as let)
+          this.definedVariables.set(name, {
+            name,
+            isConst: false,
+            span: assignment.name.span,
+          });
+        }
+      }
+
+      // Validate the statement
+      this.validateStatement(stmt);
+    }
+  }
+
+  /**
    * Validate an arrow expression (session -> session)
    */
   private validateArrowExpression(arrow: ArrowExpressionNode): void {
@@ -411,6 +446,8 @@ export class Validator {
       this.validateSessionStatement(expr as SessionStatementNode);
     } else if (expr.type === 'DoBlock') {
       this.validateDoBlock(expr as DoBlockNode);
+    } else if (expr.type === 'ParallelBlock') {
+      this.validateParallelBlock(expr as ParallelBlockNode);
     } else if (expr.type === 'ArrowExpression') {
       this.validateArrowExpression(expr as ArrowExpressionNode);
     } else if (expr.type === 'Identifier') {
@@ -594,6 +631,7 @@ export class Validator {
    * - context: varname (single variable reference)
    * - context: [var1, var2, ...] (array of variable references)
    * - context: [] (empty context - start fresh)
+   * - context: { a, b, c } (object shorthand - pass multiple named results)
    */
   private validateContextProperty(prop: PropertyNode): void {
     const value = prop.value;
@@ -617,8 +655,18 @@ export class Validator {
           this.addError(`Undefined variable in context: "${name}"`, element.span);
         }
       }
+    } else if (value.type === 'ObjectExpression') {
+      // Object context shorthand: { a, b, c }
+      const objValue = value as ObjectExpressionNode;
+      for (const propItem of objValue.properties) {
+        // For shorthand properties, the name is also the variable reference
+        const varName = propItem.name.name;
+        if (!this.definedVariables.has(varName)) {
+          this.addError(`Undefined variable in context: "${varName}"`, propItem.name.span);
+        }
+      }
     } else {
-      this.addError('Context must be a variable reference or an array of variable references', value.span);
+      this.addError('Context must be a variable reference, an array of variable references, or an object { a, b, c }', value.span);
     }
   }
 
