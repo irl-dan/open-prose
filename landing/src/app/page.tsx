@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import analytics from "@/lib/analytics";
+import ContactModal from "@/components/ContactModal";
 
 // ============================================
 // COMPONENTS
@@ -36,7 +37,13 @@ function TypewriterText({ text, delay = 0 }: { text: string; delay?: number }) {
   );
 }
 
-function CodeBlock({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function CodeBlock({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <pre className={`code-block ${className}`}>
       <code>{children}</code>
@@ -58,7 +65,10 @@ function HeroSection() {
       <div className="max-w-4xl mx-auto w-full min-w-0">
         {/* Logo/Name */}
         <div className="mb-8 opacity-0 animate-fade-in-up">
-          <h1 className="text-5xl md:text-7xl font-light tracking-tight" style={{ fontFamily: "var(--font-prose)" }}>
+          <h1
+            className="text-5xl md:text-7xl font-light tracking-tight"
+            style={{ fontFamily: "var(--font-prose)" }}
+          >
             <span className="text-[var(--ink-light)]">Open</span> Prose
           </h1>
         </div>
@@ -66,15 +76,18 @@ function HeroSection() {
         {/* Tagline */}
         <div className="mb-6 opacity-0 animate-fade-in-up animation-delay-200">
           <p className="text-2xl md:text-3xl font-light leading-relaxed text-[var(--ink-dark)]">
-            <TypewriterText text="A new kind of programming language. For a new kind of computer." delay={800} />
+            <TypewriterText
+              text="A new kind of language for a new kind of computer."
+              delay={800}
+            />
           </p>
         </div>
 
         {/* Subtitle */}
         <div className="mb-12 opacity-0 animate-fade-in-up animation-delay-300">
           <p className="text-lg md:text-xl text-[var(--ink-medium)] max-w-2xl">
-            An open standard for AI orchestration—declare your agent architecture,
-            let an intelligent interpreter wire it up.
+            A long-running AI session is a Turing-complete computer. OpenProse
+            is a programming language for it.
           </p>
         </div>
 
@@ -85,31 +98,53 @@ function HeroSection() {
             {"\n"}
             <span className="token-keyword">agent</span> researcher:
             {"\n"}
-            {"  "}<span className="token-property">model</span>: sonnet
+            {"  "}
+            <span className="token-property">model</span>: sonnet
             {"\n"}
-            {"  "}<span className="token-property">skills</span>: [<span className="token-string">&quot;web-search&quot;</span>]
+            {"  "}
+            <span className="token-property">skills</span>: [
+            <span className="token-string">&quot;web-search&quot;</span>]
             {"\n\n"}
             <span className="token-keyword">agent</span> writer:
             {"\n"}
-            {"  "}<span className="token-property">model</span>: opus
+            {"  "}
+            <span className="token-property">model</span>: opus
             {"\n\n"}
-            <span className="token-keyword">parallel</span>:
+            <span className="token-keyword">parallel</span>:{"\n"}
+            {"  "}research = <span className="token-keyword">session</span>:
+            researcher
             {"\n"}
-            {"  "}research = <span className="token-keyword">session</span>: researcher
+            {"    "}
+            <span className="token-property">prompt</span>:{" "}
+            <span className="token-string">
+              &quot;Research quantum computing breakthroughs&quot;
+            </span>
             {"\n"}
-            {"    "}<span className="token-property">prompt</span>: <span className="token-string">&quot;Research quantum computing breakthroughs&quot;</span>
+            {"  "}competitive = <span className="token-keyword">session</span>:
+            researcher
             {"\n"}
-            {"  "}competitive = <span className="token-keyword">session</span>: researcher
-            {"\n"}
-            {"    "}<span className="token-property">prompt</span>: <span className="token-string">&quot;Analyze competitor landscape&quot;</span>
+            {"    "}
+            <span className="token-property">prompt</span>:{" "}
+            <span className="token-string">
+              &quot;Analyze competitor landscape&quot;
+            </span>
             {"\n\n"}
-            <span className="token-keyword">loop until</span> <SemanticSpan>the draft meets publication standards</SemanticSpan> (max: 3):
+            <span className="token-keyword">loop until</span>{" "}
+            <SemanticSpan>the draft meets publication standards</SemanticSpan>{" "}
+            (max: 3):
             {"\n"}
-            {"  "}<span className="token-keyword">session</span>: writer
+            {"  "}
+            <span className="token-keyword">session</span>: writer
             {"\n"}
-            {"    "}<span className="token-property">prompt</span>: <span className="token-string">&quot;Write and refine the article&quot;</span>
+            {"    "}
+            <span className="token-property">prompt</span>:{" "}
+            <span className="token-string">
+              &quot;Write and refine the article&quot;
+            </span>
             {"\n"}
-            {"    "}<span className="token-property">context</span>: {"{"} research, competitive {"}"}
+            {"    "}
+            <span className="token-property">context</span>: {"{"} research,
+            competitive {"}"}
           </CodeBlock>
         </div>
 
@@ -118,17 +153,31 @@ function HeroSection() {
           <a
             href="https://github.com/irl-dan/open-prose"
             className="btn-primary inline-flex items-center justify-center gap-2"
-            onClick={() => analytics.track('cta_click', { button: 'github', section: 'hero' })}
+            onClick={() =>
+              analytics.track("cta_click", {
+                button: "github",
+                section: "hero",
+              })
+            }
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                clipRule="evenodd"
+              />
             </svg>
             View on GitHub
           </a>
           <a
             href="#concept"
             className="btn-secondary"
-            onClick={() => analytics.track('cta_click', { button: 'learn_concept', section: 'hero' })}
+            onClick={() =>
+              analytics.track("cta_click", {
+                button: "learn_concept",
+                section: "hero",
+              })
+            }
           >
             Learn the concept
           </a>
@@ -150,8 +199,9 @@ function ConceptSection() {
           The intelligent inversion of control
         </h2>
         <p className="text-lg text-[var(--ink-medium)] mb-12 md:mb-16 max-w-2xl">
-          Traditional orchestration frameworks require you to write explicit coordination code.
-          OpenProse inverts this—you declare agent primitives, and an AI session wires them up and executes them.
+          Traditional orchestration requires explicit coordination code.
+          OpenProse inverts this—you declare agents and control flow, and an AI
+          session wires them up. The session is the IoC container.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12 md:mb-16">
@@ -164,8 +214,9 @@ function ConceptSection() {
               Intelligent IoC Container
             </h3>
             <p className="text-[var(--ink-medium)] text-base">
-              Traditional IoC wires up dependencies from configuration. OpenProse&apos;s runtime is an AI that
-              wires up agent sessions using <em>understanding</em>—it knows context, not just config.
+              Traditional IoC wires up dependencies from configuration.
+              OpenProse&apos;s container is an AI session that wires up agents
+              using <em>understanding</em>—it knows context, not just config.
             </p>
           </div>
 
@@ -175,12 +226,16 @@ function ConceptSection() {
               <span className="text-[var(--semantic-gold)] text-lg">2</span>
             </div>
             <h3 className="text-xl font-medium mb-3 text-[var(--ink-dark)]">
-              The Fourth Wall <code className="inline-code text-sm">**...**</code>
+              The Fourth Wall{" "}
+              <code className="inline-code text-sm">**...**</code>
             </h3>
             <p className="text-[var(--ink-medium)] text-base">
-              When you need AI judgment instead of strict execution, break out of structure:
-              <code className="inline-code text-sm ml-1">loop until **the code is production ready**</code>.
-              The interpreter evaluates this semantically.
+              When you need AI judgment instead of strict execution, break out
+              of structure:
+              <code className="inline-code text-sm ml-1">
+                loop until **the code is production ready**
+              </code>
+              . The interpreter evaluates this semantically.
             </p>
           </div>
 
@@ -193,8 +248,10 @@ function ConceptSection() {
               Open Standard, Zero Lock-in
             </h3>
             <p className="text-[var(--ink-medium)] text-base">
-              OpenProse is a skill you import into Claude Code, OpenCode, Codex, Amp, or any compatible AI assistant.
-              Switch platforms anytime—your <code className="inline-code text-sm">.prose</code> files work everywhere.
+              OpenProse is a skill you import into Claude Code, OpenCode, Codex,
+              Amp, or any compatible AI assistant. Switch platforms anytime—your{" "}
+              <code className="inline-code text-sm">.prose</code> files work
+              everywhere.
             </p>
           </div>
 
@@ -207,8 +264,9 @@ function ConceptSection() {
               Structure + Flexibility
             </h3>
             <p className="text-[var(--ink-medium)] text-base">
-              Plain English prompts are ambiguous. Rigid frameworks are inflexible. OpenProse gives you
-              unambiguous control flow with natural language conditions where you want flexibility.
+              Plain English prompts are ambiguous. Rigid frameworks are
+              inflexible. OpenProse gives you unambiguous control flow with
+              natural language conditions where you want flexibility.
             </p>
           </div>
         </div>
@@ -219,24 +277,42 @@ function ConceptSection() {
         <div className="max-w-2xl">
           <h3 className="text-xl font-medium mb-6">Why structure matters</h3>
           <p className="text-[var(--ink-medium)] mb-6">
-            &quot;Why not just describe agents in plain English?&quot; You can—that&apos;s what <code className="inline-code">**...**</code> is for.
-            But complex workflows need unambiguous structure for control flow. The AI shouldn&apos;t have to guess
-            whether you want sequential or parallel execution.
+            &quot;Why not just describe agents in plain English?&quot; You
+            can—that&apos;s what <code className="inline-code">**...**</code> is
+            for. But complex workflows need unambiguous structure for control
+            flow. The AI shouldn&apos;t have to guess whether you want
+            sequential or parallel execution.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="min-w-0">
-              <p className="text-sm font-mono text-[var(--ink-light)] mb-2">Ambiguous (plain English):</p>
+              <p className="text-sm font-mono text-[var(--ink-light)] mb-2">
+                Ambiguous (plain English):
+              </p>
               <CodeBlock className="text-sm">
-                <span className="token-string">&quot;Research the topic, then write about it, and get feedback until it&apos;s good&quot;</span>
+                <span className="token-string">
+                  &quot;Research the topic, then write about it, and get
+                  feedback until it&apos;s good&quot;
+                </span>
               </CodeBlock>
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-mono text-[var(--ink-light)] mb-2">Unambiguous (OpenProse):</p>
+              <p className="text-sm font-mono text-[var(--ink-light)] mb-2">
+                Unambiguous (OpenProse):
+              </p>
               <CodeBlock className="text-sm">
-                <span className="token-keyword">let</span> research = <span className="token-keyword">session</span> <span className="token-string">&quot;Research&quot;</span>
-                {"\n"}<span className="token-keyword">loop until</span> <SemanticSpan>good</SemanticSpan>:
-                {"\n"}{"  "}<span className="token-keyword">session</span> <span className="token-string">&quot;Write&quot;</span>
-                {"\n"}{"  "}<span className="token-keyword">session</span> <span className="token-string">&quot;Get feedback&quot;</span>
+                <span className="token-keyword">let</span> research ={" "}
+                <span className="token-keyword">session</span>{" "}
+                <span className="token-string">&quot;Research&quot;</span>
+                {"\n"}
+                <span className="token-keyword">loop until</span>{" "}
+                <SemanticSpan>good</SemanticSpan>:{"\n"}
+                {"  "}
+                <span className="token-keyword">session</span>{" "}
+                <span className="token-string">&quot;Write&quot;</span>
+                {"\n"}
+                {"  "}
+                <span className="token-keyword">session</span>{" "}
+                <span className="token-string">&quot;Get feedback&quot;</span>
               </CodeBlock>
             </div>
           </div>
@@ -256,27 +332,33 @@ function FAQSection() {
   const faqs = [
     {
       question: "Why not LangChain, CrewAI, or AutoGen?",
-      answer: "Those are libraries locked to specific runtimes and APIs. OpenProse is a language specification that runs inside any AI assistant that supports skills. Switch from Claude Code to Codex? Your .prose files still work."
+      answer:
+        "Those are libraries that orchestrate agents from outside. OpenProse runs inside the agent session—the session itself is the IoC container. This means zero external dependencies and portability across any AI assistant. Switch from Claude Code to Codex? Your .prose files still work.",
     },
     {
       question: "Why not just plain English prompts?",
-      answer: "You can use **...** for natural language wherever you want AI judgment. But complex workflows need unambiguous structure for control flow—sequential vs parallel, loop conditions, error handling. Plain English is ambiguous; OpenProse gives you structure where it matters."
+      answer:
+        "You can use **...** for natural language wherever you want AI judgment. But complex workflows need unambiguous structure for control flow—sequential vs parallel, loop conditions, error handling. Plain English is ambiguous; OpenProse gives you structure where it matters.",
     },
     {
-      question: "What's \"intelligent IoC\"?",
-      answer: "Traditional IoC containers (Spring, Guice) wire up dependencies from configuration files. OpenProse's container is an AI that wires up agent sessions using understanding. It doesn't just match names—it understands context and intent."
+      question: 'What\'s "intelligent IoC"?',
+      answer:
+        "Traditional IoC containers (Spring, Guice) wire up dependencies from configuration files. OpenProse's container is an AI session that wires up agents using understanding. It doesn't just match names—it understands context, intent, and can make intelligent decisions about execution.",
     },
     {
       question: "Does this work today?",
-      answer: "Yes. Install the Claude Code plugin and run .prose files now. The core language features (agents, sessions, parallel, loops, context passing) are implemented. Advanced features are being added incrementally."
+      answer:
+        "Yes. Install the Claude Code plugin and run .prose files now. The core language features (agents, sessions, parallel, loops, context passing) are implemented. Advanced features are being added incrementally.",
     },
     {
       question: "What AI assistants are supported?",
-      answer: "Currently Claude Code via the plugin. OpenCode, Codex, and Amp support are planned. The language is designed to be framework-agnostic—it's just a skill you import."
+      answer:
+        "Currently Claude Code via the plugin. OpenCode, Codex, and Amp support are planned. The language is designed to be framework-agnostic—it's just a skill you import.",
     },
     {
       question: "How will you make money?",
-      answer: "I won't, directly. OpenProse is an open gift to the world. I've raised no VC funds and work independently of the big labs. This project exists because I think the idea is worth exploring, not because there's a business model behind it. That said—I'm a father of four kids under five, and independent work isn't free. If OpenProse is useful to you, consider supporting the project or hiring me for agent architecture consulting."
+      answer:
+        "I won't, directly. OpenProse is an open gift to the world. I've raised no VC funds and work independently of the big labs. This project exists because I think the idea is worth exploring, not because there's a business model behind it. That said—I'm a father of four kids under five, and independent work isn't free. If OpenProse is useful to you, consider supporting the project or hiring me for agent architecture consulting.",
     },
   ];
 
@@ -298,13 +380,20 @@ function FAQSection() {
                   const isOpening = openIndex !== index;
                   setOpenIndex(isOpening ? index : null);
                   if (isOpening) {
-                    analytics.track('faq_expand', { question: index, questionText: faq.question });
+                    analytics.track("faq_expand", {
+                      question: index,
+                      questionText: faq.question,
+                    });
                   }
                 }}
                 className="w-full px-6 py-5 text-left flex justify-between items-center bg-[var(--paper-cream)] hover:bg-[var(--paper-warm)] transition-colors"
               >
-                <span className="font-medium text-[var(--ink-dark)]">{faq.question}</span>
-                <span className={`text-[var(--ink-light)] transition-transform ${openIndex === index ? 'rotate-45' : ''}`}>
+                <span className="font-medium text-[var(--ink-dark)]">
+                  {faq.question}
+                </span>
+                <span
+                  className={`text-[var(--ink-light)] transition-transform ${openIndex === index ? "rotate-45" : ""}`}
+                >
                   +
                 </span>
               </button>
@@ -338,12 +427,15 @@ function GettingStartedSection() {
         </h2>
 
         <p className="text-lg text-[var(--ink-medium)] mb-8 max-w-xl">
-          OpenProse runs as a Claude Code plugin. Install it and start writing <code className="inline-code">.prose</code> workflows immediately.
+          OpenProse runs as a Claude Code plugin. Install it and start writing{" "}
+          <code className="inline-code">.prose</code> workflows immediately.
         </p>
 
         <div className="space-y-6 mb-12">
           <div>
-            <p className="text-sm font-mono text-[var(--ink-light)] mb-2">1. Install the plugin</p>
+            <p className="text-sm font-mono text-[var(--ink-light)] mb-2">
+              1. Install the plugin
+            </p>
             <CodeBlock className="text-sm">
               /plugin marketplace add irl-dan/open-prose{"\n"}
               /plugin install open-prose
@@ -351,12 +443,25 @@ function GettingStartedSection() {
           </div>
 
           <div>
-            <p className="text-sm font-mono text-[var(--ink-light)] mb-2">2. Run a workflow</p>
+            <p className="text-sm font-mono text-[var(--ink-light)] mb-2">
+              2. Run a workflow
+            </p>
             <CodeBlock className="text-sm">
-              <span className="token-comment"># Ask Claude to run an example</span>{"\n"}
-              <span className="token-string">&quot;Run the code review example from OpenProse&quot;</span>{"\n\n"}
-              <span className="token-comment"># Or run your own .prose file</span>{"\n"}
-              <span className="token-string">&quot;Execute my-workflow.prose&quot;</span>
+              <span className="token-comment">
+                # Ask Claude to run an example
+              </span>
+              {"\n"}
+              <span className="token-string">
+                &quot;Run the code review example from OpenProse&quot;
+              </span>
+              {"\n\n"}
+              <span className="token-comment">
+                # Or run your own .prose file
+              </span>
+              {"\n"}
+              <span className="token-string">
+                &quot;Execute my-workflow.prose&quot;
+              </span>
             </CodeBlock>
           </div>
         </div>
@@ -365,17 +470,31 @@ function GettingStartedSection() {
           <a
             href="https://github.com/irl-dan/open-prose"
             className="btn-primary inline-flex items-center justify-center gap-2"
-            onClick={() => analytics.track('cta_click', { button: 'github', section: 'start' })}
+            onClick={() =>
+              analytics.track("cta_click", {
+                button: "github",
+                section: "start",
+              })
+            }
           >
             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-              <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"
+                clipRule="evenodd"
+              />
             </svg>
             View on GitHub
           </a>
           <a
             href="https://github.com/irl-dan/open-prose/tree/main/plugin/examples"
             className="btn-secondary inline-flex items-center justify-center"
-            onClick={() => analytics.track('cta_click', { button: 'examples', section: 'start' })}
+            onClick={() =>
+              analytics.track("cta_click", {
+                button: "examples",
+                section: "start",
+              })
+            }
           >
             Browse examples
           </a>
@@ -393,7 +512,7 @@ function DonationTier({
   name,
   amount,
   href,
-  isHighlighted = false
+  isHighlighted = false,
 }: {
   name: string;
   amount: string;
@@ -403,12 +522,13 @@ function DonationTier({
   return (
     <a
       href={href}
-      onClick={() => analytics.track('donation_click', { tier: amount, name })}
+      onClick={() => analytics.track("donation_click", { tier: amount, name })}
       className={`
         group relative flex flex-col items-center p-6 rounded-lg transition-all duration-300
-        ${isHighlighted
-          ? 'bg-[var(--paper-cream)] border-2 border-[var(--semantic-gold)] shadow-[0_0_0_4px_var(--semantic-gold-bg)] sm:scale-105 z-10 order-first sm:order-none'
-          : 'bg-[var(--paper-warm)] border border-[var(--paper-aged)] hover:border-[var(--ink-light)] hover:shadow-md'
+        ${
+          isHighlighted
+            ? "bg-[var(--paper-cream)] border-2 border-[var(--semantic-gold)] shadow-[0_0_0_4px_var(--semantic-gold-bg)] sm:scale-105 z-10 order-first sm:order-none"
+            : "bg-[var(--paper-warm)] border border-[var(--paper-aged)] hover:border-[var(--ink-light)] hover:shadow-md"
         }
       `}
     >
@@ -422,7 +542,9 @@ function DonationTier({
       )}
 
       {/* Amount */}
-      <div className={`text-3xl md:text-4xl font-light tracking-tight mb-1 ${isHighlighted ? 'text-[var(--semantic-gold)]' : 'text-[var(--ink-dark)]'}`}>
+      <div
+        className={`text-3xl md:text-4xl font-light tracking-tight mb-1 ${isHighlighted ? "text-[var(--semantic-gold)]" : "text-[var(--ink-dark)]"}`}
+      >
         {amount}
       </div>
 
@@ -432,20 +554,23 @@ function DonationTier({
       </div>
 
       {/* Button indicator */}
-      <div className={`
+      <div
+        className={`
         w-full py-2 px-4 rounded text-center text-sm font-mono transition-colors
-        ${isHighlighted
-          ? 'bg-[var(--semantic-gold)] text-white group-hover:bg-[var(--semantic-gold-soft)]'
-          : 'bg-[var(--ink-dark)] text-[var(--paper-cream)] group-hover:bg-[var(--ink-medium)]'
+        ${
+          isHighlighted
+            ? "bg-[var(--semantic-gold)] text-white group-hover:bg-[var(--semantic-gold-soft)]"
+            : "bg-[var(--ink-dark)] text-[var(--paper-cream)] group-hover:bg-[var(--ink-medium)]"
         }
-      `}>
+      `}
+      >
         Select
       </div>
     </a>
   );
 }
 
-function SupportSection() {
+function SupportSection({ onOpenContact }: { onOpenContact: () => void }) {
   return (
     <section id="support" className="px-6 py-24">
       <div className="max-w-4xl mx-auto">
@@ -454,8 +579,9 @@ function SupportSection() {
         </h2>
 
         <p className="text-lg text-[var(--ink-medium)] mb-12 max-w-2xl">
-          OpenProse is an open gift to the world—no VC funds, no big lab backing.
-          I&apos;m a father of four kids under five, building this because the idea is worth exploring.
+          OpenProse is an open gift to the world—no VC funds, no big lab
+          backing. I&apos;m a father of four kids under five, building this
+          because the idea is worth exploring.
         </p>
 
         {/* Donation Tiers */}
@@ -483,11 +609,26 @@ function SupportSection() {
           <a
             href="https://buy.stripe.com/9B67sM60TaQacu77IQ5AQ01"
             className="inline-flex items-center gap-2 text-sm text-[var(--ink-light)] hover:text-[var(--ink-dark)] transition-colors font-mono"
-            onClick={() => analytics.track('donation_click', { tier: 'custom', name: 'Custom' })}
+            onClick={() =>
+              analytics.track("donation_click", {
+                tier: "custom",
+                name: "Custom",
+              })
+            }
           >
             <span>Or choose your own amount</span>
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M17 8l4 4m0 0l-4 4m4-4H3"
+              />
             </svg>
           </a>
         </div>
@@ -499,8 +640,18 @@ function SupportSection() {
           <div className="bg-[var(--paper-warm)] p-8 rounded-lg border border-[var(--paper-aged)]">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-full bg-[var(--edit-blue)]/10 flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-[var(--edit-blue)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                <svg
+                  className="w-6 h-6 text-[var(--edit-blue)]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+                  />
                 </svg>
               </div>
               <div className="flex-1">
@@ -509,15 +660,21 @@ function SupportSection() {
                 </h3>
                 <p className="text-[var(--ink-medium)] text-base mb-4">
                   I do freelance agent architecture and AI systems consulting.
-                  If you&apos;re building something serious with AI agents, let&apos;s talk.
+                  If you&apos;re building something serious with AI agents,
+                  let&apos;s talk.
                 </p>
-                <a
-                  href="mailto:dan@draftsofthefuture.com"
+                <button
                   className="btn-secondary inline-flex items-center justify-center gap-2"
-                  onClick={() => analytics.track('cta_click', { button: 'consulting', section: 'support' })}
+                  onClick={() => {
+                    analytics.track("cta_click", {
+                      button: "consulting",
+                      section: "support",
+                    });
+                    onOpenContact();
+                  }}
                 >
                   Get in touch
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -536,11 +693,14 @@ function Footer() {
     <footer className="px-6 py-12 border-t border-[var(--paper-aged)]">
       <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="text-center md:text-left">
-          <div className="text-xl font-light tracking-tight mb-1" style={{ fontFamily: "var(--font-prose)" }}>
+          <div
+            className="text-xl font-light tracking-tight mb-1"
+            style={{ fontFamily: "var(--font-prose)" }}
+          >
             <span className="text-[var(--ink-light)]">Open</span> Prose
           </div>
           <p className="text-sm text-[var(--ink-light)]">
-            An open standard for AI orchestration.
+            Intelligent IoC for a new kind of computer.
           </p>
         </div>
 
@@ -548,14 +708,24 @@ function Footer() {
           <a
             href="https://github.com/irl-dan/open-prose"
             className="prose-link"
-            onClick={() => analytics.track('cta_click', { button: 'github', section: 'footer' })}
+            onClick={() =>
+              analytics.track("cta_click", {
+                button: "github",
+                section: "footer",
+              })
+            }
           >
             GitHub
           </a>
           <a
             href="https://github.com/irl-dan/open-prose/blob/main/plugin/skills/open-prose/prose.md"
             className="prose-link"
-            onClick={() => analytics.track('cta_click', { button: 'language_spec', section: 'footer' })}
+            onClick={() =>
+              analytics.track("cta_click", {
+                button: "language_spec",
+                section: "footer",
+              })
+            }
           >
             Language Spec
           </a>
@@ -611,11 +781,19 @@ function Navigation() {
 
   return (
     <>
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? "bg-[var(--paper-cream)]/95 backdrop-blur-sm shadow-sm" : ""
-      }`}>
+      <nav
+        className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? "bg-[var(--paper-cream)]/95 backdrop-blur-sm shadow-sm"
+            : ""
+        }`}
+      >
         <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-          <a href="#" className="text-lg font-light tracking-tight" style={{ fontFamily: "var(--font-prose)" }}>
+          <a
+            href="#"
+            className="text-lg font-light tracking-tight"
+            style={{ fontFamily: "var(--font-prose)" }}
+          >
             <span className="text-[var(--ink-light)]">Open</span> Prose
           </a>
 
@@ -626,7 +804,11 @@ function Navigation() {
                 key={link.href}
                 href={link.href}
                 className="hover:text-[var(--ink-dark)] transition-colors"
-                onClick={() => analytics.track('nav_click', { target: link.label.toLowerCase() })}
+                onClick={() =>
+                  analytics.track("nav_click", {
+                    target: link.label.toLowerCase(),
+                  })
+                }
               >
                 {link.label}
               </a>
@@ -655,7 +837,10 @@ function Navigation() {
       {/* Mobile menu drawer */}
       <div className={`mobile-menu-drawer ${mobileMenuOpen ? "open" : ""}`}>
         <div className="mobile-menu-header">
-          <span className="text-lg font-light tracking-tight" style={{ fontFamily: "var(--font-prose)" }}>
+          <span
+            className="text-lg font-light tracking-tight"
+            style={{ fontFamily: "var(--font-prose)" }}
+          >
             <span className="text-[var(--ink-light)]">Open</span> Prose
           </span>
           <button
@@ -663,8 +848,18 @@ function Navigation() {
             className="w-10 h-10 flex items-center justify-center text-[var(--ink-medium)] hover:text-[var(--ink-dark)]"
             aria-label="Close menu"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -674,7 +869,10 @@ function Navigation() {
               key={link.href}
               href={link.href}
               onClick={() => {
-                analytics.track('nav_click', { target: link.label.toLowerCase(), mobile: true });
+                analytics.track("nav_click", {
+                  target: link.label.toLowerCase(),
+                  mobile: true,
+                });
                 setMobileMenuOpen(false);
               }}
             >
@@ -692,6 +890,8 @@ function Navigation() {
 // ============================================
 
 export default function Home() {
+  const [contactModalOpen, setContactModalOpen] = useState(false);
+
   // Initialize analytics on mount
   useEffect(() => {
     analytics.init();
@@ -705,9 +905,13 @@ export default function Home() {
         <ConceptSection />
         <FAQSection />
         <GettingStartedSection />
-        <SupportSection />
+        <SupportSection onOpenContact={() => setContactModalOpen(true)} />
       </main>
       <Footer />
+      <ContactModal
+        isOpen={contactModalOpen}
+        onClose={() => setContactModalOpen(false)}
+      />
     </>
   );
 }

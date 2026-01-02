@@ -14,6 +14,7 @@ import type {
   IdentifyEvent,
   StatsMetric,
 } from './analytics-types';
+import { insertInquiry, inquiryQueries, type InquiryPayload } from './inquiry-db';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -206,6 +207,63 @@ app.get('/v1/analytics/stats', (req, res) => {
     });
   } catch (error) {
     console.error('Analytics stats error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Inquiry submission endpoint
+app.post('/v1/inquiries', (req, res) => {
+  try {
+    const payload = req.body as InquiryPayload;
+
+    // Validate required fields
+    if (!payload.name || !payload.name.trim()) {
+      return res.status(400).json({ error: 'Name is required' });
+    }
+    if (!payload.email || !payload.email.trim()) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+    if (!payload.message || !payload.message.trim()) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(payload.email)) {
+      return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    // Limit message length
+    if (payload.message.length > 5000) {
+      return res.status(400).json({ error: 'Message too long (max 5000 characters)' });
+    }
+
+    // Insert inquiry
+    insertInquiry.run(
+      payload.name.trim(),
+      payload.email.trim().toLowerCase(),
+      payload.company?.trim() || null,
+      payload.message.trim(),
+      payload.source || 'landing'
+    );
+
+    res.status(201).json({ status: 'received' });
+  } catch (error) {
+    console.error('Inquiry submission error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// List inquiries (for CLI access)
+app.get('/v1/inquiries', (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+    const inquiries = inquiryQueries.all.all(limit);
+    const total = (inquiryQueries.count.get() as { count: number }).count;
+
+    res.json({ inquiries, total });
+  } catch (error) {
+    console.error('Inquiries list error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
