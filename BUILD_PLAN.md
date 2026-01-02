@@ -368,19 +368,19 @@ Orchestrator-evaluated loop conditions using `**...**` discretion syntax.
 
 ---
 
-### Tier 10: Pipeline Operations
+### Tier 10: Pipeline Operations ✅
 
 Functional-style collection transformations.
 
-| #    | Feature  | Description                             | Test Program          |
-| ---- | -------- | --------------------------------------- | --------------------- |
-| 10.1 | map      | `items \| map: session "..."`           | `tier-10-map.prose`    |
-| 10.2 | filter   | `items \| filter: session "..."`        | `tier-10-filter.prose` |
-| 10.3 | reduce   | `items \| reduce(acc, item): ...`       | `tier-10-reduce.prose` |
-| 10.4 | pmap     | Parallel map                            | `tier-10-pmap.prose`   |
-| 10.5 | Chaining | `\| filter: ... \| map: ... \| reduce:` | `tier-10-chain.prose`  |
+| #    | Feature  | Description                             | Test Program          | Status |
+| ---- | -------- | --------------------------------------- | --------------------- | ------ |
+| 10.1 | map      | `items \| map: session "..."`           | `tier-10-map.prose`    | ✅     |
+| 10.2 | filter   | `items \| filter: session "..."`        | `tier-10-filter.prose` | ✅     |
+| 10.3 | reduce   | `items \| reduce(acc, item): ...`       | `tier-10-reduce.prose` | ✅     |
+| 10.4 | pmap     | Parallel map                            | `tier-10-pmap.prose`   | ✅     |
+| 10.5 | Chaining | `\| filter: ... \| map: ... \| reduce:` | `tier-10-chain.prose`  | ✅     |
 
-**Milestone:** Can transform collections with pipeline operators.
+**Milestone:** Can transform collections with pipeline operators. ✅
 
 ---
 

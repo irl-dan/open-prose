@@ -1,0 +1,11 @@
+# Tier 10: Parallel Map (pmap) Pipeline Operation
+# Tests: concurrent transformation of collection items
+
+let topics = ["quantum computing", "blockchain", "machine learning"]
+
+let research = topics | pmap:
+  session "Write a brief overview of this technology topic"
+    context: item
+
+session "Combine all technology overviews into a summary"
+  context: research

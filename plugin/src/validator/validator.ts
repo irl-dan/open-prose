@@ -33,6 +33,8 @@ import {
   LoopBlockNode,
   RepeatBlockNode,
   ForEachBlockNode,
+  PipeExpressionNode,
+  PipeOperationNode,
   walkAST,
   ASTVisitor,
 } from '../parser';
@@ -610,6 +612,90 @@ export class Validator {
   }
 
   /**
+   * Validate a pipe expression (items | map: ... | filter: ...)
+   */
+  private validatePipeExpression(pipe: PipeExpressionNode): void {
+    // Validate input expression
+    if (pipe.input.type === 'Identifier') {
+      const inputName = (pipe.input as IdentifierNode).name;
+      if (!this.definedVariables.has(inputName)) {
+        this.addError(
+          `Undefined collection variable: "${inputName}"`,
+          pipe.input.span
+        );
+      }
+    }
+
+    // Validate each operation in the chain
+    for (const operation of pipe.operations) {
+      this.validatePipeOperation(operation);
+    }
+  }
+
+  /**
+   * Validate a single pipe operation (map, filter, reduce, pmap)
+   */
+  private validatePipeOperation(operation: PipeOperationNode): void {
+    // Save current scope
+    const savedVariables = new Map(this.definedVariables);
+
+    // Add implicit/explicit variables to scope based on operator type
+    if (operation.operator === 'reduce') {
+      // For reduce, acc and item are explicit
+      if (operation.accVar) {
+        const accName = operation.accVar.name;
+        if (this.definedVariables.has(accName)) {
+          this.addWarning(
+            `Reduce accumulator variable "${accName}" shadows outer variable`,
+            operation.accVar.span
+          );
+        }
+        this.definedVariables.set(accName, {
+          name: accName,
+          isConst: true,
+          span: operation.accVar.span,
+        });
+      }
+      if (operation.itemVar) {
+        const itemName = operation.itemVar.name;
+        if (this.definedVariables.has(itemName)) {
+          this.addWarning(
+            `Reduce item variable "${itemName}" shadows outer variable`,
+            operation.itemVar.span
+          );
+        }
+        this.definedVariables.set(itemName, {
+          name: itemName,
+          isConst: true,
+          span: operation.itemVar.span,
+        });
+      }
+    } else {
+      // For map, filter, pmap: 'item' is implicit
+      // Check if 'item' shadows an outer variable (warning only)
+      if (this.definedVariables.has('item')) {
+        this.addWarning(
+          `Implicit pipeline variable "item" shadows outer variable`,
+          operation.span
+        );
+      }
+      this.definedVariables.set('item', {
+        name: 'item',
+        isConst: true,
+        span: operation.span,
+      });
+    }
+
+    // Validate body statements
+    for (const stmt of operation.body) {
+      this.validateStatement(stmt);
+    }
+
+    // Restore previous scope
+    this.definedVariables = savedVariables;
+  }
+
+  /**
    * Validate a discretion node (AI-evaluated expression)
    */
   private validateDiscretion(discretion: DiscretionNode): void {
@@ -708,6 +794,8 @@ export class Validator {
       this.validateLoopBlock(expr as LoopBlockNode);
     } else if (expr.type === 'ArrowExpression') {
       this.validateArrowExpression(expr as ArrowExpressionNode);
+    } else if (expr.type === 'PipeExpression') {
+      this.validatePipeExpression(expr as PipeExpressionNode);
     } else if (expr.type === 'Identifier') {
       // Variable reference - check if it exists
       const name = (expr as IdentifierNode).name;

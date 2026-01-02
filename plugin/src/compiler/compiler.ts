@@ -33,6 +33,8 @@ import {
   LoopBlockNode,
   RepeatBlockNode,
   ForEachBlockNode,
+  PipeExpressionNode,
+  PipeOperationNode,
 } from '../parser';
 import { SourceSpan } from '../parser/tokens';
 
@@ -391,8 +393,56 @@ export class Compiler {
       // Array
       this.compileArrayExpression(value as ArrayExpressionNode);
       this.emitNewline();
+    } else if (value.type === 'PipeExpression') {
+      // Pipe expression
+      this.compilePipeExpressionValue(value as PipeExpressionNode);
     } else {
       this.emitNewline();
+    }
+  }
+
+  /**
+   * Compile a pipe expression as a binding value
+   * Syntax: items | map: ... | filter: ... | reduce(acc, item): ...
+   */
+  private compilePipeExpressionValue(pipe: PipeExpressionNode, indentLevel: number = 0): void {
+    // Emit the input
+    this.compileExpression(pipe.input);
+
+    // Emit each operation
+    for (const operation of pipe.operations) {
+      this.emitNewline();
+      const indent = this.options.indent.repeat(indentLevel);
+      this.emit(indent);
+      this.emit('  | ');
+      this.compilePipeOperation(operation, indentLevel + 2);
+    }
+  }
+
+  /**
+   * Compile a single pipe operation
+   */
+  private compilePipeOperation(operation: PipeOperationNode, indentLevel: number = 0): void {
+    // Emit the operator
+    this.emit(operation.operator);
+
+    // For reduce, emit the (acc, item) variables
+    if (operation.operator === 'reduce' && operation.accVar && operation.itemVar) {
+      this.emit('(');
+      this.emit(operation.accVar.name);
+      this.emit(', ');
+      this.emit(operation.itemVar.name);
+      this.emit(')');
+    }
+
+    this.emit(':');
+    this.emitNewline();
+
+    // Emit body with indentation
+    const indent = this.options.indent.repeat(indentLevel);
+    for (const stmt of operation.body) {
+      this.emit(indent);
+      this.compileStatementInline(stmt);
     }
   }
 

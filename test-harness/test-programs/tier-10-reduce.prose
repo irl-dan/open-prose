@@ -1,0 +1,11 @@
+# Tier 10: Reduce Pipeline Operation
+# Tests: reduce operation to accumulate into single result
+
+let ideas = ["AI assistant", "smart home device", "health tracker"]
+
+let combined = ideas | reduce(summary, idea):
+  session "Add this idea to the summary, creating a cohesive product concept"
+    context: [summary, idea]
+
+session "Present the final combined product concept"
+  context: combined

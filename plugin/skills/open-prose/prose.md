@@ -18,10 +18,11 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. Thi
 10. [Parallel Blocks](#parallel-blocks)
 11. [Fixed Loops](#fixed-loops)
 12. [Unbounded Loops](#unbounded-loops)
-13. [Execution Model](#execution-model)
-14. [Validation Rules](#validation-rules)
-15. [Examples](#examples)
-16. [Future Features](#future-features)
+13. [Pipeline Operations](#pipeline-operations)
+14. [Execution Model](#execution-model)
+15. [Validation Rules](#validation-rules)
+16. [Examples](#examples)
+17. [Future Features](#future-features)
 
 ---
 
@@ -71,6 +72,11 @@ The following features are implemented:
 | Loop until | Implemented | `loop until **condition**:` AI-evaluated |
 | Loop while | Implemented | `loop while **condition**:` AI-evaluated |
 | Loop with index | Implemented | `loop as i:` or `loop until ... as i:` |
+| Map pipeline | Implemented | `items \| map:` transform each item |
+| Filter pipeline | Implemented | `items \| filter:` keep matching items |
+| Reduce pipeline | Implemented | `items \| reduce(acc, item):` accumulate |
+| Parallel map | Implemented | `items \| pmap:` concurrent transform |
+| Pipeline chaining | Implemented | `\| filter: ... \| map: ...` |
 
 ---
 
@@ -1454,6 +1460,178 @@ session "use outer i"
 
 ---
 
+## Pipeline Operations
+
+Pipeline operations provide functional-style collection transformations. They allow you to chain operations like map, filter, and reduce using the pipe operator (`|`).
+
+### Pipe Operator
+
+The pipe operator (`|`) passes a collection to a transformation operation:
+
+```prose
+let items = ["a", "b", "c"]
+let results = items | map:
+  session "Process this item"
+    context: item
+```
+
+### Map
+
+The `map` operation transforms each element in a collection:
+
+```prose
+let articles = ["article1", "article2", "article3"]
+
+let summaries = articles | map:
+  session "Summarize this article in one sentence"
+    context: item
+```
+
+Inside a map body, the implicit variable `item` refers to the current element being processed.
+
+### Filter
+
+The `filter` operation keeps elements that match a condition:
+
+```prose
+let items = ["one", "two", "three", "four", "five"]
+
+let short = items | filter:
+  session "Does this word have 4 or fewer letters? Answer yes or no."
+    context: item
+```
+
+The session in a filter body should return something the Orchestrator can interpret as truthy/falsy (like "yes"/"no").
+
+### Reduce
+
+The `reduce` operation accumulates elements into a single result:
+
+```prose
+let ideas = ["AI assistant", "smart home", "health tracker"]
+
+let combined = ideas | reduce(summary, idea):
+  session "Add this idea to the summary, creating a cohesive concept"
+    context: [summary, idea]
+```
+
+The reduce operation requires explicit variable names:
+- First variable (`summary`): the accumulator
+- Second variable (`idea`): the current item
+
+The first item in the collection becomes the initial accumulator value.
+
+### Parallel Map (pmap)
+
+The `pmap` operation is like `map` but runs all transformations concurrently:
+
+```prose
+let tasks = ["task1", "task2", "task3"]
+
+let results = tasks | pmap:
+  session "Process this task in parallel"
+    context: item
+
+session "Aggregate all results"
+  context: results
+```
+
+This is similar to `parallel for`, but in pipeline syntax.
+
+### Chaining
+
+Pipeline operations can be chained to compose complex transformations:
+
+```prose
+let topics = ["quantum computing", "blockchain", "machine learning", "IoT"]
+
+let result = topics
+  | filter:
+      session "Is this topic trending? Answer yes or no."
+        context: item
+  | map:
+      session "Write a one-line startup pitch for this topic"
+        context: item
+
+session "Present the startup pitches"
+  context: result
+```
+
+Operations execute left-to-right: first filter, then map.
+
+### Complete Example
+
+```prose
+# Define a collection
+let articles = ["AI breakthroughs", "Climate solutions", "Space exploration"]
+
+# Process with chained operations
+let summaries = articles
+  | filter:
+      session "Is this topic relevant to technology? Answer yes or no."
+        context: item
+  | map:
+      session "Write a compelling one-paragraph summary"
+        context: item
+  | reduce(combined, summary):
+      session "Merge this summary into the combined document"
+        context: [combined, summary]
+
+# Present the final result
+session "Format and present the combined summaries"
+  context: summaries
+```
+
+### Implicit Variables
+
+| Operation | Available Variables |
+|-----------|---------------------|
+| `map` | `item` - current element |
+| `filter` | `item` - current element |
+| `pmap` | `item` - current element |
+| `reduce` | Named explicitly: `reduce(accVar, itemVar):` |
+
+### Execution Semantics
+
+When the Orchestrator encounters a pipeline:
+
+1. **Input**: Start with the input collection
+2. **For each operation**:
+   - **map**: Transform each element, producing a new collection
+   - **filter**: Keep elements where the session returns truthy
+   - **reduce**: Accumulate elements into a single value
+   - **pmap**: Transform all elements concurrently
+3. **Output**: Return the final transformed collection/value
+
+### Variable Scoping
+
+Pipeline variables are scoped to their operation body:
+
+```prose
+let item = "outer"
+let items = ["a", "b"]
+
+let results = items | map:
+  # 'item' here is the pipeline variable (shadows outer)
+  session "process"
+    context: item
+
+# 'item' here refers to the outer variable again
+session "use outer"
+  context: item
+```
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Undefined input collection | Error | Undefined collection variable |
+| Invalid pipe operator | Error | Expected pipe operator (map, filter, reduce, pmap) |
+| Reduce without variables | Error | Expected accumulator and item variables |
+| Pipeline variable shadows outer | Warning | Implicit/explicit variable shadows outer variable |
+
+---
+
 ## Execution Model
 
 OpenProse uses a two-phase execution model.
@@ -1681,10 +1859,6 @@ session: writer
 
 The following features are specified but not yet implemented:
 
-### Tier 10: Pipeline Operations
-- `map`, `filter`, `reduce`
-- Pipeline chaining with `|`
-
 ### Tier 11: Error Handling
 - `try`/`catch`/`finally`
 - `retry` modifier
@@ -1723,7 +1897,10 @@ session     → "session" ( string | ":" IDENTIFIER | IDENTIFIER ":" IDENTIFIER 
 letBinding  → "let" IDENTIFIER "=" expression
 constBinding → "const" IDENTIFIER "=" expression
 assignment  → IDENTIFIER "=" expression
-expression  → session | doBlock | parallelBlock | repeatBlock | forEachBlock | loopBlock | arrowExpr | string | IDENTIFIER | array | objectContext
+expression  → session | doBlock | parallelBlock | repeatBlock | forEachBlock | loopBlock | arrowExpr | pipeExpr | string | IDENTIFIER | array | objectContext
+pipeExpr    → ( IDENTIFIER | array ) ( "|" pipeOp )+
+pipeOp      → ( "map" | "filter" | "pmap" ) ":" NEWLINE INDENT statement* DEDENT
+            | "reduce" "(" IDENTIFIER "," IDENTIFIER ")" ":" NEWLINE INDENT statement* DEDENT
 property    → ( "model" | "prompt" | "context" | IDENTIFIER ) ":" ( IDENTIFIER | string | array | objectContext )
 array       → "[" ( expression ( "," expression )* )? "]"
 objectContext → "{" ( IDENTIFIER ( "," IDENTIFIER )* )? "}"

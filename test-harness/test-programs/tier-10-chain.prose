@@ -1,0 +1,14 @@
+# Tier 10: Pipeline Chaining
+# Tests: composing multiple pipeline operations
+
+let topics = ["quantum computing", "blockchain", "machine learning", "IoT", "cybersecurity"]
+
+let result = topics | filter:
+  session "Is this topic hot in tech right now? Answer yes or no."
+    context: item
+| map:
+  session "Write a one-line startup pitch for this topic"
+    context: item
+
+session "Present the startup pitches for trending topics"
+  context: result

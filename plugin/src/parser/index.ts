@@ -70,6 +70,7 @@ export type {
   ArrayExpressionNode,
   ObjectExpressionNode,
   PipeExpressionNode,
+  PipeOperationNode,
   ArrowExpressionNode,
   ASTVisitor,
 } from './ast';

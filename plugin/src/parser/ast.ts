@@ -305,13 +305,37 @@ export interface ObjectExpressionNode extends ASTNode {
 }
 
 /**
- * Pipe expression (a | b | c)
+ * Pipe expression - functional collection transformations
+ * Syntax:
+ *   items | map:
+ *     session "Process"
+ *       context: item
+ *   items | filter:
+ *     session "Is valid?"
+ *       context: item
+ *   items | reduce(acc, item):
+ *     session "Combine"
+ *       context: [acc, item]
+ *   items | pmap:
+ *     session "Process in parallel"
+ *       context: item
+ *   items | filter: ... | map: ... | reduce(acc, item): ...
  */
 export interface PipeExpressionNode extends ASTNode {
   type: 'PipeExpression';
-  left: ExpressionNode;
+  input: ExpressionNode;  // The input collection (identifier, array, or another pipe)
+  operations: PipeOperationNode[];  // Chain of pipeline operations
+}
+
+/**
+ * A single pipeline operation (map, filter, reduce, pmap)
+ */
+export interface PipeOperationNode extends ASTNode {
+  type: 'PipeOperation';
   operator: 'map' | 'filter' | 'reduce' | 'pmap';
-  right: ExpressionNode;
+  accVar: IdentifierNode | null;  // For reduce: the accumulator variable name
+  itemVar: IdentifierNode | null;  // For reduce: the item variable name (implicit 'item' for others)
+  body: StatementNode[];
 }
 
 /**
@@ -382,6 +406,7 @@ export interface ASTVisitor<T = void> {
   visitArrayExpression?(node: ArrayExpressionNode): T;
   visitObjectExpression?(node: ObjectExpressionNode): T;
   visitPipeExpression?(node: PipeExpressionNode): T;
+  visitPipeOperation?(node: PipeOperationNode): T;
   visitArrowExpression?(node: ArrowExpressionNode): T;
   visitProperty?(node: PropertyNode): T;
 }
@@ -437,6 +462,8 @@ export function walkAST<T>(node: ASTNode, visitor: ASTVisitor<T>): T | undefined
       return visitor.visitObjectExpression?.(node as ObjectExpressionNode);
     case 'PipeExpression':
       return visitor.visitPipeExpression?.(node as PipeExpressionNode);
+    case 'PipeOperation':
+      return visitor.visitPipeOperation?.(node as PipeOperationNode);
     case 'ArrowExpression':
       return visitor.visitArrowExpression?.(node as ArrowExpressionNode);
     case 'Property':

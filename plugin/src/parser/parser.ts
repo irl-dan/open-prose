@@ -39,6 +39,8 @@ import {
   LoopBlockNode,
   RepeatBlockNode,
   ForEachBlockNode,
+  PipeExpressionNode,
+  PipeOperationNode,
   createProgramNode,
   createCommentNode,
 } from './ast';
@@ -437,14 +439,24 @@ export class Parser {
       return this.parseStringLiteral();
     }
 
-    // If it's an identifier (variable reference)
+    // If it's an identifier (variable reference) - might be followed by pipe
     if (this.check(TokenType.IDENTIFIER)) {
-      return this.parseIdentifier();
+      const id = this.parseIdentifier();
+      // Check for pipe expression
+      if (this.check(TokenType.PIPE)) {
+        return this.parsePipeExpression(id);
+      }
+      return id;
     }
 
-    // If it's an array
+    // If it's an array - might be followed by pipe
     if (this.check(TokenType.LBRACKET)) {
-      return this.parseArrayExpression();
+      const arr = this.parseArrayExpression();
+      // Check for pipe expression
+      if (this.check(TokenType.PIPE)) {
+        return this.parsePipeExpression(arr);
+      }
+      return arr;
     }
 
     // Error case
@@ -1762,6 +1774,174 @@ export class Parser {
       condition,
       iterationVar,
       maxIterations,
+      body,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a pipe expression (items | map: ... | filter: ... | reduce: ...)
+   * Syntax:
+   *   items | map:
+   *     body...
+   *   items | filter:
+   *     body...
+   *   items | reduce(acc, item):
+   *     body...
+   *   items | pmap:
+   *     body...
+   */
+  private parsePipeExpression(input: ExpressionNode): PipeExpressionNode {
+    const start = input.span.start;
+    const operations: PipeOperationNode[] = [];
+
+    // Parse chain of pipe operations
+    while (this.check(TokenType.PIPE)) {
+      this.advance(); // consume '|'
+
+      const operation = this.parsePipeOperation();
+      operations.push(operation);
+    }
+
+    const end = operations.length > 0
+      ? operations[operations.length - 1].span.end
+      : input.span.end;
+
+    return {
+      type: 'PipeExpression',
+      input,
+      operations,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a single pipe operation (map, filter, reduce, pmap)
+   * Syntax:
+   *   map:
+   *     body...
+   *   filter:
+   *     body...
+   *   reduce(acc, item):
+   *     body...
+   *   pmap:
+   *     body...
+   */
+  private parsePipeOperation(): PipeOperationNode {
+    const start = this.peek().span.start;
+    let operator: 'map' | 'filter' | 'reduce' | 'pmap';
+    let accVar: IdentifierNode | null = null;
+    let itemVar: IdentifierNode | null = null;
+
+    // Parse the operator keyword
+    if (this.check(TokenType.MAP)) {
+      this.advance();
+      operator = 'map';
+    } else if (this.check(TokenType.FILTER)) {
+      this.advance();
+      operator = 'filter';
+    } else if (this.check(TokenType.REDUCE)) {
+      this.advance();
+      operator = 'reduce';
+
+      // Parse (acc, item) for reduce
+      if (!this.match(TokenType.LPAREN)) {
+        this.addError('Expected "(" after "reduce"');
+      }
+
+      // Parse accumulator variable
+      if (this.check(TokenType.IDENTIFIER)) {
+        accVar = this.parseIdentifier();
+      } else {
+        this.addError('Expected accumulator variable name in reduce');
+      }
+
+      // Expect comma
+      if (!this.match(TokenType.COMMA)) {
+        this.addError('Expected "," between accumulator and item variable in reduce');
+      }
+
+      // Parse item variable
+      if (this.check(TokenType.IDENTIFIER)) {
+        itemVar = this.parseIdentifier();
+      } else {
+        this.addError('Expected item variable name in reduce');
+      }
+
+      // Expect closing paren
+      if (!this.match(TokenType.RPAREN)) {
+        this.addError('Expected ")" after reduce variables');
+      }
+    } else if (this.check(TokenType.PMAP)) {
+      this.advance();
+      operator = 'pmap';
+    } else {
+      this.addError('Expected pipe operator (map, filter, reduce, or pmap)');
+      operator = 'map'; // Default to map
+    }
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after pipe operator');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse indented body
+    const body: StatementNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        // Check for next pipe operation (indicated by PIPE token at current indentation)
+        // This would mean we need to end this operation's body
+        if (this.check(TokenType.PIPE)) {
+          break;
+        }
+
+        const stmt = this.parseStatement();
+        if (stmt) {
+          body.push(stmt);
+        }
+      }
+
+      // Consume DEDENT (but only if we're at a DEDENT, not at PIPE)
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'PipeOperation',
+      operator,
+      accVar,
+      itemVar,
       body,
       span: { start, end },
     };

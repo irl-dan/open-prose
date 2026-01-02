@@ -1,0 +1,11 @@
+# Tier 10: Filter Pipeline Operation
+# Tests: filter operation to keep matching items
+
+let words = ["one", "two", "three", "four", "five"]
+
+let short = words | filter:
+  session "Does this word have 4 or fewer letters? Answer only yes or no."
+    context: item
+
+session "List only the short words that passed the filter"
+  context: short

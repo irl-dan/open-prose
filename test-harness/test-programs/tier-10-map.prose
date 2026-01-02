@@ -1,0 +1,11 @@
+# Tier 10: Map Pipeline Operation
+# Tests: basic map transformation over a collection
+
+let fruits = ["apple", "banana", "cherry"]
+
+let descriptions = fruits | map:
+  session "Describe this fruit in one creative sentence"
+    context: item
+
+session "Present all the fruit descriptions together"
+  context: descriptions
