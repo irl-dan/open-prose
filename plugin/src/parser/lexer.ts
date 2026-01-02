@@ -7,7 +7,7 @@
  * - Indentation-based structure
  */
 
-import { Token, TokenType, SourceLocation, SourceSpan, KEYWORDS, StringTokenMetadata, EscapeSequenceInfo } from './tokens';
+import { Token, TokenType, SourceLocation, SourceSpan, KEYWORDS, StringTokenMetadata, EscapeSequenceInfo, InterpolationInfo } from './tokens';
 
 export interface LexerOptions {
   /** Whether to include comments in the token stream (default: true) */
@@ -261,12 +261,63 @@ export class Lexer {
 
     let value = '';
     const escapeSequences: EscapeSequenceInfo[] = [];
+    const interpolations: InterpolationInfo[] = [];
     let rawOffset = 1; // Start after opening quote
+    let valueOffset = 0; // Offset in the processed value
 
     while (!this.isAtEnd() && this.peek() !== '"') {
       if (this.peek() === '\n' || this.peek() === '\r') {
         this.addError('Unterminated string literal');
         return;
+      }
+
+      // Check for interpolation {varname}
+      if (this.peek() === '{') {
+        const interpStart = this.pos;
+        const interpValueOffset = valueOffset;
+        this.advance();
+        rawOffset++;
+
+        // Parse the variable name
+        let varName = '';
+        while (!this.isAtEnd() && this.peek() !== '}' && this.peek() !== '"' && this.peek() !== '\n') {
+          if (this.isAlphaNumericOrHyphen(this.peek()) || (varName.length === 0 && this.isAlpha(this.peek()))) {
+            varName += this.peek();
+            this.advance();
+            rawOffset++;
+          } else {
+            // Invalid character in interpolation
+            break;
+          }
+        }
+
+        if (this.peek() === '}' && varName.length > 0) {
+          // Valid interpolation (must have a variable name)
+          this.advance();
+          rawOffset++;
+
+          const rawInterp = this.source.substring(interpStart, this.pos);
+          interpolations.push({
+            varName,
+            offset: interpValueOffset,
+            raw: rawInterp
+          });
+
+          // Add a placeholder to the value (we'll keep the {varname} in the value)
+          value += rawInterp;
+          valueOffset += rawInterp.length;
+        } else if (this.peek() === '}') {
+          // Empty braces {} - treat as literal
+          this.advance();
+          rawOffset++;
+          value += '{}';
+          valueOffset += 2;
+        } else {
+          // Not a valid interpolation, treat { as a literal
+          value += '{' + varName;
+          valueOffset += 1 + varName.length;
+        }
+        continue;
       }
 
       if (this.peek() === '\\') {
@@ -286,43 +337,66 @@ export class Lexer {
         switch (escaped) {
           case 'n':
             value += '\n';
+            valueOffset++;
             escapeInfo = { type: 'standard', sequence: '\\n', resolved: '\n', offset: escapeRawOffset };
             this.advance();
             rawOffset++;
             break;
           case 't':
             value += '\t';
+            valueOffset++;
             escapeInfo = { type: 'standard', sequence: '\\t', resolved: '\t', offset: escapeRawOffset };
             this.advance();
             rawOffset++;
             break;
           case 'r':
             value += '\r';
+            valueOffset++;
             escapeInfo = { type: 'standard', sequence: '\\r', resolved: '\r', offset: escapeRawOffset };
             this.advance();
             rawOffset++;
             break;
           case '\\':
             value += '\\';
+            valueOffset++;
             escapeInfo = { type: 'standard', sequence: '\\\\', resolved: '\\', offset: escapeRawOffset };
             this.advance();
             rawOffset++;
             break;
           case '"':
             value += '"';
+            valueOffset++;
             escapeInfo = { type: 'standard', sequence: '\\"', resolved: '"', offset: escapeRawOffset };
             this.advance();
             rawOffset++;
             break;
           case '#':
             value += '#';
+            valueOffset++;
             escapeInfo = { type: 'standard', sequence: '\\#', resolved: '#', offset: escapeRawOffset };
             this.advance();
             rawOffset++;
             break;
           case '0':
             value += '\0';
+            valueOffset++;
             escapeInfo = { type: 'standard', sequence: '\\0', resolved: '\0', offset: escapeRawOffset };
+            this.advance();
+            rawOffset++;
+            break;
+          case '{':
+            // Escaped brace - treat as literal
+            value += '{';
+            valueOffset++;
+            escapeInfo = { type: 'standard', sequence: '\\{', resolved: '{', offset: escapeRawOffset };
+            this.advance();
+            rawOffset++;
+            break;
+          case '}':
+            // Escaped brace - treat as literal
+            value += '}';
+            valueOffset++;
+            escapeInfo = { type: 'standard', sequence: '\\}', resolved: '}', offset: escapeRawOffset };
             this.advance();
             rawOffset++;
             break;
@@ -333,6 +407,7 @@ export class Lexer {
             const unicodeResult = this.scanUnicodeEscape(escapeStart);
             if (unicodeResult.success) {
               value += unicodeResult.char;
+              valueOffset++;
               escapeInfo = {
                 type: 'unicode',
                 sequence: `\\u${unicodeResult.hexDigits}`,
@@ -343,6 +418,7 @@ export class Lexer {
             } else {
               // On error, we already added the error, just add the literal characters
               value += 'u';
+              valueOffset++;
               escapeInfo = {
                 type: 'invalid',
                 sequence: '\\u',
@@ -356,6 +432,7 @@ export class Lexer {
             // Warn on unrecognized escape sequence, but include the character literally
             this.addWarning(`Unrecognized escape sequence: \\${escaped}`, escapeStart);
             value += escaped;
+            valueOffset++;
             escapeInfo = {
               type: 'invalid',
               sequence: `\\${escaped}`,
@@ -372,6 +449,7 @@ export class Lexer {
         }
       } else {
         value += this.peek();
+        valueOffset++;
         this.advance();
         rawOffset++;
       }
@@ -392,6 +470,7 @@ export class Lexer {
       raw,
       isTripleQuoted: false,
       escapeSequences,
+      interpolations,
     };
 
     this.addStringToken(value, start, stringMetadata);
@@ -435,11 +514,13 @@ export class Lexer {
 
   /**
    * Scan a triple-quoted string literal
-   * Note: Triple-quoted strings do not process escape sequences
+   * Note: Triple-quoted strings do not process escape sequences but do support interpolation
    */
   private scanTripleQuotedString(start: SourceLocation): void {
     const rawStart = start.offset; // The position includes the opening """
     let value = '';
+    const interpolations: InterpolationInfo[] = [];
+    let valueOffset = 0;
 
     while (!this.isAtEnd()) {
       if (this.peek() === '"' && this.peekAt(1) === '"' && this.peekAt(2) === '"') {
@@ -455,14 +536,57 @@ export class Lexer {
           raw,
           isTripleQuoted: true,
           escapeSequences: [],
+          interpolations,
         };
 
         this.addStringToken(value, start, stringMetadata);
         return;
       }
 
+      // Check for interpolation {varname}
+      if (this.peek() === '{') {
+        const interpStart = this.pos;
+        const interpValueOffset = valueOffset;
+        this.advance();
+
+        // Parse the variable name
+        let varName = '';
+        while (!this.isAtEnd() && this.peek() !== '}' && this.peek() !== '"' && this.peek() !== '\n' && this.peek() !== '\r') {
+          if (this.isAlphaNumericOrHyphen(this.peek()) || (varName.length === 0 && this.isAlpha(this.peek()))) {
+            varName += this.peek();
+            this.advance();
+          } else {
+            break;
+          }
+        }
+
+        if (this.peek() === '}' && varName.length > 0) {
+          // Valid interpolation (must have a variable name)
+          this.advance();
+          const rawInterp = this.source.substring(interpStart, this.pos);
+          interpolations.push({
+            varName,
+            offset: interpValueOffset,
+            raw: rawInterp
+          });
+          value += rawInterp;
+          valueOffset += rawInterp.length;
+        } else if (this.peek() === '}') {
+          // Empty braces {} - treat as literal
+          this.advance();
+          value += '{}';
+          valueOffset += 2;
+        } else {
+          // Not a valid interpolation, treat { as literal
+          value += '{' + varName;
+          valueOffset += 1 + varName.length;
+        }
+        continue;
+      }
+
       if (this.peek() === '\n') {
         value += '\n';
+        valueOffset++;
         this.advance();
         this.line++;
         this.column = 1;
@@ -472,10 +596,12 @@ export class Lexer {
           this.advance();
         }
         value += '\n';
+        valueOffset++;
         this.line++;
         this.column = 1;
       } else {
         value += this.peek();
+        valueOffset++;
         this.advance();
       }
     }

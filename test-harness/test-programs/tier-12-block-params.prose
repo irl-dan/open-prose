@@ -1,0 +1,12 @@
+# Tier 12: Block Parameters
+# Tests: parameterized block definitions
+
+block analyze(topic):
+  session "Research {topic} in depth."
+  session "Identify key trends in {topic}."
+  session "Summarize findings about {topic}."
+
+do analyze("artificial intelligence")
+do analyze("renewable energy")
+
+session "Compare and contrast the two topics analyzed above."

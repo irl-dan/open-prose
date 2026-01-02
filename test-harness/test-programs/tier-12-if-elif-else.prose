@@ -1,0 +1,15 @@
+# Tier 12: If/Elif/Else Conditionals
+# Tests: conditional branching with AI-evaluated conditions
+
+let review = session "Review this scenario: A pull request adds 50 lines of code with 90% test coverage and passes all CI checks. What is your assessment?"
+
+if **the code changes are production-ready**:
+  session "Approve the pull request and prepare deployment notes."
+elif **the code needs minor improvements**:
+  session "Request small changes and suggest improvements."
+elif **the code has significant issues**:
+  session "Request major revisions and document concerns."
+else:
+  session "Provide a detailed review with specific feedback."
+
+session "Summarize the decision made and rationale."

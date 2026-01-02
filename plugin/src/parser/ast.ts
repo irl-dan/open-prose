@@ -94,6 +94,8 @@ export type StatementNode =
   | ForEachBlockNode
   | TryBlockNode
   | ThrowStatementNode
+  | ChoiceBlockNode
+  | IfStatementNode
   | LetBindingNode
   | ConstBindingNode
   | AssignmentNode
@@ -266,6 +268,78 @@ export interface ThrowStatementNode extends ASTNode {
 }
 
 /**
+ * Interpolated string - a string containing variable interpolations
+ *
+ * Syntax:
+ *   "Process {item} and return {result}"
+ *
+ * The parts alternate between string literal segments and variable references
+ */
+export interface InterpolatedStringNode extends ASTNode {
+  type: 'InterpolatedString';
+  parts: (StringLiteralNode | IdentifierNode)[];  // Alternating text and variables
+  raw: string;  // The original raw string
+  isTripleQuoted: boolean;
+}
+
+/**
+ * Choice block - Orchestrator-selected branch execution
+ *
+ * Syntax:
+ *   choice **which approach is best**:
+ *     option "quick":
+ *       session "Do the fast approach"
+ *     option "thorough":
+ *       session "Do the comprehensive approach"
+ */
+export interface ChoiceBlockNode extends ASTNode {
+  type: 'ChoiceBlock';
+  criteria: DiscretionNode;  // The **criteria** condition
+  options: ChoiceOptionNode[];
+}
+
+/**
+ * A single option in a choice block
+ *
+ * Syntax:
+ *   option "label":
+ *     body...
+ */
+export interface ChoiceOptionNode extends ASTNode {
+  type: 'ChoiceOption';
+  label: StringLiteralNode;  // The option name
+  body: StatementNode[];
+}
+
+/**
+ * If/elif/else conditional statement
+ *
+ * Syntax:
+ *   if **condition**:
+ *     thenBody...
+ *   elif **condition**:
+ *     elifBody...
+ *   else:
+ *     elseBody...
+ */
+export interface IfStatementNode extends ASTNode {
+  type: 'IfStatement';
+  condition: DiscretionNode;  // The **condition**
+  thenBody: StatementNode[];
+  elseIfClauses: ElseIfClauseNode[];
+  elseBody: StatementNode[] | null;
+}
+
+/**
+ * An elif clause in an if statement
+ */
+export interface ElseIfClauseNode extends ASTNode {
+  type: 'ElseIfClause';
+  condition: DiscretionNode;
+  body: StatementNode[];
+}
+
+/**
  * Let binding
  */
 export interface LetBindingNode extends ASTNode {
@@ -296,6 +370,7 @@ export interface AssignmentNode extends ASTNode {
 
 export type ExpressionNode =
   | StringLiteralNode
+  | InterpolatedStringNode
   | NumberLiteralNode
   | IdentifierNode
   | DiscretionNode
@@ -309,7 +384,9 @@ export type ExpressionNode =
   | LoopBlockNode
   | RepeatBlockNode
   | ForEachBlockNode
-  | TryBlockNode;
+  | TryBlockNode
+  | ChoiceBlockNode
+  | IfStatementNode;
 
 /**
  * Array expression
@@ -410,6 +487,7 @@ export interface ASTVisitor<T = void> {
   visitComment?(node: CommentNode): T;
   visitCommentStatement?(node: CommentStatementNode): T;
   visitStringLiteral?(node: StringLiteralNode): T;
+  visitInterpolatedString?(node: InterpolatedStringNode): T;
   visitNumberLiteral?(node: NumberLiteralNode): T;
   visitIdentifier?(node: IdentifierNode): T;
   visitDiscretion?(node: DiscretionNode): T;
@@ -424,6 +502,10 @@ export interface ASTVisitor<T = void> {
   visitForEachBlock?(node: ForEachBlockNode): T;
   visitTryBlock?(node: TryBlockNode): T;
   visitThrowStatement?(node: ThrowStatementNode): T;
+  visitChoiceBlock?(node: ChoiceBlockNode): T;
+  visitChoiceOption?(node: ChoiceOptionNode): T;
+  visitIfStatement?(node: IfStatementNode): T;
+  visitElseIfClause?(node: ElseIfClauseNode): T;
   visitLetBinding?(node: LetBindingNode): T;
   visitConstBinding?(node: ConstBindingNode): T;
   visitAssignment?(node: AssignmentNode): T;
@@ -448,6 +530,8 @@ export function walkAST<T>(node: ASTNode, visitor: ASTVisitor<T>): T | undefined
       return visitor.visitCommentStatement?.(node as CommentStatementNode);
     case 'StringLiteral':
       return visitor.visitStringLiteral?.(node as StringLiteralNode);
+    case 'InterpolatedString':
+      return visitor.visitInterpolatedString?.(node as InterpolatedStringNode);
     case 'NumberLiteral':
       return visitor.visitNumberLiteral?.(node as NumberLiteralNode);
     case 'Identifier':
@@ -476,6 +560,14 @@ export function walkAST<T>(node: ASTNode, visitor: ASTVisitor<T>): T | undefined
       return visitor.visitTryBlock?.(node as TryBlockNode);
     case 'ThrowStatement':
       return visitor.visitThrowStatement?.(node as ThrowStatementNode);
+    case 'ChoiceBlock':
+      return visitor.visitChoiceBlock?.(node as ChoiceBlockNode);
+    case 'ChoiceOption':
+      return visitor.visitChoiceOption?.(node as ChoiceOptionNode);
+    case 'IfStatement':
+      return visitor.visitIfStatement?.(node as IfStatementNode);
+    case 'ElseIfClause':
+      return visitor.visitElseIfClause?.(node as ElseIfClauseNode);
     case 'LetBinding':
       return visitor.visitLetBinding?.(node as LetBindingNode);
     case 'ConstBinding':

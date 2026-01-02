@@ -16,6 +16,7 @@ export type {
   SourceSpan,
   StringTokenMetadata,
   EscapeSequenceInfo,
+  InterpolationInfo,
 } from './tokens';
 
 // Token utilities (values)
@@ -65,6 +66,11 @@ export type {
   ForEachBlockNode,
   TryBlockNode,
   ThrowStatementNode,
+  InterpolatedStringNode,
+  ChoiceBlockNode,
+  ChoiceOptionNode,
+  IfStatementNode,
+  ElseIfClauseNode,
   LetBindingNode,
   ConstBindingNode,
   AssignmentNode,

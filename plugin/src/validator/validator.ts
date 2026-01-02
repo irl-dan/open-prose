@@ -37,6 +37,11 @@ import {
   ThrowStatementNode,
   PipeExpressionNode,
   PipeOperationNode,
+  ChoiceBlockNode,
+  ChoiceOptionNode,
+  IfStatementNode,
+  ElseIfClauseNode,
+  InterpolatedStringNode,
   walkAST,
   ASTVisitor,
 } from '../parser';
@@ -243,6 +248,12 @@ export class Validator {
       case 'ThrowStatement':
         this.validateThrowStatement(statement);
         break;
+      case 'ChoiceBlock':
+        this.validateChoiceBlock(statement as ChoiceBlockNode);
+        break;
+      case 'IfStatement':
+        this.validateIfStatement(statement as IfStatementNode);
+        break;
       case 'ArrowExpression':
         this.validateArrowExpression(statement);
         break;
@@ -350,10 +361,41 @@ export class Validator {
       this.addError('Block definition must have a name', block.span);
     }
 
+    // Check for duplicate parameter names
+    const paramNames = new Set<string>();
+    for (const param of block.parameters) {
+      if (paramNames.has(param.name)) {
+        this.addError(`Duplicate parameter name: "${param.name}"`, param.span);
+      } else {
+        paramNames.add(param.name);
+      }
+
+      // Check if parameter shadows an outer variable
+      if (this.definedVariables.has(param.name)) {
+        this.addWarning(
+          `Parameter "${param.name}" shadows outer variable`,
+          param.span
+        );
+      }
+    }
+
+    // Temporarily add parameters to scope for body validation
+    const savedVariables = new Map(this.definedVariables);
+    for (const param of block.parameters) {
+      this.definedVariables.set(param.name, {
+        name: param.name,
+        isConst: true,  // Block parameters are implicitly const
+        span: param.span,
+      });
+    }
+
     // Validate body statements
     for (const stmt of block.body) {
       this.validateStatement(stmt);
     }
+
+    // Restore previous scope
+    this.definedVariables = savedVariables;
   }
 
   /**
@@ -361,10 +403,27 @@ export class Validator {
    */
   private validateDoBlock(doBlock: DoBlockNode): void {
     if (doBlock.name) {
-      // Block invocation: do blockname
+      // Block invocation: do blockname or do blockname(args)
       const blockName = doBlock.name.name;
       if (!this.definedBlocks.has(blockName)) {
         this.addError(`Undefined block: "${blockName}"`, doBlock.name.span);
+      } else {
+        // Check argument count matches parameter count
+        const blockDef = this.definedBlocks.get(blockName)!;
+        const expectedParams = blockDef.parameters.length;
+        const providedArgs = doBlock.arguments.length;
+
+        if (expectedParams !== providedArgs) {
+          this.addError(
+            `Block "${blockName}" expects ${expectedParams} argument(s), but ${providedArgs} provided`,
+            doBlock.span
+          );
+        }
+
+        // Validate each argument expression
+        for (const arg of doBlock.arguments) {
+          this.validateBindingExpression(arg);
+        }
       }
     } else {
       // Anonymous do block: validate body
@@ -690,6 +749,65 @@ export class Validator {
   }
 
   /**
+   * Validate a choice block (Tier 12)
+   */
+  private validateChoiceBlock(choice: ChoiceBlockNode): void {
+    // Validate the criteria discretion
+    this.validateDiscretion(choice.criteria);
+
+    // Must have at least one option
+    if (choice.options.length === 0) {
+      this.addError('Choice block must have at least one option', choice.span);
+    }
+
+    // Validate each option
+    const seenLabels = new Set<string>();
+    for (const option of choice.options) {
+      // Check for duplicate option labels
+      if (seenLabels.has(option.label.value)) {
+        this.addWarning(
+          `Duplicate option label: "${option.label.value}"`,
+          option.label.span
+        );
+      }
+      seenLabels.add(option.label.value);
+
+      // Validate option body
+      for (const stmt of option.body) {
+        this.validateStatement(stmt);
+      }
+    }
+  }
+
+  /**
+   * Validate an if/elif/else statement (Tier 12)
+   */
+  private validateIfStatement(ifStmt: IfStatementNode): void {
+    // Validate the main if condition
+    this.validateDiscretion(ifStmt.condition);
+
+    // Validate then body
+    for (const stmt of ifStmt.thenBody) {
+      this.validateStatement(stmt);
+    }
+
+    // Validate elif clauses
+    for (const elifClause of ifStmt.elseIfClauses) {
+      this.validateDiscretion(elifClause.condition);
+      for (const stmt of elifClause.body) {
+        this.validateStatement(stmt);
+      }
+    }
+
+    // Validate else body if present
+    if (ifStmt.elseBody) {
+      for (const stmt of ifStmt.elseBody) {
+        this.validateStatement(stmt);
+      }
+    }
+  }
+
+  /**
    * Validate a pipe expression (items | map: ... | filter: ...)
    */
   private validatePipeExpression(pipe: PipeExpressionNode): void {
@@ -812,6 +930,10 @@ export class Validator {
       this.validateDoBlock(expr as DoBlockNode);
     } else if (expr.type === 'TryBlock') {
       this.validateTryBlock(expr as TryBlockNode);
+    } else if (expr.type === 'ChoiceBlock') {
+      this.validateChoiceBlock(expr as ChoiceBlockNode);
+    } else if (expr.type === 'IfStatement') {
+      this.validateIfStatement(expr as IfStatementNode);
     } else if (expr.type === 'ArrowExpression') {
       this.validateArrowExpression(expr as ArrowExpressionNode);
     }
@@ -874,6 +996,10 @@ export class Validator {
       this.validateLoopBlock(expr as LoopBlockNode);
     } else if (expr.type === 'TryBlock') {
       this.validateTryBlock(expr as TryBlockNode);
+    } else if (expr.type === 'ChoiceBlock') {
+      this.validateChoiceBlock(expr as ChoiceBlockNode);
+    } else if (expr.type === 'IfStatement') {
+      this.validateIfStatement(expr as IfStatementNode);
     } else if (expr.type === 'ArrowExpression') {
       this.validateArrowExpression(expr as ArrowExpressionNode);
     } else if (expr.type === 'PipeExpression') {

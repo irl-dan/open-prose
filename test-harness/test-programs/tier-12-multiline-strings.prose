@@ -1,0 +1,13 @@
+# Tier 12: Multi-line Strings
+# Tests: triple-quoted strings with preserved whitespace
+
+session """
+This is a multi-line prompt.
+It preserves:
+  - Indentation
+  - Line breaks
+  - Internal whitespace
+Please acknowledge you received this formatted text.
+"""
+
+session "Summarize what formatting was preserved in the previous message."

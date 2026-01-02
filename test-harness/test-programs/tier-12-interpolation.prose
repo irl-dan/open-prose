@@ -1,0 +1,10 @@
+# Tier 12: String Interpolation
+# Tests: variable substitution in strings using {var} syntax
+
+let topic = session "Name a technology topic (e.g., 'machine learning', 'blockchain')."
+
+session "Research {topic} and provide three key facts."
+
+let facts = session "Based on the research about {topic}, create a one-paragraph summary."
+
+session "Final report on {topic}: {facts}"

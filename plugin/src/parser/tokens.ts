@@ -32,7 +32,9 @@ export enum TokenType {
   IN = 'IN',
   AS = 'AS',
   IF = 'IF',
+  ELIF = 'ELIF',
   ELSE = 'ELSE',
+  OPTION = 'OPTION',
   TRY = 'TRY',
   CATCH = 'CATCH',
   FINALLY = 'FINALLY',
@@ -92,12 +94,22 @@ export interface SourceSpan {
 }
 
 /**
+ * Information about a string interpolation {varname}
+ */
+export interface InterpolationInfo {
+  varName: string;          // The variable name inside {}
+  offset: number;           // Offset within the processed string where the interpolation starts
+  raw: string;              // The raw text including braces (e.g., "{item}")
+}
+
+/**
  * Metadata specific to string tokens
  */
 export interface StringTokenMetadata {
   raw: string;                    // The raw string including quotes
   isTripleQuoted: boolean;        // True for """ strings
   escapeSequences: EscapeSequenceInfo[];  // Tracked escape sequences
+  interpolations: InterpolationInfo[];  // Tracked interpolations {var}
 }
 
 /**
@@ -145,7 +157,9 @@ export const KEYWORDS: Record<string, TokenType> = {
   'in': TokenType.IN,
   'as': TokenType.AS,
   'if': TokenType.IF,
+  'elif': TokenType.ELIF,
   'else': TokenType.ELSE,
+  'option': TokenType.OPTION,
   'try': TokenType.TRY,
   'catch': TokenType.CATCH,
   'finally': TokenType.FINALLY,

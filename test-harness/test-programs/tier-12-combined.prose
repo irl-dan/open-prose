@@ -1,0 +1,30 @@
+# Tier 12: Combined Advanced Features
+# Tests: multi-line strings, interpolation, block params, choice, and conditionals together
+
+block research(topic, depth):
+  session """
+  Research {topic} at {depth} level.
+  Include:
+    - Key concepts
+    - Recent developments
+    - Future outlook
+  """
+
+let subject = session "Name an emerging technology field."
+
+do research(subject, "intermediate")
+
+let assessment = session "Rate the commercial viability of {subject} on a scale: low, medium, or high."
+
+if **the viability is high**:
+  choice **the best market entry strategy**:
+    option "First mover":
+      session "Plan aggressive market entry for {subject}."
+    option "Fast follower":
+      session "Plan strategic follow-up entry for {subject}."
+elif **the viability is medium**:
+  session "Recommend pilot program for {subject}."
+else:
+  session "Recommend monitoring {subject} for future opportunities."
+
+session "Provide final executive summary for {subject}."

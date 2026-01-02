@@ -43,6 +43,11 @@ import {
   ThrowStatementNode,
   PipeExpressionNode,
   PipeOperationNode,
+  InterpolatedStringNode,
+  ChoiceBlockNode,
+  ChoiceOptionNode,
+  IfStatementNode,
+  ElseIfClauseNode,
   createProgramNode,
   createCommentNode,
 } from './ast';
@@ -195,6 +200,16 @@ export class Parser {
     // Handle throw statement (Tier 11)
     if (this.check(TokenType.THROW)) {
       return this.parseThrowStatement();
+    }
+
+    // Handle choice block (Tier 12)
+    if (this.check(TokenType.CHOICE)) {
+      return this.parseChoiceBlock();
+    }
+
+    // Handle if/elif/else (Tier 12)
+    if (this.check(TokenType.IF)) {
+      return this.parseIfStatement();
     }
 
     // Handle session keyword (may be followed by -> for arrow sequences)
@@ -1091,6 +1106,28 @@ export class Parser {
       };
     }
 
+    // Check for parameters: block name(param1, param2):
+    const parameters: IdentifierNode[] = [];
+    if (this.check(TokenType.LPAREN)) {
+      this.advance(); // consume '('
+
+      // Parse parameter list
+      if (!this.check(TokenType.RPAREN)) {
+        do {
+          if (this.check(TokenType.IDENTIFIER)) {
+            parameters.push(this.parseIdentifier());
+          } else {
+            this.addError('Expected parameter name');
+            break;
+          }
+        } while (this.match(TokenType.COMMA));
+      }
+
+      if (!this.match(TokenType.RPAREN)) {
+        this.addError('Expected ")" after parameter list');
+      }
+    }
+
     // Expect colon
     if (!this.match(TokenType.COLON)) {
       this.addError('Expected ":" after block name');
@@ -1145,7 +1182,7 @@ export class Parser {
     return {
       type: 'BlockDefinition',
       name,
-      parameters: [], // Parameters are a future enhancement
+      parameters,
       body,
       span: { start, end },
     };
@@ -1157,6 +1194,7 @@ export class Parser {
    * - do:              (anonymous sequential block)
    *     body...
    * - do blockname     (invoke named block)
+   * - do blockname(arg1, arg2)  (invoke with arguments)
    */
   private parseDoBlock(): DoBlockNode {
     const doToken = this.advance(); // consume 'do'
@@ -1221,15 +1259,33 @@ export class Parser {
         span: { start, end },
       };
     } else if (this.check(TokenType.IDENTIFIER)) {
-      // Block invocation: do blockname
+      // Block invocation: do blockname or do blockname(arg1, arg2)
       const name = this.parseIdentifier();
+
+      // Check for arguments: do blockname(arg1, arg2)
+      const args: ExpressionNode[] = [];
+      if (this.check(TokenType.LPAREN)) {
+        this.advance(); // consume '('
+
+        // Parse argument list
+        if (!this.check(TokenType.RPAREN)) {
+          do {
+            const arg = this.parseBindingExpression();
+            args.push(arg);
+          } while (this.match(TokenType.COMMA));
+        }
+
+        if (!this.match(TokenType.RPAREN)) {
+          this.addError('Expected ")" after argument list');
+        }
+      }
 
       const end = this.previous().span.end;
 
       return {
         type: 'DoBlock',
         name,
-        arguments: [], // Arguments are a future enhancement
+        arguments: args,
         body: [], // Invocation has no body
         span: { start, end },
       };
@@ -2039,6 +2095,428 @@ export class Parser {
     return {
       type: 'ThrowStatement',
       message,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a choice block (Tier 12)
+   * Syntax:
+   *   choice **criteria**:
+   *     option "label":
+   *       body...
+   *     option "other":
+   *       body...
+   */
+  private parseChoiceBlock(): ChoiceBlockNode {
+    const choiceToken = this.advance(); // consume 'choice'
+    const start = choiceToken.span.start;
+
+    // Expect discretion marker (**criteria**)
+    let criteria: DiscretionNode;
+    if (this.check(TokenType.DISCRETION) || this.check(TokenType.MULTILINE_DISCRETION)) {
+      criteria = this.parseDiscretion();
+    } else {
+      this.addError('Expected **criteria** after "choice"');
+      criteria = {
+        type: 'Discretion',
+        expression: '',
+        isMultiline: false,
+        span: this.peek().span,
+      };
+    }
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after choice criteria');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse indented options
+    const options: ChoiceOptionNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        // Expect option keyword
+        if (this.check(TokenType.OPTION)) {
+          options.push(this.parseChoiceOption());
+        } else {
+          this.addError('Expected "option" inside choice block');
+          this.advance();
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    if (options.length === 0) {
+      this.addError('Choice block must have at least one option');
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ChoiceBlock',
+      criteria,
+      options,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a single option in a choice block
+   * Syntax:
+   *   option "label":
+   *     body...
+   */
+  private parseChoiceOption(): ChoiceOptionNode {
+    const optionToken = this.advance(); // consume 'option'
+    const start = optionToken.span.start;
+
+    // Expect string literal (label)
+    let label: StringLiteralNode;
+    if (this.check(TokenType.STRING)) {
+      const stringToken = this.advance();
+      label = this.createStringLiteralNode(stringToken);
+    } else {
+      this.addError('Expected option label string after "option"');
+      label = {
+        type: 'StringLiteral',
+        value: '',
+        raw: '""',
+        isTripleQuoted: false,
+        span: this.peek().span,
+      };
+    }
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after option label');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse indented body
+    const body: StatementNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        const stmt = this.parseStatement();
+        if (stmt) {
+          body.push(stmt);
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ChoiceOption',
+      label,
+      body,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse an if/elif/else statement (Tier 12)
+   * Syntax:
+   *   if **condition**:
+   *     thenBody...
+   *   elif **condition**:
+   *     elifBody...
+   *   else:
+   *     elseBody...
+   */
+  private parseIfStatement(): IfStatementNode {
+    const ifToken = this.advance(); // consume 'if'
+    const start = ifToken.span.start;
+
+    // Expect discretion marker (**condition**)
+    let condition: DiscretionNode;
+    if (this.check(TokenType.DISCRETION) || this.check(TokenType.MULTILINE_DISCRETION)) {
+      condition = this.parseDiscretion();
+    } else {
+      this.addError('Expected **condition** after "if"');
+      condition = {
+        type: 'Discretion',
+        expression: '',
+        isMultiline: false,
+        span: this.peek().span,
+      };
+    }
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after if condition');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse then body
+    const thenBody: StatementNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        const stmt = this.parseStatement();
+        if (stmt) {
+          thenBody.push(stmt);
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    // Parse elif clauses
+    const elseIfClauses: ElseIfClauseNode[] = [];
+
+    // Skip newlines before checking for elif/else
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    while (this.check(TokenType.ELIF)) {
+      elseIfClauses.push(this.parseElseIfClause());
+
+      // Skip newlines before checking for more elif/else
+      while (this.check(TokenType.NEWLINE)) {
+        this.advance();
+      }
+    }
+
+    // Parse else body
+    let elseBody: StatementNode[] | null = null;
+
+    if (this.check(TokenType.ELSE)) {
+      this.advance(); // consume 'else'
+
+      // Expect colon
+      if (!this.match(TokenType.COLON)) {
+        this.addError('Expected ":" after "else"');
+      }
+
+      // Skip inline comment if present
+      if (this.check(TokenType.COMMENT)) {
+        const commentToken = this.advance();
+        const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+        this.comments.push(inlineComment);
+      }
+
+      // Skip newline(s)
+      while (this.check(TokenType.NEWLINE)) {
+        this.advance();
+      }
+
+      elseBody = [];
+
+      if (this.check(TokenType.INDENT)) {
+        this.advance(); // consume INDENT
+
+        while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+          // Skip newlines and comments inside the block
+          while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+            if (this.check(TokenType.COMMENT)) {
+              const commentToken = this.advance();
+              const comment = createCommentNode(commentToken.value, commentToken.span, false);
+              this.comments.push(comment);
+            } else {
+              this.advance();
+            }
+          }
+
+          if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+          const stmt = this.parseStatement();
+          if (stmt) {
+            elseBody.push(stmt);
+          }
+        }
+
+        // Consume DEDENT
+        if (this.check(TokenType.DEDENT)) {
+          this.advance();
+        }
+      }
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'IfStatement',
+      condition,
+      thenBody,
+      elseIfClauses,
+      elseBody,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse an elif clause
+   * Syntax:
+   *   elif **condition**:
+   *     body...
+   */
+  private parseElseIfClause(): ElseIfClauseNode {
+    const elifToken = this.advance(); // consume 'elif'
+    const start = elifToken.span.start;
+
+    // Expect discretion marker (**condition**)
+    let condition: DiscretionNode;
+    if (this.check(TokenType.DISCRETION) || this.check(TokenType.MULTILINE_DISCRETION)) {
+      condition = this.parseDiscretion();
+    } else {
+      this.addError('Expected **condition** after "elif"');
+      condition = {
+        type: 'Discretion',
+        expression: '',
+        isMultiline: false,
+        span: this.peek().span,
+      };
+    }
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after elif condition');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse body
+    const body: StatementNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        const stmt = this.parseStatement();
+        if (stmt) {
+          body.push(stmt);
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ElseIfClause',
+      condition,
+      body,
       span: { start, end },
     };
   }

@@ -1,0 +1,17 @@
+# Tier 12: Choice Blocks
+# Tests: AI-selected branching based on criteria
+
+let analysis = session "Analyze a hypothetical project: it's 3 weeks behind schedule but the core features work. What is the severity level?"
+
+choice **the severity of the project status**:
+  option "Critical":
+    session "Prepare emergency recovery plan."
+    session "Identify immediate action items."
+  option "Moderate":
+    session "Adjust timeline expectations."
+    session "Communicate revised schedule to stakeholders."
+  option "Minor":
+    session "Note the delay for the record."
+    session "Continue with normal operations."
+
+session "Summarize the chosen approach and next steps."

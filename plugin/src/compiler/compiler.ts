@@ -38,6 +38,11 @@ import {
   ThrowStatementNode,
   PipeExpressionNode,
   PipeOperationNode,
+  ChoiceBlockNode,
+  ChoiceOptionNode,
+  IfStatementNode,
+  ElseIfClauseNode,
+  InterpolatedStringNode,
 } from '../parser';
 import { SourceSpan } from '../parser/tokens';
 
@@ -160,6 +165,12 @@ export class Compiler {
         break;
       case 'ThrowStatement':
         this.compileThrowStatement(statement);
+        break;
+      case 'ChoiceBlock':
+        this.compileChoiceBlock(statement);
+        break;
+      case 'IfStatement':
+        this.compileIfStatement(statement);
         break;
       case 'ArrowExpression':
         this.compileArrowExpression(statement);
@@ -405,6 +416,54 @@ export class Compiler {
     } else if (value.type === 'PipeExpression') {
       // Pipe expression
       this.compilePipeExpressionValue(value as PipeExpressionNode);
+    } else if (value.type === 'ChoiceBlock') {
+      // Choice block as value
+      const choice = value as ChoiceBlockNode;
+      this.emit('choice ');
+      this.compileDiscretion(choice.criteria);
+      this.emit(':');
+      this.emitNewline();
+      for (const option of choice.options) {
+        this.emit(this.options.indent);
+        this.emit('option "');
+        this.emit(this.escapeString(option.label.value));
+        this.emit('":');
+        this.emitNewline();
+        for (const stmt of option.body) {
+          this.emit(this.options.indent);
+          this.emit(this.options.indent);
+          this.compileStatementInline(stmt);
+        }
+      }
+    } else if (value.type === 'IfStatement') {
+      // If statement as value
+      const ifStmt = value as IfStatementNode;
+      this.emit('if ');
+      this.compileDiscretion(ifStmt.condition);
+      this.emit(':');
+      this.emitNewline();
+      for (const stmt of ifStmt.thenBody) {
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
+      for (const elifClause of ifStmt.elseIfClauses) {
+        this.emit('elif ');
+        this.compileDiscretion(elifClause.condition);
+        this.emit(':');
+        this.emitNewline();
+        for (const stmt of elifClause.body) {
+          this.emit(this.options.indent);
+          this.compileStatementInline(stmt);
+        }
+      }
+      if (ifStmt.elseBody) {
+        this.emit('else:');
+        this.emitNewline();
+        for (const stmt of ifStmt.elseBody) {
+          this.emit(this.options.indent);
+          this.compileStatementInline(stmt);
+        }
+      }
     } else {
       this.emitNewline();
     }
@@ -505,9 +564,22 @@ export class Compiler {
     // Add source mapping
     this.addSourceMapping(block.span.start.line, block.span.start.column);
 
-    // Emit: block name:
+    // Emit: block name(param1, param2):
     this.emit('block ');
     this.emit(block.name.name);
+
+    // Emit parameters if present
+    if (block.parameters.length > 0) {
+      this.emit('(');
+      for (let i = 0; i < block.parameters.length; i++) {
+        if (i > 0) {
+          this.emit(', ');
+        }
+        this.emit(block.parameters[i].name);
+      }
+      this.emit(')');
+    }
+
     this.emit(':');
     this.emitNewline();
 
@@ -528,10 +600,23 @@ export class Compiler {
     const indent = this.options.indent.repeat(indentLevel);
 
     if (doBlock.name) {
-      // Block invocation: do blockname
+      // Block invocation: do blockname or do blockname(args)
       this.emit(indent);
       this.emit('do ');
       this.emit(doBlock.name.name);
+
+      // Emit arguments if present
+      if (doBlock.arguments.length > 0) {
+        this.emit('(');
+        for (let i = 0; i < doBlock.arguments.length; i++) {
+          if (i > 0) {
+            this.emit(', ');
+          }
+          this.compileExpression(doBlock.arguments[i]);
+        }
+        this.emit(')');
+      }
+
       this.emitNewline();
     } else {
       // Anonymous do block
@@ -806,6 +891,106 @@ export class Compiler {
   }
 
   /**
+   * Compile a choice block (Tier 12)
+   *
+   * Syntax:
+   *   choice **criteria**:
+   *     option "label":
+   *       body...
+   */
+  private compileChoiceBlock(choice: ChoiceBlockNode, indentLevel: number = 0): void {
+    // Add source mapping
+    this.addSourceMapping(choice.span.start.line, choice.span.start.column);
+
+    const indent = this.options.indent.repeat(indentLevel);
+
+    // Emit: choice **criteria**:
+    this.emit(indent);
+    this.emit('choice ');
+    this.compileDiscretion(choice.criteria);
+    this.emit(':');
+    this.emitNewline();
+
+    // Emit each option
+    for (const option of choice.options) {
+      this.emit(indent);
+      this.emit(this.options.indent);
+      this.emit('option "');
+      this.emit(this.escapeString(option.label.value));
+      this.emit('":');
+      this.emitNewline();
+
+      // Emit option body
+      for (const stmt of option.body) {
+        this.emit(indent);
+        this.emit(this.options.indent);
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
+    }
+  }
+
+  /**
+   * Compile an if/elif/else statement (Tier 12)
+   *
+   * Syntax:
+   *   if **condition**:
+   *     thenBody...
+   *   elif **condition**:
+   *     elifBody...
+   *   else:
+   *     elseBody...
+   */
+  private compileIfStatement(ifStmt: IfStatementNode, indentLevel: number = 0): void {
+    // Add source mapping
+    this.addSourceMapping(ifStmt.span.start.line, ifStmt.span.start.column);
+
+    const indent = this.options.indent.repeat(indentLevel);
+
+    // Emit: if **condition**:
+    this.emit(indent);
+    this.emit('if ');
+    this.compileDiscretion(ifStmt.condition);
+    this.emit(':');
+    this.emitNewline();
+
+    // Emit then body
+    for (const stmt of ifStmt.thenBody) {
+      this.emit(indent);
+      this.emit(this.options.indent);
+      this.compileStatementInline(stmt);
+    }
+
+    // Emit elif clauses
+    for (const elifClause of ifStmt.elseIfClauses) {
+      this.emit(indent);
+      this.emit('elif ');
+      this.compileDiscretion(elifClause.condition);
+      this.emit(':');
+      this.emitNewline();
+
+      for (const stmt of elifClause.body) {
+        this.emit(indent);
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
+    }
+
+    // Emit else body if present
+    if (ifStmt.elseBody) {
+      this.emit(indent);
+      this.emit('else:');
+      this.emitNewline();
+
+      for (const stmt of ifStmt.elseBody) {
+        this.emit(indent);
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
+    }
+  }
+
+  /**
    * Compile a discretion expression (**...**) or (***...***)
    */
   private compileDiscretion(discretion: DiscretionNode): void {
@@ -857,6 +1042,12 @@ export class Compiler {
         // but we'll handle it gracefully
         this.emit('do: ...');
       }
+    } else if (expr.type === 'ChoiceBlock') {
+      // Choice blocks in arrow expressions - emit placeholder
+      this.emit('choice **...**');
+    } else if (expr.type === 'IfStatement') {
+      // If statements in arrow expressions - emit placeholder
+      this.emit('if **...**');
     } else if (expr.type === 'ArrowExpression') {
       const nested = expr as ArrowExpressionNode;
       this.compileExpressionInArrow(nested.left);
@@ -913,6 +1104,12 @@ export class Compiler {
         break;
       case 'ThrowStatement':
         this.compileThrowStatement(stmt);
+        break;
+      case 'ChoiceBlock':
+        this.compileChoiceBlock(stmt, 0);
+        break;
+      case 'IfStatement':
+        this.compileIfStatement(stmt, 0);
         break;
       case 'ArrowExpression':
         this.compileArrowExpression(stmt, 0);

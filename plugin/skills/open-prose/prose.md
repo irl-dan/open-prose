@@ -20,10 +20,12 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. Thi
 12. [Unbounded Loops](#unbounded-loops)
 13. [Pipeline Operations](#pipeline-operations)
 14. [Error Handling](#error-handling)
-15. [Execution Model](#execution-model)
-16. [Validation Rules](#validation-rules)
-17. [Examples](#examples)
-18. [Future Features](#future-features)
+15. [Choice Blocks](#choice-blocks)
+16. [Conditional Statements](#conditional-statements)
+17. [Execution Model](#execution-model)
+18. [Validation Rules](#validation-rules)
+19. [Examples](#examples)
+20. [Future Features](#future-features)
 
 ---
 
@@ -84,6 +86,12 @@ The following features are implemented:
 | Throw statement | Implemented | `throw` or `throw "message"` |
 | Retry property | Implemented | `retry: 3` automatic retry on failure |
 | Backoff strategy | Implemented | `backoff: "exponential"` delay between retries |
+| Multi-line strings | Implemented | `"""..."""` preserving whitespace |
+| String interpolation | Implemented | `"Hello {name}"` variable substitution |
+| Block parameters | Implemented | `block name(param):` with parameters |
+| Block invocation args | Implemented | `do name(arg)` passing arguments |
+| Choice blocks | Implemented | `choice **criteria**: option "label":` |
+| If/elif/else | Implemented | `if **condition**:` conditional branching |
 
 ---
 
@@ -187,10 +195,75 @@ session "Column1\tColumn2"
 
 ### Rules
 
-1. Strings must be on a single line (multi-line strings `"""` are not yet implemented)
-2. Strings must be properly terminated with a closing `"`
-3. Unknown escape sequences are errors
-4. Empty strings `""` are valid but generate a warning when used as prompts
+1. Single-line strings must be properly terminated with a closing `"`
+2. Unknown escape sequences are errors
+3. Empty strings `""` are valid but generate a warning when used as prompts
+
+### Multi-line Strings
+
+Multi-line strings use triple double-quotes (`"""`) and preserve internal whitespace and newlines:
+
+```prose
+session """
+This is a multi-line prompt.
+It preserves:
+  - Indentation
+  - Line breaks
+  - All internal whitespace
+"""
+```
+
+#### Multi-line String Rules
+
+1. Opening `"""` must be followed by a newline
+2. Content continues until closing `"""`
+3. Escape sequences work the same as single-line strings
+4. Leading/trailing whitespace inside the delimiters is preserved
+
+### String Interpolation
+
+Strings can embed variable references using `{varname}` syntax:
+
+```prose
+let name = session "Get the user's name"
+
+session "Hello {name}, welcome to the system!"
+```
+
+#### Interpolation Syntax
+
+- Variables are referenced by wrapping the variable name in curly braces: `{varname}`
+- Works in both single-line and multi-line strings
+- Empty braces `{}` are treated as literal text, not interpolation
+- Nested braces are not supported
+
+#### Examples
+
+```prose
+let research = session "Research the topic"
+let analysis = session "Analyze findings"
+
+# Single variable interpolation
+session "Based on {research}, provide recommendations"
+
+# Multiple interpolations
+session "Combining {research} with {analysis}, synthesize insights"
+
+# Multi-line with interpolation
+session """
+Review Summary:
+- Research: {research}
+- Analysis: {analysis}
+Please provide final recommendations.
+"""
+```
+
+#### Interpolation Rules
+
+1. Variable names must be valid identifiers
+2. Referenced variables must be in scope
+3. Empty braces `{}` are literal text
+4. Backslash can escape braces: `\{` produces literal `{`
 
 ### Validation
 
@@ -199,6 +272,7 @@ session "Column1\tColumn2"
 | Unterminated string | Error |
 | Unknown escape sequence | Error |
 | Empty string as prompt | Warning |
+| Undefined interpolation variable | Error |
 
 ---
 
@@ -747,6 +821,66 @@ do review-pipeline
 session "Make fixes based on review"
 do final-check
 ```
+
+### Block Parameters
+
+Blocks can accept parameters to make them more flexible and reusable.
+
+#### Syntax
+
+```prose
+block name(param1, param2):
+  # param1 and param2 are available here
+  statement1
+  statement2
+```
+
+#### Invoking with Arguments
+
+Pass arguments when invoking a parameterized block:
+
+```prose
+do name(arg1, arg2)
+```
+
+#### Examples
+
+```prose
+# Define a parameterized block
+block review(topic):
+  session "Research {topic} thoroughly"
+  session "Analyze key findings about {topic}"
+  session "Summarize {topic} analysis"
+
+# Invoke with different arguments
+do review("quantum computing")
+do review("machine learning")
+do review("blockchain")
+```
+
+#### Multiple Parameters
+
+```prose
+block process-item(item, mode):
+  session "Process {item} using {mode} mode"
+  session "Verify {item} processing"
+
+do process-item("data.csv", "strict")
+do process-item("config.json", "lenient")
+```
+
+#### Parameter Scope
+
+- Parameters are scoped to the block body
+- Parameters shadow outer variables of the same name (with warning)
+- Parameters are implicitly `const` within the block
+
+#### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Argument count mismatch | Warning | Block expects N parameters but got M arguments |
+| Parameter shadows outer | Warning | Parameter shadows outer variable |
 
 ### Inline Sequence (Arrow Operator)
 
@@ -1846,6 +1980,306 @@ backoff_property ::= "backoff" ":" string_literal
 
 ---
 
+## Choice Blocks
+
+Choice blocks allow the AI Orchestrator to select from multiple labeled options based on criteria. This is useful for branching workflows where the best path depends on runtime analysis.
+
+### Syntax
+
+```prose
+choice **criteria**:
+  option "Label A":
+    statements...
+  option "Label B":
+    statements...
+```
+
+### Criteria
+
+The criteria is wrapped in discretion markers (`**...**`) and is evaluated by the Orchestrator to select which option to execute:
+
+```prose
+choice **the best approach for the current situation**:
+  option "Quick fix":
+    session "Apply a quick temporary fix"
+  option "Full refactor":
+    session "Perform a complete code refactor"
+```
+
+### Multi-line Criteria
+
+For complex criteria, use triple-asterisks:
+
+```prose
+choice ***
+  which strategy is most appropriate
+  given the current project constraints
+  and timeline requirements
+***:
+  option "MVP approach":
+    session "Build minimum viable product"
+  option "Full feature set":
+    session "Build complete feature set"
+```
+
+### Examples
+
+#### Simple Choice
+
+```prose
+let analysis = session "Analyze the code quality"
+
+choice **the severity of issues found in the analysis**:
+  option "Critical":
+    session "Stop deployment and fix critical issues"
+      context: analysis
+  option "Minor":
+    session "Log issues for later and proceed"
+      context: analysis
+  option "None":
+    session "Proceed with deployment"
+```
+
+#### Choice with Multiple Statements per Option
+
+```prose
+choice **the user's experience level**:
+  option "Beginner":
+    session "Explain basic concepts first"
+    session "Provide step-by-step guidance"
+    session "Include helpful tips and warnings"
+  option "Expert":
+    session "Provide concise technical summary"
+    session "Include advanced configuration options"
+```
+
+#### Nested Choices
+
+```prose
+choice **the type of request**:
+  option "Bug report":
+    choice **the bug severity**:
+      option "Critical":
+        session "Escalate immediately"
+      option "Normal":
+        session "Add to sprint backlog"
+  option "Feature request":
+    session "Add to feature backlog"
+```
+
+### Execution Semantics
+
+When the Orchestrator encounters a `choice` block:
+
+1. **Evaluate Criteria**: Interpret the discretion criteria in current context
+2. **Select Option**: Choose the most appropriate labeled option
+3. **Execute**: Run all statements in the selected option's body
+4. **Continue**: Proceed to the next statement after the choice block
+
+Only one option is executed per choice block.
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Choice without options | Error | Choice block must have at least one option |
+| Empty criteria | Error | Choice criteria cannot be empty |
+| Duplicate option labels | Warning | Duplicate option label |
+| Empty option body | Warning | Option has empty body |
+
+### Syntax Reference
+
+```
+choice_block ::= "choice" discretion ":" NEWLINE INDENT option+ DEDENT
+
+option ::= "option" string ":" NEWLINE INDENT statement+ DEDENT
+
+discretion ::= "**" text "**" | "***" text "***"
+```
+
+---
+
+## Conditional Statements
+
+If/elif/else statements provide conditional branching based on AI-evaluated conditions using discretion markers.
+
+### If Statement
+
+```prose
+if **condition**:
+  statements...
+```
+
+### If/Else
+
+```prose
+if **condition**:
+  statements...
+else:
+  statements...
+```
+
+### If/Elif/Else
+
+```prose
+if **first condition**:
+  statements...
+elif **second condition**:
+  statements...
+elif **third condition**:
+  statements...
+else:
+  statements...
+```
+
+### Discretion Conditions
+
+Conditions are wrapped in discretion markers (`**...**`) for AI evaluation:
+
+```prose
+let analysis = session "Analyze the codebase"
+
+if **the code has security vulnerabilities**:
+  session "Fix security issues immediately"
+    context: analysis
+elif **the code has performance issues**:
+  session "Optimize performance bottlenecks"
+    context: analysis
+else:
+  session "Proceed with normal review"
+    context: analysis
+```
+
+### Multi-line Conditions
+
+Use triple-asterisks for complex conditions:
+
+```prose
+if ***
+  the test suite passes
+  and the code coverage is above 80%
+  and there are no linting errors
+***:
+  session "Deploy to production"
+else:
+  session "Fix issues before deploying"
+```
+
+### Examples
+
+#### Simple If
+
+```prose
+session "Check system health"
+
+if **the system is healthy**:
+  session "Continue with normal operations"
+```
+
+#### If/Else
+
+```prose
+let review = session "Review the pull request"
+
+if **the code changes are safe and well-tested**:
+  session "Approve and merge the PR"
+    context: review
+else:
+  session "Request changes"
+    context: review
+```
+
+#### Multiple Elif
+
+```prose
+let status = session "Check project status"
+
+if **the project is on track**:
+  session "Continue as planned"
+elif **the project is slightly delayed**:
+  session "Adjust timeline and communicate"
+elif **the project is significantly delayed**:
+  session "Escalate to management"
+  session "Create recovery plan"
+else:
+  session "Assess project viability"
+```
+
+#### Nested Conditionals
+
+```prose
+if **the request is authenticated**:
+  if **the user has admin privileges**:
+    session "Process admin request"
+  else:
+    session "Process standard user request"
+else:
+  session "Return authentication error"
+```
+
+### Combining with Other Constructs
+
+#### With Try/Catch
+
+```prose
+try:
+  session "Attempt operation"
+  if **operation succeeded partially**:
+    session "Complete remaining steps"
+catch as err:
+  if **error is recoverable**:
+    session "Apply recovery procedure"
+      context: err
+  else:
+    throw "Unrecoverable error"
+```
+
+#### With Loops
+
+```prose
+loop until **task complete** (max: 10):
+  session "Work on task"
+  if **encountered blocker**:
+    session "Resolve blocker"
+```
+
+### Execution Semantics
+
+When the Orchestrator encounters an `if` statement:
+
+1. **Evaluate Condition**: Interpret the first discretion condition
+2. **If True**: Execute the then-body and skip remaining clauses
+3. **If False**: Check each `elif` condition in order
+4. **Elif Match**: Execute that elif's body and skip remaining
+5. **No Match**: Execute the `else` body (if present)
+6. **Continue**: Proceed to the next statement
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Empty condition | Error | If/elif condition cannot be empty |
+| Elif without if | Error | Elif must follow if |
+| Else without if | Error | Else must follow if or elif |
+| Multiple else | Error | Only one else clause allowed |
+| Empty body | Warning | Condition has empty body |
+
+### Syntax Reference
+
+```
+if_statement ::= "if" discretion ":" NEWLINE INDENT statement+ DEDENT
+                 elif_clause*
+                 [else_clause]
+
+elif_clause ::= "elif" discretion ":" NEWLINE INDENT statement+ DEDENT
+
+else_clause ::= "else" ":" NEWLINE INDENT statement+ DEDENT
+
+discretion ::= "**" text "**" | "***" text "***"
+```
+
+---
+
 ## Execution Model
 
 OpenProse uses a two-phase execution model.
@@ -2071,17 +2505,19 @@ session: writer
 
 ## Future Features
 
-The following features are specified but not yet implemented:
+All core features through Tier 12 have been implemented. Potential future enhancements:
 
-### Tier 11: Error Handling
-- `try`/`catch`/`finally`
-- `retry` modifier
+### Tier 13: Extended Features
+- Custom functions with return values
+- Module system for code organization
+- Type annotations for validation
+- Async/await patterns for advanced concurrency
 
-### Tier 12: Advanced
-- Multi-line strings `"""`
-- String interpolation `{variable}`
-- `choice` blocks
-- `if`/`else` conditionals
+### Tier 14: Tooling
+- Language server protocol (LSP) support
+- VS Code extension
+- Interactive debugger
+- Performance profiling
 
 ---
 
@@ -2089,37 +2525,82 @@ The following features are specified but not yet implemented:
 
 ```
 program     → statement* EOF
-statement   → agentDef | blockDef | parallelBlock | repeatBlock | forEachBlock | loopBlock | session | doBlock | arrowExpr | letBinding | constBinding | assignment | comment
+statement   → agentDef | blockDef | parallelBlock | repeatBlock | forEachBlock
+            | loopBlock | tryBlock | choiceBlock | ifStatement | session
+            | doBlock | arrowExpr | letBinding | constBinding | assignment
+            | throwStatement | comment
+
+# Definitions
 agentDef    → "agent" IDENTIFIER ":" NEWLINE INDENT property* DEDENT
-blockDef    → "block" IDENTIFIER ":" NEWLINE INDENT statement* DEDENT
+blockDef    → "block" IDENTIFIER params? ":" NEWLINE INDENT statement* DEDENT
+params      → "(" IDENTIFIER ( "," IDENTIFIER )* ")"
+
+# Control Flow
 parallelBlock → "parallel" parallelMods? ":" NEWLINE INDENT parallelBranch* DEDENT
 parallelMods  → "(" ( joinStrategy | onFail | countMod ) ( "," ( joinStrategy | onFail | countMod ) )* ")"
 joinStrategy  → string                              # "all" | "first" | "any"
 onFail        → "on-fail" ":" string                # "fail-fast" | "continue" | "ignore"
 countMod      → "count" ":" NUMBER                  # only valid with "any"
 parallelBranch → ( IDENTIFIER "=" )? statement
+
+# Loops
 repeatBlock → "repeat" NUMBER ( "as" IDENTIFIER )? ":" NEWLINE INDENT statement* DEDENT
 forEachBlock → "parallel"? "for" IDENTIFIER ( "," IDENTIFIER )? "in" collection ":" NEWLINE INDENT statement* DEDENT
 loopBlock   → "loop" ( ( "until" | "while" ) discretion )? loopMods? ( "as" IDENTIFIER )? ":" NEWLINE INDENT statement* DEDENT
 loopMods    → "(" "max" ":" NUMBER ")"
-discretion  → "**" text "**" | "***" text "***"
-collection  → IDENTIFIER | array
-doBlock     → "do" ( ":" NEWLINE INDENT statement* DEDENT | IDENTIFIER )
+
+# Error Handling
+tryBlock    → "try" ":" NEWLINE INDENT statement+ DEDENT catchBlock? finallyBlock?
+catchBlock  → "catch" ( "as" IDENTIFIER )? ":" NEWLINE INDENT statement+ DEDENT
+finallyBlock → "finally" ":" NEWLINE INDENT statement+ DEDENT
+throwStatement → "throw" string?
+
+# Conditionals
+choiceBlock → "choice" discretion ":" NEWLINE INDENT choiceOption+ DEDENT
+choiceOption → "option" string ":" NEWLINE INDENT statement+ DEDENT
+ifStatement → "if" discretion ":" NEWLINE INDENT statement+ DEDENT elifClause* elseClause?
+elifClause  → "elif" discretion ":" NEWLINE INDENT statement+ DEDENT
+elseClause  → "else" ":" NEWLINE INDENT statement+ DEDENT
+
+# Blocks and Sequences
+doBlock     → "do" ( ":" NEWLINE INDENT statement* DEDENT | IDENTIFIER args? )
+args        → "(" expression ( "," expression )* ")"
 arrowExpr   → session "->" session ( "->" session )*
+
+# Sessions
 session     → "session" ( string | ":" IDENTIFIER | IDENTIFIER ":" IDENTIFIER )
               ( NEWLINE INDENT property* DEDENT )?
+
+# Bindings
 letBinding  → "let" IDENTIFIER "=" expression
 constBinding → "const" IDENTIFIER "=" expression
 assignment  → IDENTIFIER "=" expression
-expression  → session | doBlock | parallelBlock | repeatBlock | forEachBlock | loopBlock | arrowExpr | pipeExpr | string | IDENTIFIER | array | objectContext
+
+# Expressions
+expression  → session | doBlock | parallelBlock | repeatBlock | forEachBlock
+            | loopBlock | arrowExpr | pipeExpr | string | IDENTIFIER | array | objectContext
+
+# Pipelines
 pipeExpr    → ( IDENTIFIER | array ) ( "|" pipeOp )+
 pipeOp      → ( "map" | "filter" | "pmap" ) ":" NEWLINE INDENT statement* DEDENT
             | "reduce" "(" IDENTIFIER "," IDENTIFIER ")" ":" NEWLINE INDENT statement* DEDENT
-property    → ( "model" | "prompt" | "context" | IDENTIFIER ) ":" ( IDENTIFIER | string | array | objectContext )
+
+# Properties
+property    → ( "model" | "prompt" | "context" | "retry" | "backoff" | IDENTIFIER )
+            ":" ( IDENTIFIER | string | array | objectContext | NUMBER )
+
+# Primitives
+discretion  → "**" text "**" | "***" text "***"
+collection  → IDENTIFIER | array
 array       → "[" ( expression ( "," expression )* )? "]"
 objectContext → "{" ( IDENTIFIER ( "," IDENTIFIER )* )? "}"
 comment     → "#" text NEWLINE
-string      → '"' character* '"'
+
+# Strings
+string      → singleString | tripleString | interpolatedString
+singleString → '"' character* '"'
+tripleString → '"""' ( character | NEWLINE )* '"""'
+interpolatedString → string containing "{" IDENTIFIER "}"
 character   → escape | non-quote
 escape      → "\\" | "\"" | "\n" | "\t"
 ```
