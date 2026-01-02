@@ -24,6 +24,9 @@ import {
   ConstBindingNode,
   AssignmentNode,
   ExpressionNode,
+  DoBlockNode,
+  BlockDefinitionNode,
+  ArrowExpressionNode,
   walkAST,
   ASTVisitor,
 } from '../parser';
@@ -57,6 +60,7 @@ export class Validator {
   private definedAgents: Map<string, AgentDefinitionNode> = new Map();
   private importedSkills: Map<string, ImportStatementNode> = new Map();
   private definedVariables: Map<string, VariableBinding> = new Map();
+  private definedBlocks: Map<string, BlockDefinitionNode> = new Map();
 
   constructor(private program: ProgramNode) {}
 
@@ -69,13 +73,16 @@ export class Validator {
     this.definedAgents = new Map();
     this.importedSkills = new Map();
     this.definedVariables = new Map();
+    this.definedBlocks = new Map();
 
-    // First pass: collect imports, agent definitions, and variable bindings
+    // First pass: collect imports, agent definitions, block definitions, and variable bindings
     for (const statement of this.program.statements) {
       if (statement.type === 'ImportStatement') {
         this.collectImport(statement);
       } else if (statement.type === 'AgentDefinition') {
         this.collectAgentDefinition(statement);
+      } else if (statement.type === 'BlockDefinition') {
+        this.collectBlockDefinition(statement);
       } else if (statement.type === 'LetBinding') {
         this.collectLetBinding(statement);
       } else if (statement.type === 'ConstBinding') {
@@ -123,6 +130,21 @@ export class Validator {
       this.addError(`Duplicate agent definition: "${name}"`, agent.name.span);
     } else {
       this.definedAgents.set(name, agent);
+    }
+  }
+
+  /**
+   * Collect block definition (first pass)
+   */
+  private collectBlockDefinition(block: BlockDefinitionNode): void {
+    const name = block.name.name;
+
+    if (this.definedBlocks.has(name)) {
+      this.addError(`Duplicate block definition: "${name}"`, block.name.span);
+    } else if (this.definedAgents.has(name)) {
+      this.addError(`Block "${name}" conflicts with agent name`, block.name.span);
+    } else {
+      this.definedBlocks.set(name, block);
     }
   }
 
@@ -180,6 +202,15 @@ export class Validator {
         break;
       case 'AgentDefinition':
         this.validateAgentDefinition(statement);
+        break;
+      case 'BlockDefinition':
+        this.validateBlockDefinition(statement);
+        break;
+      case 'DoBlock':
+        this.validateDoBlock(statement);
+        break;
+      case 'ArrowExpression':
+        this.validateArrowExpression(statement);
         break;
       case 'LetBinding':
         this.validateLetBinding(statement);
@@ -277,6 +308,63 @@ export class Validator {
   }
 
   /**
+   * Validate a block definition
+   */
+  private validateBlockDefinition(block: BlockDefinitionNode): void {
+    // Validate block name
+    if (!block.name.name) {
+      this.addError('Block definition must have a name', block.span);
+    }
+
+    // Validate body statements
+    for (const stmt of block.body) {
+      this.validateStatement(stmt);
+    }
+  }
+
+  /**
+   * Validate a do block (anonymous or invocation)
+   */
+  private validateDoBlock(doBlock: DoBlockNode): void {
+    if (doBlock.name) {
+      // Block invocation: do blockname
+      const blockName = doBlock.name.name;
+      if (!this.definedBlocks.has(blockName)) {
+        this.addError(`Undefined block: "${blockName}"`, doBlock.name.span);
+      }
+    } else {
+      // Anonymous do block: validate body
+      for (const stmt of doBlock.body) {
+        this.validateStatement(stmt);
+      }
+    }
+  }
+
+  /**
+   * Validate an arrow expression (session -> session)
+   */
+  private validateArrowExpression(arrow: ArrowExpressionNode): void {
+    // Validate left side
+    this.validateExpressionInArrow(arrow.left);
+
+    // Validate right side
+    this.validateExpressionInArrow(arrow.right);
+  }
+
+  /**
+   * Validate an expression in an arrow sequence
+   */
+  private validateExpressionInArrow(expr: ExpressionNode): void {
+    if (expr.type === 'SessionStatement') {
+      this.validateSessionStatement(expr as SessionStatementNode);
+    } else if (expr.type === 'DoBlock') {
+      this.validateDoBlock(expr as DoBlockNode);
+    } else if (expr.type === 'ArrowExpression') {
+      this.validateArrowExpression(expr as ArrowExpressionNode);
+    }
+  }
+
+  /**
    * Validate a let binding
    */
   private validateLetBinding(binding: LetBindingNode): void {
@@ -321,6 +409,10 @@ export class Validator {
   private validateBindingExpression(expr: ExpressionNode): void {
     if (expr.type === 'SessionStatement') {
       this.validateSessionStatement(expr as SessionStatementNode);
+    } else if (expr.type === 'DoBlock') {
+      this.validateDoBlock(expr as DoBlockNode);
+    } else if (expr.type === 'ArrowExpression') {
+      this.validateArrowExpression(expr as ArrowExpressionNode);
     } else if (expr.type === 'Identifier') {
       // Variable reference - check if it exists
       const name = (expr as IdentifierNode).name;

@@ -1,0 +1,28 @@
+# Tier 5.1 & 5.3: Do Blocks and Named Blocks
+# Tests anonymous do: blocks, block definitions, and block invocations
+
+agent assistant:
+  model: haiku
+  prompt: "You are a helpful assistant"
+
+# Test named block definition
+block greeting:
+  session "Say hello and introduce yourself briefly"
+  session "Ask the user how they are doing today"
+
+# Invoke the named block
+do greeting
+
+# Test anonymous do block
+do:
+  session "List three random colors"
+  session "Pick one of those colors and explain why it's interesting"
+
+# Test do block assigned to variable
+let analysis = do:
+  session "Think of a number between 1 and 10"
+  session "Explain why that number is significant"
+
+# Use the result in context
+session "Summarize what we discussed about the number"
+  context: analysis

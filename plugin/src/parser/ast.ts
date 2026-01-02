@@ -94,7 +94,8 @@ export type StatementNode =
   | LetBindingNode
   | ConstBindingNode
   | AssignmentNode
-  | CommentStatementNode;
+  | CommentStatementNode
+  | ArrowExpressionNode;
 
 /**
  * A standalone comment as a statement
@@ -233,7 +234,9 @@ export type ExpressionNode =
   | SessionStatementNode
   | ArrayExpressionNode
   | ObjectExpressionNode
-  | PipeExpressionNode;
+  | PipeExpressionNode
+  | ArrowExpressionNode
+  | DoBlockNode;
 
 /**
  * Array expression
@@ -258,6 +261,15 @@ export interface PipeExpressionNode extends ASTNode {
   type: 'PipeExpression';
   left: ExpressionNode;
   operator: 'map' | 'filter' | 'reduce' | 'pmap';
+  right: ExpressionNode;
+}
+
+/**
+ * Arrow expression for inline sequence (session "A" -> session "B")
+ */
+export interface ArrowExpressionNode extends ASTNode {
+  type: 'ArrowExpression';
+  left: ExpressionNode;
   right: ExpressionNode;
 }
 
@@ -318,6 +330,7 @@ export interface ASTVisitor<T = void> {
   visitArrayExpression?(node: ArrayExpressionNode): T;
   visitObjectExpression?(node: ObjectExpressionNode): T;
   visitPipeExpression?(node: PipeExpressionNode): T;
+  visitArrowExpression?(node: ArrowExpressionNode): T;
   visitProperty?(node: PropertyNode): T;
 }
 
@@ -368,6 +381,8 @@ export function walkAST<T>(node: ASTNode, visitor: ASTVisitor<T>): T | undefined
       return visitor.visitObjectExpression?.(node as ObjectExpressionNode);
     case 'PipeExpression':
       return visitor.visitPipeExpression?.(node as PipeExpressionNode);
+    case 'ArrowExpression':
+      return visitor.visitArrowExpression?.(node as ArrowExpressionNode);
     case 'Property':
       return visitor.visitProperty?.(node as PropertyNode);
   }

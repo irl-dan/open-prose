@@ -14,10 +14,11 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. Thi
 6. [Agent Definitions](#agent-definitions)
 7. [Session Statement](#session-statement)
 8. [Variables & Context](#variables--context)
-9. [Execution Model](#execution-model)
-10. [Validation Rules](#validation-rules)
-11. [Examples](#examples)
-12. [Future Features](#future-features)
+9. [Composition Blocks](#composition-blocks)
+10. [Execution Model](#execution-model)
+11. [Validation Rules](#validation-rules)
+12. [Examples](#examples)
+13. [Future Features](#future-features)
 
 ---
 
@@ -50,6 +51,9 @@ The following features are implemented:
 | Const binding | Implemented | `const name = session "..."` |
 | Variable reassignment | Implemented | `name = session "..."` (for let only) |
 | Context property | Implemented | `context: var` or `context: [a, b, c]` |
+| do: blocks | Implemented | Explicit sequential blocks |
+| Inline sequence | Implemented | `session "A" -> session "B"` |
+| Named blocks | Implemented | `block name:` with `do name` invocation |
 
 ---
 
@@ -626,6 +630,164 @@ const report = session: writer
 
 ---
 
+## Composition Blocks
+
+Composition blocks allow you to structure programs into reusable, named units and express sequences of operations inline.
+
+### do: Block (Anonymous Sequential Block)
+
+The `do:` keyword creates an explicit sequential block. All statements in the block execute in order.
+
+#### Syntax
+
+```prose
+do:
+  statement1
+  statement2
+  ...
+```
+
+#### Examples
+
+```prose
+# Explicit sequential block
+do:
+  session "Research the topic"
+  session "Analyze findings"
+  session "Write summary"
+
+# Assign result to a variable
+let result = do:
+  session "Gather data"
+  session "Process data"
+```
+
+### Block Definitions
+
+Named blocks create reusable workflow components. Define once, invoke multiple times.
+
+#### Syntax
+
+```prose
+block name:
+  statement1
+  statement2
+  ...
+```
+
+#### Invoking Blocks
+
+Use `do` followed by the block name to invoke a defined block:
+
+```prose
+do blockname
+```
+
+#### Examples
+
+```prose
+# Define a review pipeline
+block review-pipeline:
+  session "Security review"
+  session "Performance review"
+  session "Synthesize reviews"
+
+# Define another block
+block final-check:
+  session "Final verification"
+  session "Sign off"
+
+# Use the blocks
+do review-pipeline
+session "Make fixes based on review"
+do final-check
+```
+
+### Inline Sequence (Arrow Operator)
+
+The `->` operator chains sessions into a sequence on a single line. This is syntactic sugar for sequential execution.
+
+#### Syntax
+
+```prose
+session "A" -> session "B" -> session "C"
+```
+
+This is equivalent to:
+
+```prose
+session "A"
+session "B"
+session "C"
+```
+
+#### Examples
+
+```prose
+# Quick pipeline
+session "Plan" -> session "Execute" -> session "Review"
+
+# Assign result
+let workflow = session "Draft" -> session "Edit" -> session "Finalize"
+```
+
+### Block Hoisting
+
+Block definitions are hoisted - you can use a block before it's defined in the source:
+
+```prose
+# Use before definition
+do validation-checks
+
+# Definition comes later
+block validation-checks:
+  session "Check syntax"
+  session "Check semantics"
+```
+
+### Nested Composition
+
+Blocks and do: blocks can be nested:
+
+```prose
+block outer-workflow:
+  session "Start"
+  do:
+    session "Sub-task 1"
+    session "Sub-task 2"
+  session "End"
+
+do:
+  do outer-workflow
+  session "Final step"
+```
+
+### Context with Blocks
+
+Blocks work with the context system:
+
+```prose
+# Capture do block result
+let research = do:
+  session "Gather information"
+  session "Analyze patterns"
+
+# Use in subsequent session
+session "Write report"
+  context: research
+```
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Undefined block reference | Error | Block not defined |
+| Duplicate block definition | Error | Block already defined |
+| Block name conflicts with agent | Error | Block name conflicts with agent name |
+| Empty block name | Error | Block definition must have a name |
+
+---
+
 ## Execution Model
 
 OpenProse uses a two-phase execution model.
@@ -853,11 +1015,6 @@ session: writer
 
 The following features are specified but not yet implemented:
 
-### Tier 5: Composition
-- `do:` sequential blocks
-- `->` inline sequences
-- Named blocks
-
 ### Tier 6-7: Parallel Execution
 - `parallel:` blocks
 - Join strategies (all, first, any)
@@ -888,14 +1045,17 @@ The following features are specified but not yet implemented:
 
 ```
 program     → statement* EOF
-statement   → agentDef | session | letBinding | constBinding | assignment | comment
+statement   → agentDef | blockDef | session | doBlock | arrowExpr | letBinding | constBinding | assignment | comment
 agentDef    → "agent" IDENTIFIER ":" NEWLINE INDENT property* DEDENT
+blockDef    → "block" IDENTIFIER ":" NEWLINE INDENT statement* DEDENT
+doBlock     → "do" ( ":" NEWLINE INDENT statement* DEDENT | IDENTIFIER )
+arrowExpr   → session "->" session ( "->" session )*
 session     → "session" ( string | ":" IDENTIFIER | IDENTIFIER ":" IDENTIFIER )
               ( NEWLINE INDENT property* DEDENT )?
 letBinding  → "let" IDENTIFIER "=" expression
 constBinding → "const" IDENTIFIER "=" expression
 assignment  → IDENTIFIER "=" expression
-expression  → session | string | IDENTIFIER | array
+expression  → session | doBlock | arrowExpr | string | IDENTIFIER | array
 property    → ( "model" | "prompt" | "context" | IDENTIFIER ) ":" ( IDENTIFIER | string | array )
 array       → "[" ( expression ( "," expression )* )? "]"
 comment     → "#" text NEWLINE

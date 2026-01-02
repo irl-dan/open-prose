@@ -25,6 +25,9 @@ import {
   LetBindingNode,
   ConstBindingNode,
   AssignmentNode,
+  DoBlockNode,
+  BlockDefinitionNode,
+  ArrowExpressionNode,
 } from '../parser';
 import { SourceSpan } from '../parser/tokens';
 
@@ -123,6 +126,15 @@ export class Compiler {
         break;
       case 'AgentDefinition':
         this.compileAgentDefinition(statement);
+        break;
+      case 'BlockDefinition':
+        this.compileBlockDefinition(statement);
+        break;
+      case 'DoBlock':
+        this.compileDoBlock(statement);
+        break;
+      case 'ArrowExpression':
+        this.compileArrowExpression(statement);
         break;
       case 'LetBinding':
         this.compileLetBinding(statement);
@@ -236,6 +248,27 @@ export class Compiler {
         // Just emit newline for malformed sessions
         this.emitNewline();
       }
+    } else if (value.type === 'DoBlock') {
+      // Do block as value
+      const doBlock = value as DoBlockNode;
+      if (doBlock.name) {
+        this.emit('do ');
+        this.emit(doBlock.name.name);
+        this.emitNewline();
+      } else {
+        this.emit('do:');
+        this.emitNewline();
+        for (const stmt of doBlock.body) {
+          this.emit(this.options.indent);
+          this.compileStatementInline(stmt);
+        }
+      }
+    } else if (value.type === 'ArrowExpression') {
+      // Arrow expression as value
+      this.compileExpressionInArrow(value.left);
+      this.emit(' -> ');
+      this.compileExpressionInArrow(value.right);
+      this.emitNewline();
     } else if (value.type === 'Identifier') {
       // Variable reference
       const id = value as IdentifierNode;
@@ -295,6 +328,151 @@ export class Compiler {
     // Emit properties with indentation
     for (const prop of agent.properties) {
       this.compileProperty(prop);
+    }
+  }
+
+  /**
+   * Compile a block definition
+   * Syntax: block name:
+   *           body...
+   */
+  private compileBlockDefinition(block: BlockDefinitionNode): void {
+    // Add source mapping
+    this.addSourceMapping(block.span.start.line, block.span.start.column);
+
+    // Emit: block name:
+    this.emit('block ');
+    this.emit(block.name.name);
+    this.emit(':');
+    this.emitNewline();
+
+    // Emit body with indentation
+    for (const stmt of block.body) {
+      this.emit(this.options.indent);
+      this.compileStatementInline(stmt);
+    }
+  }
+
+  /**
+   * Compile a do block (anonymous or invocation)
+   */
+  private compileDoBlock(doBlock: DoBlockNode, indentLevel: number = 0): void {
+    // Add source mapping
+    this.addSourceMapping(doBlock.span.start.line, doBlock.span.start.column);
+
+    const indent = this.options.indent.repeat(indentLevel);
+
+    if (doBlock.name) {
+      // Block invocation: do blockname
+      this.emit(indent);
+      this.emit('do ');
+      this.emit(doBlock.name.name);
+      this.emitNewline();
+    } else {
+      // Anonymous do block
+      this.emit(indent);
+      this.emit('do:');
+      this.emitNewline();
+
+      // Emit body with indentation
+      for (const stmt of doBlock.body) {
+        this.emit(indent);
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
+    }
+  }
+
+  /**
+   * Compile an arrow expression (session "A" -> session "B")
+   */
+  private compileArrowExpression(arrow: ArrowExpressionNode, indentLevel: number = 0): void {
+    // Add source mapping
+    this.addSourceMapping(arrow.span.start.line, arrow.span.start.column);
+
+    const indent = this.options.indent.repeat(indentLevel);
+    this.emit(indent);
+
+    // Compile the left side inline
+    this.compileExpressionInArrow(arrow.left);
+
+    this.emit(' -> ');
+
+    // Compile the right side inline
+    this.compileExpressionInArrow(arrow.right);
+
+    this.emitNewline();
+  }
+
+  /**
+   * Compile an expression in an arrow sequence (inline, no trailing newline)
+   */
+  private compileExpressionInArrow(expr: ExpressionNode): void {
+    if (expr.type === 'SessionStatement') {
+      this.compileSessionInline(expr as SessionStatementNode);
+    } else if (expr.type === 'DoBlock') {
+      const doBlock = expr as DoBlockNode;
+      if (doBlock.name) {
+        this.emit('do ');
+        this.emit(doBlock.name.name);
+      } else {
+        // Anonymous do blocks in arrow expressions don't make sense,
+        // but we'll handle it gracefully
+        this.emit('do: ...');
+      }
+    } else if (expr.type === 'ArrowExpression') {
+      const nested = expr as ArrowExpressionNode;
+      this.compileExpressionInArrow(nested.left);
+      this.emit(' -> ');
+      this.compileExpressionInArrow(nested.right);
+    }
+  }
+
+  /**
+   * Compile a session inline (without trailing newline)
+   */
+  private compileSessionInline(session: SessionStatementNode): void {
+    this.emit('session');
+
+    if (session.prompt && !session.agent) {
+      this.emit(' "');
+      this.emit(this.escapeString(session.prompt.value));
+      this.emit('"');
+    } else if (session.agent) {
+      if (session.name) {
+        this.emit(' ');
+        this.emit(session.name.name);
+      }
+      this.emit(': ');
+      this.emit(session.agent.name);
+    }
+  }
+
+  /**
+   * Compile a statement inline (used inside blocks)
+   */
+  private compileStatementInline(stmt: StatementNode): void {
+    switch (stmt.type) {
+      case 'SessionStatement':
+        this.compileSessionStatement(stmt);
+        break;
+      case 'DoBlock':
+        this.compileDoBlock(stmt, 0);
+        break;
+      case 'ArrowExpression':
+        this.compileArrowExpression(stmt, 0);
+        break;
+      case 'LetBinding':
+        this.compileLetBinding(stmt);
+        break;
+      case 'ConstBinding':
+        this.compileConstBinding(stmt);
+        break;
+      case 'Assignment':
+        this.compileAssignment(stmt);
+        break;
+      default:
+        this.compileStatement(stmt);
     }
   }
 

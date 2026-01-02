@@ -1,0 +1,12 @@
+# Tier 5.2: Inline Sequences (Arrow Operator)
+# Tests the -> operator for chaining sessions
+
+# Simple arrow sequence
+session "Think of a fruit" -> session "Describe its taste" -> session "Suggest a recipe using it"
+
+# Arrow sequence assigned to variable
+let workflow = session "Name a famous scientist" -> session "List one of their discoveries"
+
+# Use the captured result
+session "Explain why that discovery was important"
+  context: workflow

@@ -515,7 +515,11 @@ export class Lexer {
     const start = this.currentLocation();
     let value = '';
 
-    while (!this.isAtEnd() && this.isAlphaNumeric(this.peek())) {
+    while (!this.isAtEnd() && this.isAlphaNumericOrHyphen(this.peek())) {
+      // Check for arrow operator: don't consume - if followed by >
+      if (this.peek() === '-' && this.peekNext() === '>') {
+        break;
+      }
       value += this.peek();
       this.advance();
     }
@@ -649,8 +653,15 @@ export class Lexer {
   private isAlpha(c: string): boolean {
     return (c >= 'a' && c <= 'z') ||
            (c >= 'A' && c <= 'Z') ||
-           c === '_' ||
-           c === '-';
+           c === '_';
+  }
+
+  /**
+   * Check if character is valid in the middle of an identifier
+   * (includes hyphen which can appear mid-identifier but not at start)
+   */
+  private isAlphaNumericOrHyphen(c: string): boolean {
+    return this.isAlpha(c) || this.isDigit(c) || c === '-';
   }
 
   private isAlphaNumeric(c: string): boolean {

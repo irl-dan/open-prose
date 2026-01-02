@@ -30,6 +30,9 @@ import {
   LetBindingNode,
   ConstBindingNode,
   AssignmentNode,
+  DoBlockNode,
+  BlockDefinitionNode,
+  ArrowExpressionNode,
   createProgramNode,
   createCommentNode,
 } from './ast';
@@ -140,9 +143,19 @@ export class Parser {
       return this.parseAgentDefinition();
     }
 
-    // Handle session keyword
+    // Handle block definition
+    if (this.check(TokenType.BLOCK)) {
+      return this.parseBlockDefinition();
+    }
+
+    // Handle do block or block invocation
+    if (this.check(TokenType.DO)) {
+      return this.parseDoBlock();
+    }
+
+    // Handle session keyword (may be followed by -> for arrow sequences)
     if (this.check(TokenType.SESSION)) {
-      return this.parseSessionStatement();
+      return this.parseSessionOrArrowSequence();
     }
 
     // Handle let binding
@@ -347,12 +360,22 @@ export class Parser {
 
   /**
    * Parse an expression that can be assigned to a variable
-   * This handles session statements and other expressions
+   * This handles session statements, do blocks, and other expressions
    */
   private parseBindingExpression(): ExpressionNode {
-    // If it's a session keyword, parse it as a session
+    // If it's a session keyword, parse it as a session (may be followed by ->)
     if (this.check(TokenType.SESSION)) {
-      return this.parseSessionStatement();
+      const session = this.parseSessionStatement();
+      // Check for arrow sequence
+      if (this.check(TokenType.ARROW)) {
+        return this.parseArrowSequence(session);
+      }
+      return session;
+    }
+
+    // If it's a do block
+    if (this.check(TokenType.DO)) {
+      return this.parseDoBlock();
     }
 
     // If it's a string literal
@@ -371,7 +394,7 @@ export class Parser {
     }
 
     // Error case
-    this.addError('Expected expression (session, string, identifier, or array)');
+    this.addError('Expected expression (session, do block, string, identifier, or array)');
     return {
       type: 'Identifier',
       name: '',
@@ -829,6 +852,259 @@ export class Parser {
       inlineComment,
       span: { start, end },
     };
+  }
+
+  /**
+   * Parse a session statement that may be followed by -> for arrow sequences
+   */
+  private parseSessionOrArrowSequence(): StatementNode {
+    const session = this.parseSessionStatement();
+
+    // Check for arrow operator to create a sequence
+    if (this.check(TokenType.ARROW)) {
+      return this.parseArrowSequence(session);
+    }
+
+    return session;
+  }
+
+  /**
+   * Parse an arrow sequence (session "A" -> session "B" -> session "C")
+   * Left-associative parsing
+   */
+  private parseArrowSequence(left: ExpressionNode): ArrowExpressionNode {
+    const start = left.span.start;
+
+    // Consume the arrow
+    this.advance();
+
+    // Parse the right side (must be a session or do block)
+    let right: ExpressionNode;
+
+    if (this.check(TokenType.SESSION)) {
+      right = this.parseSessionStatement();
+    } else if (this.check(TokenType.DO)) {
+      right = this.parseDoBlock();
+    } else {
+      this.addError('Expected session or do block after "->"');
+      right = {
+        type: 'Identifier',
+        name: '',
+        span: this.peek().span,
+      };
+    }
+
+    let result: ArrowExpressionNode = {
+      type: 'ArrowExpression',
+      left,
+      right,
+      span: { start, end: right.span.end },
+    };
+
+    // Check for more arrows (left-associative)
+    while (this.check(TokenType.ARROW)) {
+      this.advance();
+
+      let nextRight: ExpressionNode;
+      if (this.check(TokenType.SESSION)) {
+        nextRight = this.parseSessionStatement();
+      } else if (this.check(TokenType.DO)) {
+        nextRight = this.parseDoBlock();
+      } else {
+        this.addError('Expected session or do block after "->"');
+        nextRight = {
+          type: 'Identifier',
+          name: '',
+          span: this.peek().span,
+        };
+      }
+
+      result = {
+        type: 'ArrowExpression',
+        left: result,
+        right: nextRight,
+        span: { start, end: nextRight.span.end },
+      };
+    }
+
+    return result;
+  }
+
+  /**
+   * Parse a block definition
+   * Syntax: block name:
+   *           body...
+   */
+  private parseBlockDefinition(): BlockDefinitionNode {
+    const blockToken = this.advance(); // consume 'block'
+    const start = blockToken.span.start;
+
+    // Expect identifier (block name)
+    let name: IdentifierNode;
+    if (this.check(TokenType.IDENTIFIER)) {
+      name = this.parseIdentifier();
+    } else {
+      this.addError('Expected block name after "block"');
+      name = {
+        type: 'Identifier',
+        name: '',
+        span: this.peek().span,
+      };
+    }
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after block name');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse indented body
+    const body: StatementNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        const stmt = this.parseStatement();
+        if (stmt) {
+          body.push(stmt);
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'BlockDefinition',
+      name,
+      parameters: [], // Parameters are a future enhancement
+      body,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a do block or block invocation
+   * Variants:
+   * - do:              (anonymous sequential block)
+   *     body...
+   * - do blockname     (invoke named block)
+   */
+  private parseDoBlock(): DoBlockNode {
+    const doToken = this.advance(); // consume 'do'
+    const start = doToken.span.start;
+
+    // Check what follows: colon (anonymous block) or identifier (invocation)
+    if (this.check(TokenType.COLON)) {
+      // Anonymous do block: do:
+      this.advance(); // consume ':'
+
+      // Skip inline comment if present
+      if (this.check(TokenType.COMMENT)) {
+        const commentToken = this.advance();
+        const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+        this.comments.push(inlineComment);
+      }
+
+      // Skip newline(s)
+      while (this.check(TokenType.NEWLINE)) {
+        this.advance();
+      }
+
+      // Parse indented body
+      const body: StatementNode[] = [];
+
+      if (this.check(TokenType.INDENT)) {
+        this.advance(); // consume INDENT
+
+        while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+          // Skip newlines and comments inside the block
+          while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+            if (this.check(TokenType.COMMENT)) {
+              const commentToken = this.advance();
+              const comment = createCommentNode(commentToken.value, commentToken.span, false);
+              this.comments.push(comment);
+            } else {
+              this.advance();
+            }
+          }
+
+          if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+          const stmt = this.parseStatement();
+          if (stmt) {
+            body.push(stmt);
+          }
+        }
+
+        // Consume DEDENT
+        if (this.check(TokenType.DEDENT)) {
+          this.advance();
+        }
+      }
+
+      const end = this.previous().span.end;
+
+      return {
+        type: 'DoBlock',
+        name: null, // Anonymous block
+        arguments: [],
+        body,
+        span: { start, end },
+      };
+    } else if (this.check(TokenType.IDENTIFIER)) {
+      // Block invocation: do blockname
+      const name = this.parseIdentifier();
+
+      const end = this.previous().span.end;
+
+      return {
+        type: 'DoBlock',
+        name,
+        arguments: [], // Arguments are a future enhancement
+        body: [], // Invocation has no body
+        span: { start, end },
+      };
+    } else {
+      this.addError('Expected ":" or block name after "do"');
+
+      return {
+        type: 'DoBlock',
+        name: null,
+        arguments: [],
+        body: [],
+        span: { start, end: this.peek().span.end },
+      };
+    }
   }
 
   /**
