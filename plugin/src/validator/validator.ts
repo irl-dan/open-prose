@@ -19,6 +19,7 @@ import {
   StringLiteralNode,
   NumberLiteralNode,
   IdentifierNode,
+  DiscretionNode,
   ArrayExpressionNode,
   ObjectExpressionNode,
   LetBindingNode,
@@ -29,6 +30,7 @@ import {
   BlockDefinitionNode,
   ArrowExpressionNode,
   ParallelBlockNode,
+  LoopBlockNode,
   RepeatBlockNode,
   ForEachBlockNode,
   walkAST,
@@ -227,6 +229,9 @@ export class Validator {
         break;
       case 'ForEachBlock':
         this.validateForEachBlock(statement);
+        break;
+      case 'LoopBlock':
+        this.validateLoopBlock(statement);
         break;
       case 'ArrowExpression':
         this.validateArrowExpression(statement);
@@ -545,6 +550,84 @@ export class Validator {
   }
 
   /**
+   * Validate a loop block (unbounded - Tier 9)
+   */
+  private validateLoopBlock(loop: LoopBlockNode): void {
+    // Warn about infinite loops without safety limits
+    if (loop.variant === 'loop' && !loop.maxIterations) {
+      this.addWarning(
+        'Unbounded loop without max iterations. Consider adding (max: N) for safety.',
+        loop.span
+      );
+    }
+
+    // Validate max iterations if specified
+    if (loop.maxIterations) {
+      if (loop.maxIterations.value <= 0) {
+        this.addError(
+          `Max iterations must be positive, got ${loop.maxIterations.value}`,
+          loop.maxIterations.span
+        );
+      }
+      if (!Number.isInteger(loop.maxIterations.value)) {
+        this.addError(
+          `Max iterations must be an integer, got ${loop.maxIterations.value}`,
+          loop.maxIterations.span
+        );
+      }
+    }
+
+    // Validate condition if present (for until/while variants)
+    if (loop.condition) {
+      this.validateDiscretion(loop.condition);
+    }
+
+    // If there's an iteration variable, temporarily add it to scope
+    const savedVariables = new Map(this.definedVariables);
+    if (loop.iterationVar) {
+      const indexName = loop.iterationVar.name;
+      // Check for shadowing
+      if (this.definedVariables.has(indexName)) {
+        this.addWarning(
+          `Loop variable "${indexName}" shadows outer variable`,
+          loop.iterationVar.span
+        );
+      }
+      this.definedVariables.set(indexName, {
+        name: indexName,
+        isConst: true,  // Loop variables are implicitly const within each iteration
+        span: loop.iterationVar.span,
+      });
+    }
+
+    // Validate body statements
+    for (const stmt of loop.body) {
+      this.validateStatement(stmt);
+    }
+
+    // Restore previous scope
+    this.definedVariables = savedVariables;
+  }
+
+  /**
+   * Validate a discretion node (AI-evaluated expression)
+   */
+  private validateDiscretion(discretion: DiscretionNode): void {
+    // Validate that the expression is not empty
+    if (!discretion.expression || discretion.expression.trim().length === 0) {
+      this.addError('Discretion condition cannot be empty', discretion.span);
+    }
+
+    // Warn on very short conditions that might be ambiguous
+    if (discretion.expression && discretion.expression.trim().length < 3) {
+      this.addWarning(
+        'Discretion condition is very short and may be ambiguous',
+        discretion.span
+      );
+    }
+  }
+
+  /**
    * Validate an arrow expression (session -> session)
    */
   private validateArrowExpression(arrow: ArrowExpressionNode): void {
@@ -621,6 +704,8 @@ export class Validator {
       this.validateRepeatBlock(expr as RepeatBlockNode);
     } else if (expr.type === 'ForEachBlock') {
       this.validateForEachBlock(expr as ForEachBlockNode);
+    } else if (expr.type === 'LoopBlock') {
+      this.validateLoopBlock(expr as LoopBlockNode);
     } else if (expr.type === 'ArrowExpression') {
       this.validateArrowExpression(expr as ArrowExpressionNode);
     } else if (expr.type === 'Identifier') {

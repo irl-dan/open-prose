@@ -17,10 +17,11 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. Thi
 9. [Composition Blocks](#composition-blocks)
 10. [Parallel Blocks](#parallel-blocks)
 11. [Fixed Loops](#fixed-loops)
-12. [Execution Model](#execution-model)
-13. [Validation Rules](#validation-rules)
-14. [Examples](#examples)
-15. [Future Features](#future-features)
+12. [Unbounded Loops](#unbounded-loops)
+13. [Execution Model](#execution-model)
+14. [Validation Rules](#validation-rules)
+15. [Examples](#examples)
+16. [Future Features](#future-features)
 
 ---
 
@@ -66,6 +67,10 @@ The following features are implemented:
 | For-each blocks | Implemented | `for item in items:` iteration |
 | For-each with index | Implemented | `for item, i in items:` with index |
 | Parallel for-each | Implemented | `parallel for item in items:` fan-out |
+| Unbounded loop | Implemented | `loop:` with optional max iterations |
+| Loop until | Implemented | `loop until **condition**:` AI-evaluated |
+| Loop while | Implemented | `loop while **condition**:` AI-evaluated |
+| Loop with index | Implemented | `loop as i:` or `loop until ... as i:` |
 
 ---
 
@@ -1212,6 +1217,243 @@ session "Synthesize all research into a business plan"
 
 ---
 
+## Unbounded Loops
+
+Unbounded loops provide iteration with AI-evaluated termination conditions. Unlike fixed loops, the iteration count is not known ahead of time - the Orchestrator evaluates conditions at runtime using its intelligence to determine when to stop.
+
+### Discretion Markers
+
+Unbounded loops use **discretion markers** (`**...**`) to wrap AI-evaluated conditions. These markers signal that the enclosed text should be interpreted intelligently by the Orchestrator at runtime, not as a literal boolean expression.
+
+```prose
+# The text inside **...** is evaluated by the AI
+loop until **the poem has vivid imagery and flows smoothly**:
+  session "Review and improve the poem"
+```
+
+For multi-line conditions, use triple-asterisks:
+
+```prose
+loop until ***
+  the document is complete
+  all sections have been reviewed
+  and formatting is consistent
+***:
+  session "Continue working on the document"
+```
+
+### Basic Loop
+
+The simplest unbounded loop runs indefinitely until explicitly limited:
+
+```prose
+loop:
+  session "Process next item"
+```
+
+**Warning**: Loops without termination conditions or max iterations generate a warning. Always include a safety limit:
+
+```prose
+loop (max: 50):
+  session "Process next item"
+```
+
+### Loop Until
+
+The `loop until` variant runs until a condition becomes true:
+
+```prose
+loop until **the task is complete**:
+  session "Continue working on the task"
+```
+
+The Orchestrator evaluates the discretion condition after each iteration and exits when it determines the condition is satisfied.
+
+### Loop While
+
+The `loop while` variant runs while a condition remains true:
+
+```prose
+loop while **there are still items to process**:
+  session "Process the next item"
+```
+
+Semantically, `loop while **X**` is equivalent to `loop until **not X**`.
+
+### Iteration Variable
+
+Track the current iteration number using `as`:
+
+```prose
+loop until **done** as attempt:
+  session "Try approach"
+    context: attempt
+```
+
+The iteration variable:
+- Starts at 0
+- Increments by 1 each iteration
+- Is scoped to the loop body
+- Is implicitly `const` within each iteration
+
+### Safety Limits
+
+Specify maximum iterations with `(max: N)`:
+
+```prose
+# Stop after 10 iterations even if condition not met
+loop until **all bugs fixed** (max: 10):
+  session "Find and fix a bug"
+```
+
+The loop exits when:
+1. The condition is satisfied (for `until`/`while` variants), OR
+2. The maximum iteration count is reached
+
+### Complete Syntax
+
+All options can be combined:
+
+```prose
+loop until **condition** (max: N) as i:
+  body...
+```
+
+Order matters: condition comes before modifiers, modifiers before `as`.
+
+### Examples
+
+#### Iterative Improvement
+
+```prose
+session "Write an initial draft"
+
+loop until **the draft is polished and ready for review** (max: 5):
+  session "Review the current draft and identify issues"
+  session "Revise the draft to address the issues"
+
+session "Present the final draft"
+```
+
+#### Debugging Workflow
+
+```prose
+session "Run tests to identify failures"
+
+loop until **all tests pass** (max: 20) as attempt:
+  session "Identify the failing test"
+  session "Fix the bug causing the failure"
+  session "Run tests again"
+
+session "Confirm all tests pass and summarize fixes"
+```
+
+#### Consensus Building
+
+```prose
+parallel:
+  opinion1 = session "Get first expert opinion"
+  opinion2 = session "Get second expert opinion"
+
+loop until **experts have reached consensus** (max: 5):
+  session "Identify points of disagreement"
+    context: { opinion1, opinion2 }
+  session "Facilitate discussion to resolve differences"
+
+session "Document the final consensus"
+```
+
+#### Quality Threshold
+
+```prose
+let draft = session "Create initial document"
+
+loop while **quality score is below threshold** (max: 10):
+  draft = session "Review and improve the document"
+    context: draft
+  session "Calculate new quality score"
+
+session "Finalize the document"
+  context: draft
+```
+
+### Execution Semantics
+
+When the Orchestrator encounters an unbounded loop:
+
+1. **Initialize**: Set iteration counter to 0
+2. **Check Condition** (for `until`/`while`):
+   - For `until`: Exit if condition is satisfied
+   - For `while`: Exit if condition is NOT satisfied
+3. **Check Limit**: Exit if iteration count >= max iterations
+4. **Execute Body**: Run all statements in the loop body
+5. **Increment**: Increase iteration counter
+6. **Repeat**: Go to step 2
+
+For basic `loop:` without conditions:
+- Only the max iteration limit can cause exit
+- Without max, the loop runs indefinitely (warning issued)
+
+### Condition Evaluation
+
+The Orchestrator uses its intelligence to evaluate discretion conditions:
+
+1. **Context Awareness**: The condition is evaluated in the context of what has happened so far in the session
+2. **Semantic Understanding**: The condition text is interpreted semantically, not literally
+3. **Uncertainty Handling**: When uncertain, the Orchestrator may:
+   - Continue iterating if progress is being made
+   - Exit early if diminishing returns are detected
+   - Use heuristics based on the condition's semantics
+
+### Nesting
+
+Unbounded loops can be nested with other loop types:
+
+```prose
+# Unbounded inside fixed
+repeat 3:
+  loop until **sub-task complete** (max: 10):
+    session "Work on sub-task"
+
+# Fixed inside unbounded
+loop until **all batches processed** (max: 5):
+  repeat 3:
+    session "Process batch item"
+
+# Multiple unbounded
+loop until **outer condition** (max: 5):
+  loop until **inner condition** (max: 10):
+    session "Deep iteration"
+```
+
+### Variable Scoping
+
+Loop variables follow the same scoping rules as fixed loops:
+
+```prose
+let i = session "outer"
+loop until **done** as i:
+  # 'i' here is the loop variable (shadows outer)
+  session "use loop i"
+    context: i
+# 'i' here refers to the outer variable again
+session "use outer i"
+  context: i
+```
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Loop without max or condition | Warning | Unbounded loop without max iterations |
+| Max iterations <= 0 | Error | Max iterations must be positive |
+| Max iterations not integer | Error | Max iterations must be an integer |
+| Empty discretion condition | Error | Discretion condition cannot be empty |
+| Very short condition | Warning | Discretion condition may be ambiguous |
+| Loop variable shadows outer | Warning | Loop variable shadows outer variable |
+
+---
+
 ## Execution Model
 
 OpenProse uses a two-phase execution model.
@@ -1439,13 +1681,6 @@ session: writer
 
 The following features are specified but not yet implemented:
 
-### Tier 7: Advanced Parallel
-- Join strategies (`parallel ("first"):`, `parallel ("any"):`)
-- Failure policies (`on-fail: "continue"`, `on-fail: "ignore"`)
-
-### Tier 9: Unbounded Loops
-- `loop until **condition**:` unbounded loops with AI-evaluated conditions
-
 ### Tier 10: Pipeline Operations
 - `map`, `filter`, `reduce`
 - Pipeline chaining with `|`
@@ -1466,7 +1701,7 @@ The following features are specified but not yet implemented:
 
 ```
 program     → statement* EOF
-statement   → agentDef | blockDef | parallelBlock | repeatBlock | forEachBlock | session | doBlock | arrowExpr | letBinding | constBinding | assignment | comment
+statement   → agentDef | blockDef | parallelBlock | repeatBlock | forEachBlock | loopBlock | session | doBlock | arrowExpr | letBinding | constBinding | assignment | comment
 agentDef    → "agent" IDENTIFIER ":" NEWLINE INDENT property* DEDENT
 blockDef    → "block" IDENTIFIER ":" NEWLINE INDENT statement* DEDENT
 parallelBlock → "parallel" parallelMods? ":" NEWLINE INDENT parallelBranch* DEDENT
@@ -1477,6 +1712,9 @@ countMod      → "count" ":" NUMBER                  # only valid with "any"
 parallelBranch → ( IDENTIFIER "=" )? statement
 repeatBlock → "repeat" NUMBER ( "as" IDENTIFIER )? ":" NEWLINE INDENT statement* DEDENT
 forEachBlock → "parallel"? "for" IDENTIFIER ( "," IDENTIFIER )? "in" collection ":" NEWLINE INDENT statement* DEDENT
+loopBlock   → "loop" ( ( "until" | "while" ) discretion )? loopMods? ( "as" IDENTIFIER )? ":" NEWLINE INDENT statement* DEDENT
+loopMods    → "(" "max" ":" NUMBER ")"
+discretion  → "**" text "**" | "***" text "***"
 collection  → IDENTIFIER | array
 doBlock     → "do" ( ":" NEWLINE INDENT statement* DEDENT | IDENTIFIER )
 arrowExpr   → session "->" session ( "->" session )*
@@ -1485,7 +1723,7 @@ session     → "session" ( string | ":" IDENTIFIER | IDENTIFIER ":" IDENTIFIER 
 letBinding  → "let" IDENTIFIER "=" expression
 constBinding → "const" IDENTIFIER "=" expression
 assignment  → IDENTIFIER "=" expression
-expression  → session | doBlock | parallelBlock | repeatBlock | forEachBlock | arrowExpr | string | IDENTIFIER | array | objectContext
+expression  → session | doBlock | parallelBlock | repeatBlock | forEachBlock | loopBlock | arrowExpr | string | IDENTIFIER | array | objectContext
 property    → ( "model" | "prompt" | "context" | IDENTIFIER ) ":" ( IDENTIFIER | string | array | objectContext )
 array       → "[" ( expression ( "," expression )* )? "]"
 objectContext → "{" ( IDENTIFIER ( "," IDENTIFIER )* )? "}"

@@ -1,0 +1,16 @@
+# Tier 9.5: Loop Combined with Other Features
+# Tests unbounded loop combined with parallel blocks and context
+
+# Gather initial opinions from multiple perspectives
+parallel:
+  optimist = session "As an optimist, what's one positive trend you see in AI development?"
+  pessimist = session "As a skeptic, what's one concern you have about AI development?"
+
+# Iterate to find common ground
+loop until **both perspectives have found a balanced middle ground** (max: 3):
+  session "Review both perspectives and identify where they agree and disagree"
+    context: { optimist, pessimist }
+  session "Propose a synthesis that acknowledges both views"
+
+# Final summary
+session "Write a balanced one-paragraph summary that incorporates both optimistic and cautionary perspectives on AI."

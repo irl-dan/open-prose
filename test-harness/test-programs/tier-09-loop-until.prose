@@ -1,0 +1,12 @@
+# Tier 9.1: Loop Until
+# Tests unbounded loop with AI-evaluated termination condition
+
+# Write an initial draft of a haiku about rain
+session "Write a haiku about rain. A haiku has 3 lines with 5-7-5 syllable pattern."
+
+# Refine until it feels polished
+loop until **the haiku follows the 5-7-5 syllable pattern and has vivid imagery** (max: 5):
+  session "Review the haiku above. Check syllable count and imagery. If it needs improvement, rewrite it with corrections."
+
+# Present the final version
+session "Present the final polished haiku and explain what makes it effective."

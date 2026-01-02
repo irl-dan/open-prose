@@ -180,14 +180,22 @@ export interface ParallelBlockNode extends ASTNode {
 
 /**
  * Loop block (unbounded - Tier 9)
+ * Supports AI-evaluated termination conditions using discretion markers.
+ *
+ * Syntax variants:
+ *   loop:                                    # Infinite loop (safeguards apply)
+ *   loop as i:                               # With iteration counter
+ *   loop until **condition**:                # Until condition becomes true
+ *   loop while **condition**:                # While condition remains true
+ *   loop until **condition** (max: 50):      # With safety limit
+ *   loop until **condition** as i:           # With iteration counter
  */
 export interface LoopBlockNode extends ASTNode {
   type: 'LoopBlock';
-  variant: 'loop' | 'until' | 'while' | 'repeat' | 'for';
-  condition: ExpressionNode | null;
-  count: NumberLiteralNode | null;
-  iterator: IdentifierNode | null;
-  iterable: ExpressionNode | null;
+  variant: 'loop' | 'until' | 'while';  // Type of loop
+  condition: DiscretionNode | null;  // AI-evaluated condition (for until/while)
+  iterationVar: IdentifierNode | null;  // Optional "as i" variable
+  maxIterations: NumberLiteralNode | null;  // Optional safety limit (max: N)
   body: StatementNode[];
 }
 
@@ -276,6 +284,7 @@ export type ExpressionNode =
   | ArrowExpressionNode
   | DoBlockNode
   | ParallelBlockNode
+  | LoopBlockNode
   | RepeatBlockNode
   | ForEachBlockNode;
 

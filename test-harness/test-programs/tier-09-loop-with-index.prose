@@ -1,0 +1,12 @@
+# Tier 9.4: Loop with Iteration Variable
+# Tests loop with index tracking using "as" syntax
+
+# Build a story incrementally with iteration awareness
+session "Start a short story with an opening sentence about a mysterious door."
+
+loop until **the story has a satisfying conclusion** (max: 4) as chapter:
+  session "Continue the story. This is chapter/iteration number. Add 2-3 sentences that advance the plot toward a conclusion."
+    context: chapter
+
+# Wrap up
+session "Review the complete story above and give it a fitting title."

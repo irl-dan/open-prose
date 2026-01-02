@@ -1,0 +1,13 @@
+# Tier 9.2: Loop While
+# Tests loop while variant with AI-evaluated condition
+
+# Start a number guessing scenario
+session "Think of a number between 1 and 10. Tell me you're thinking of a number but don't reveal it."
+
+# Keep guessing while there are numbers to try
+loop while **the correct number has not been guessed yet** (max: 5):
+  session "Make a guess for the number. If previous guesses were made, try a different number."
+  session "Evaluate if the guess was correct. Say 'correct!' or give a hint like 'too high' or 'too low'."
+
+# Conclude the game
+session "Summarize the guessing game - how many attempts were made and what the number was."

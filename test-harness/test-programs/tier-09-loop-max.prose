@@ -1,0 +1,9 @@
+# Tier 9.3: Loop with Max Iterations
+# Tests basic loop with safety limit (max iterations)
+
+# Generate creative ideas with iteration limit
+loop (max: 3):
+  session "Generate a unique startup idea in the AI/tech space. Make it different from any previously mentioned ideas."
+
+# Evaluate all ideas
+session "Review all the startup ideas generated above. Rank them by innovation potential and market viability."

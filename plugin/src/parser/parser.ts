@@ -24,6 +24,7 @@ import {
   StringLiteralNode,
   NumberLiteralNode,
   IdentifierNode,
+  DiscretionNode,
   ExpressionNode,
   EscapeSequence,
   ArrayExpressionNode,
@@ -35,6 +36,7 @@ import {
   BlockDefinitionNode,
   ArrowExpressionNode,
   ParallelBlockNode,
+  LoopBlockNode,
   RepeatBlockNode,
   ForEachBlockNode,
   createProgramNode,
@@ -174,6 +176,11 @@ export class Parser {
     // Handle for-each block
     if (this.check(TokenType.FOR)) {
       return this.parseForEachBlock(false);
+    }
+
+    // Handle loop block (unbounded - Tier 9)
+    if (this.check(TokenType.LOOP)) {
+      return this.parseLoopBlock();
     }
 
     // Handle session keyword (may be followed by -> for arrow sequences)
@@ -418,6 +425,11 @@ export class Parser {
     // If it's a for-each block
     if (this.check(TokenType.FOR)) {
       return this.parseForEachBlock(false);
+    }
+
+    // If it's a loop block (unbounded)
+    if (this.check(TokenType.LOOP)) {
+      return this.parseLoopBlock();
     }
 
     // If it's a string literal
@@ -1605,6 +1617,189 @@ export class Parser {
       body,
       span: { start, end },
     };
+  }
+
+  /**
+   * Parse a loop block (unbounded - Tier 9)
+   * Syntax variants:
+   *   loop:
+   *   loop as i:
+   *   loop until **condition**:
+   *   loop while **condition**:
+   *   loop until **condition** (max: 50):
+   *   loop until **condition** as i:
+   */
+  private parseLoopBlock(): LoopBlockNode {
+    const loopToken = this.advance(); // consume 'loop'
+    const start = loopToken.span.start;
+
+    let variant: 'loop' | 'until' | 'while' = 'loop';
+    let condition: DiscretionNode | null = null;
+    let maxIterations: NumberLiteralNode | null = null;
+    let iterationVar: IdentifierNode | null = null;
+
+    // Check for 'until' or 'while' keyword
+    if (this.check(TokenType.UNTIL)) {
+      this.advance(); // consume 'until'
+      variant = 'until';
+      condition = this.parseDiscretion();
+    } else if (this.check(TokenType.WHILE)) {
+      this.advance(); // consume 'while'
+      variant = 'while';
+      condition = this.parseDiscretion();
+    }
+
+    // Check for optional modifiers in parentheses: (max: 50)
+    if (this.check(TokenType.LPAREN)) {
+      this.advance(); // consume '('
+
+      // Parse modifiers until we hit ')'
+      while (!this.isAtEnd() && !this.check(TokenType.RPAREN)) {
+        if (this.check(TokenType.IDENTIFIER)) {
+          const modifierName = this.peek().value;
+
+          if (modifierName === 'max') {
+            this.advance(); // consume 'max'
+            if (!this.match(TokenType.COLON)) {
+              this.addError('Expected ":" after "max"');
+            }
+            if (this.check(TokenType.NUMBER)) {
+              if (maxIterations) {
+                this.addError('Duplicate max iterations specified');
+              }
+              maxIterations = this.parseNumberLiteral();
+            } else {
+              this.addError('Expected number value for "max"');
+            }
+          } else {
+            this.addError(`Unknown loop modifier: "${modifierName}"`);
+            this.advance();
+          }
+        } else {
+          // Unexpected token in modifiers
+          this.addError('Unexpected token in loop modifiers');
+          this.advance();
+        }
+
+        // Expect comma or closing paren
+        if (!this.check(TokenType.RPAREN)) {
+          if (!this.match(TokenType.COMMA)) {
+            this.addError('Expected "," or ")" in loop modifiers');
+            break;
+          }
+        }
+      }
+
+      if (!this.match(TokenType.RPAREN)) {
+        this.addError('Expected ")" after loop modifiers');
+      }
+    }
+
+    // Check for optional "as i" index variable
+    if (this.check(TokenType.AS)) {
+      this.advance(); // consume 'as'
+      if (this.check(TokenType.IDENTIFIER)) {
+        iterationVar = this.parseIdentifier();
+      } else {
+        this.addError('Expected identifier after "as"');
+      }
+    }
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after loop declaration');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse indented body
+    const body: StatementNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        const stmt = this.parseStatement();
+        if (stmt) {
+          body.push(stmt);
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'LoopBlock',
+      variant,
+      condition,
+      iterationVar,
+      maxIterations,
+      body,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a discretion expression (**...** or ***...***)
+   */
+  private parseDiscretion(): DiscretionNode {
+    if (this.check(TokenType.DISCRETION)) {
+      const token = this.advance();
+      // Remove the ** markers from the value
+      const content = token.value.slice(2, -2);
+      return {
+        type: 'Discretion',
+        expression: content,
+        isMultiline: false,
+        span: token.span,
+      };
+    } else if (this.check(TokenType.MULTILINE_DISCRETION)) {
+      const token = this.advance();
+      // Remove the *** markers from the value
+      const content = token.value.slice(3, -3);
+      return {
+        type: 'Discretion',
+        expression: content,
+        isMultiline: true,
+        span: token.span,
+      };
+    } else {
+      this.addError('Expected discretion marker (**condition** or ***condition***)');
+      return {
+        type: 'Discretion',
+        expression: '',
+        isMultiline: false,
+        span: this.peek().span,
+      };
+    }
   }
 
   /**

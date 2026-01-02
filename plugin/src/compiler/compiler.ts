@@ -19,6 +19,7 @@ import {
   PropertyNode,
   StringLiteralNode,
   IdentifierNode,
+  DiscretionNode,
   ArrayExpressionNode,
   ObjectExpressionNode,
   ExpressionNode,
@@ -29,6 +30,7 @@ import {
   BlockDefinitionNode,
   ArrowExpressionNode,
   ParallelBlockNode,
+  LoopBlockNode,
   RepeatBlockNode,
   ForEachBlockNode,
 } from '../parser';
@@ -144,6 +146,9 @@ export class Compiler {
         break;
       case 'ForEachBlock':
         this.compileForEachBlock(statement);
+        break;
+      case 'LoopBlock':
+        this.compileLoopBlock(statement);
         break;
       case 'ArrowExpression':
         this.compileArrowExpression(statement);
@@ -338,6 +343,29 @@ export class Compiler {
       this.emit(':');
       this.emitNewline();
       for (const stmt of forEach.body) {
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
+    } else if (value.type === 'LoopBlock') {
+      // Loop block as value
+      const loop = value as LoopBlockNode;
+      this.emit('loop');
+      if (loop.variant !== 'loop' && loop.condition) {
+        this.emit(loop.variant === 'until' ? ' until ' : ' while ');
+        this.compileDiscretion(loop.condition);
+      }
+      if (loop.maxIterations) {
+        this.emit(' (max: ');
+        this.emit(String(loop.maxIterations.value));
+        this.emit(')');
+      }
+      if (loop.iterationVar) {
+        this.emit(' as ');
+        this.emit(loop.iterationVar.name);
+      }
+      this.emit(':');
+      this.emitNewline();
+      for (const stmt of loop.body) {
         this.emit(this.options.indent);
         this.compileStatementInline(stmt);
       }
@@ -582,6 +610,69 @@ export class Compiler {
   }
 
   /**
+   * Compile a loop block (unbounded - Tier 9)
+   * Syntax variants:
+   *   loop:
+   *   loop as i:
+   *   loop until **condition**:
+   *   loop while **condition**:
+   *   loop until **condition** (max: 50):
+   */
+  private compileLoopBlock(loop: LoopBlockNode, indentLevel: number = 0): void {
+    // Add source mapping
+    this.addSourceMapping(loop.span.start.line, loop.span.start.column);
+
+    const indent = this.options.indent.repeat(indentLevel);
+
+    this.emit(indent);
+    this.emit('loop');
+
+    // Emit condition for until/while variants
+    if (loop.variant !== 'loop' && loop.condition) {
+      this.emit(loop.variant === 'until' ? ' until ' : ' while ');
+      this.compileDiscretion(loop.condition);
+    }
+
+    // Emit modifiers if present
+    if (loop.maxIterations) {
+      this.emit(' (max: ');
+      this.emit(String(loop.maxIterations.value));
+      this.emit(')');
+    }
+
+    // Emit iteration variable if present
+    if (loop.iterationVar) {
+      this.emit(' as ');
+      this.emit(loop.iterationVar.name);
+    }
+
+    this.emit(':');
+    this.emitNewline();
+
+    // Emit body with indentation
+    for (const stmt of loop.body) {
+      this.emit(indent);
+      this.emit(this.options.indent);
+      this.compileStatementInline(stmt);
+    }
+  }
+
+  /**
+   * Compile a discretion expression (**...**) or (***...***)
+   */
+  private compileDiscretion(discretion: DiscretionNode): void {
+    if (discretion.isMultiline) {
+      this.emit('***');
+      this.emit(discretion.expression);
+      this.emit('***');
+    } else {
+      this.emit('**');
+      this.emit(discretion.expression);
+      this.emit('**');
+    }
+  }
+
+  /**
    * Compile an arrow expression (session "A" -> session "B")
    */
   private compileArrowExpression(arrow: ArrowExpressionNode, indentLevel: number = 0): void {
@@ -665,6 +756,9 @@ export class Compiler {
         break;
       case 'ForEachBlock':
         this.compileForEachBlock(stmt, 0);
+        break;
+      case 'LoopBlock':
+        this.compileLoopBlock(stmt, 0);
         break;
       case 'ArrowExpression':
         this.compileArrowExpression(stmt, 0);
