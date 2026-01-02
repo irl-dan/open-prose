@@ -1,0 +1,10 @@
+# Invalid: Same variable defined in multiple choice branches
+# Expected error: Duplicate variable definition
+
+choice **which approach to use**:
+  option "Fast":
+    let method = session "Use fast method"
+  option "Thorough":
+    let method = session "Use thorough method"
+
+session "Method chosen: {method}"

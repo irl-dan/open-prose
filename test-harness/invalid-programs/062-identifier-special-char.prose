@@ -1,0 +1,4 @@
+# Invalid: Identifier with special characters
+# Expected error: Invalid identifier
+
+let my-var = session "Hyphen in name"

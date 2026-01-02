@@ -1,0 +1,6 @@
+# Invalid: Continue statement outside loop
+# Expected error: Continue outside loop
+
+session "Setup"
+continue
+session "Never runs"

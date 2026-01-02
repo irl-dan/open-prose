@@ -1,0 +1,6 @@
+# Permutation: Const binding + Variable reassignment (15x16)
+# Tests: Attempting to reassign const (should error)
+
+const immutable = session "Initial value"
+
+immutable = session "Try to change"

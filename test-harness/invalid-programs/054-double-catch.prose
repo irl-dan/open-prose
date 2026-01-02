@@ -1,0 +1,9 @@
+# Invalid: Two catch blocks
+# Expected error: Multiple catch blocks
+
+try:
+  session "Try"
+catch:
+  session "First catch"
+catch:
+  session "Second catch"

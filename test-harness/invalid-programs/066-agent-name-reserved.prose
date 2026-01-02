@@ -1,0 +1,6 @@
+# Invalid: Agent with reserved name
+# Expected error: Reserved word
+
+agent try:
+  model: sonnet
+  prompt: "Bad agent name"

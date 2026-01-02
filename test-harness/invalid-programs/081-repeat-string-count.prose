@@ -1,0 +1,5 @@
+# Invalid: Repeat with string instead of number
+# Expected error: Invalid repeat count
+
+repeat "five" times:
+  session "Iteration"

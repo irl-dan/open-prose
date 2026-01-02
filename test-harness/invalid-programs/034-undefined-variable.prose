@@ -1,0 +1,4 @@
+# Invalid: Reference to undefined variable
+# Expected error: Undefined variable
+
+session "The value is {undefined_var}"

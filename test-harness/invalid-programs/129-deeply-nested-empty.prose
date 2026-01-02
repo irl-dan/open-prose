@@ -1,0 +1,8 @@
+# Invalid: Deeply nested empty blocks
+# Expected error: Empty block
+
+do:
+  do:
+    do:
+      do:
+        # nothing here

@@ -1,0 +1,5 @@
+# Invalid: Unknown keyword
+# Expected error: Parse error
+
+foreach item in items:
+  session "Process {item}"

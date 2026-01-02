@@ -1,0 +1,5 @@
+# Invalid: Else without if
+# Expected error: Parse error
+
+else:
+  session "Fallback"

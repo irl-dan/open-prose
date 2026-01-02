@@ -1,0 +1,4 @@
+# Invalid: Choice with no options
+# Expected error: Choice requires at least one option
+
+choice **user preference**:

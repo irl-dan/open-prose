@@ -1,0 +1,11 @@
+# Invalid: Accessing parallel result name outside its scope
+# Expected error: Undefined variable
+
+parallel:
+  a = session "Task A"
+  b = session "Task B"
+
+do:
+  session "Use {a}"
+
+session "Still use {b}"

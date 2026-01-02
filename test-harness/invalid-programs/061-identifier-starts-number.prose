@@ -1,0 +1,4 @@
+# Invalid: Identifier starting with number
+# Expected error: Invalid identifier
+
+let 123abc = session "Bad name"

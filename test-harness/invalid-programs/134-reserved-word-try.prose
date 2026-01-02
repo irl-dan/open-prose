@@ -1,0 +1,5 @@
+# Invalid: Using 'try' as block name
+# Expected error: Reserved word
+
+block try:
+  session "In try block"

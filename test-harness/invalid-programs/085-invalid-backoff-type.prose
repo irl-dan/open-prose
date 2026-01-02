@@ -1,0 +1,6 @@
+# Invalid: Invalid backoff type
+# Expected error: Invalid backoff type
+
+session "Test"
+  retry: 3
+  backoff: invalid

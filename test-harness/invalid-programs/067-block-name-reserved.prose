@@ -1,0 +1,5 @@
+# Invalid: Block with reserved name
+# Expected error: Reserved word
+
+block repeat:
+  session "Bad block name"

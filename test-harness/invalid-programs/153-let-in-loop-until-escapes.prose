@@ -1,0 +1,7 @@
+# Invalid: Loop variables should not escape scope
+# Expected error: Undefined variable (use reduce for accumulation)
+
+loop until **goal is achieved**:
+  let progress = session "Make progress"
+
+session "Final progress: {progress}"

@@ -1,0 +1,7 @@
+# Invalid: Reduce without accumulator params
+# Expected error: Reduce requires (acc, item) parameters
+
+let items = session "Get items"
+
+items | reduce:
+  session "Missing params"

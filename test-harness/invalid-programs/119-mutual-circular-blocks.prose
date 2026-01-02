@@ -1,0 +1,8 @@
+# Invalid: Mutually recursive blocks without base case
+# Expected error: Circular block reference
+
+block a:
+  do b
+
+block b:
+  do a

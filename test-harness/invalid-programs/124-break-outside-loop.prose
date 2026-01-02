@@ -1,0 +1,6 @@
+# Invalid: Break statement outside loop
+# Expected error: Break outside loop
+
+session "Setup"
+break
+session "Never runs"

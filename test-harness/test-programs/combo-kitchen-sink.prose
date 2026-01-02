@@ -1,0 +1,125 @@
+# Combinatorial Test: Kitchen Sink
+# Use case: Complete startup pitch competition workflow
+# Tests: ALL language features working together
+
+# ===== AGENTS =====
+agent researcher:
+  model: sonnet
+  prompt: "You research markets and trends thoroughly"
+
+agent writer:
+  model: opus
+  prompt: "You write compelling business content"
+
+agent critic:
+  model: haiku
+  prompt: "You provide quick, sharp feedback"
+
+# ===== PARAMETERIZED BLOCKS =====
+block research-aspect(aspect, depth):
+  session: researcher
+    prompt: """
+    Research {aspect} at {depth} level.
+    Include data points and sources.
+    """
+
+block critique-pitch(pitch_content, focus):
+  session: critic
+    prompt: "Critique this pitch focusing on {focus}"
+      context: pitch_content
+
+# ===== PHASE 1: IDEA GENERATION =====
+# Generate startup ideas with fixed loop
+let ideas = session "List 3 unique startup ideas in sustainable technology"
+
+repeat 3 as round:
+  ideas = session "Refine the ideas to be more specific and actionable, iteration {round}"
+    context: ideas
+
+# ===== PHASE 2: PARALLEL RESEARCH =====
+# Research multiple aspects in parallel
+let topics = ["market size", "competitors", "regulations"]
+
+parallel:
+  market = do research-aspect("market opportunity", "detailed")
+  competition = session "Analyze competitive landscape across all topics"
+    context: topics
+
+# ===== PHASE 3: PIPELINE FILTERING =====
+# Filter ideas through pipeline
+let filtered = ideas | filter:
+  session "Is this idea viable given the market? Answer yes or no."
+
+# Map to pitches
+let pitches = filtered | map:
+  session: writer
+    prompt: "Expand this into a one-paragraph pitch"
+
+# Reduce to best pitch
+let pitch = pitches | reduce(best, current):
+  session "Compare and keep the stronger pitch"
+    context: [best, current]
+
+# ===== PHASE 4: ITERATIVE REFINEMENT WITH CONDITIONALS =====
+# Refine until quality threshold met
+loop until **the pitch is compelling and investor-ready** (max: 3) as iteration:
+  # Get critique
+  do critique-pitch(pitch, "overall quality")
+
+  # Conditional improvement
+  choice **the most important improvement needed**:
+    option "Clarity":
+      pitch = session: writer
+        prompt: "Rewrite for maximum clarity and simplicity"
+          context: pitch
+    option "Impact":
+      pitch = session: writer
+        prompt: "Rewrite to be more emotionally compelling"
+          context: pitch
+    option "Feasibility":
+      pitch = session: writer
+        prompt: "Add concrete evidence of feasibility"
+          context: pitch
+
+  session "Show current pitch after iteration {iteration}"
+    context: pitch
+
+# ===== PHASE 5: FINAL ASSEMBLY WITH ERROR HANDLING =====
+try:
+  # Generate pitch materials in parallel
+  parallel:
+    deck = session: writer
+      prompt: "Create a 5-slide pitch deck outline"
+      context: pitch
+    financials = session "Project 3-year financial summary"
+      context: [pitch, market]
+      retry: 2
+    ask = session "Determine the funding ask and use of funds"
+      context: [pitch, market]
+
+  session "Assemble all pitch materials into final package"
+    context: [pitch, deck, financials, ask]
+catch as err:
+  session "Generate simplified pitch package due to errors"
+    context: [pitch, err]
+finally:
+  session "Log pitch generation metrics and completion status"
+
+# Final conditional check
+if **the pitch package is complete**:
+  session "Finalize and polish the pitch package"
+elif **minor adjustments needed**:
+  session "Make final adjustments to the pitch"
+else:
+  session "Flag for manual review before finalizing"
+
+# ===== FINAL OUTPUT =====
+session """
+Produce the final deliverable:
+1. Executive summary
+2. Problem/solution statement
+3. Market opportunity
+4. Business model
+5. Funding request
+Format as a professional document.
+"""

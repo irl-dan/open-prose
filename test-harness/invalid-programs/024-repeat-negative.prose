@@ -1,0 +1,5 @@
+# Invalid: Negative repeat count
+# Expected error: Repeat count must be positive
+
+repeat -5:
+  session "Negative iterations"

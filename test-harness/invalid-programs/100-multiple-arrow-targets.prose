@@ -1,0 +1,4 @@
+# Invalid: Arrow with multiple targets
+# Expected error: Invalid arrow syntax
+
+session "Get data" -> a -> b

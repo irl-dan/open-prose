@@ -1,0 +1,4 @@
+# Invalid: Session with empty string
+# Expected error: Empty prompt
+
+session ""

@@ -1,0 +1,5 @@
+# Invalid: For each over non-iterable
+# Expected error: Cannot iterate over number
+
+for each x in 42:
+  session "Item {x}"

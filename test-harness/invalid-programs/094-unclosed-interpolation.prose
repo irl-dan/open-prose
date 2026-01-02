@@ -1,0 +1,5 @@
+# Invalid: Unclosed interpolation brace
+# Expected error: Unclosed interpolation
+
+let x = "test"
+session "Value is {x"

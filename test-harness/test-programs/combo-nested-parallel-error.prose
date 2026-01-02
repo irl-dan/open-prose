@@ -1,0 +1,72 @@
+# Combinatorial Test: Nested Parallel + Error Handling
+# Use case: Microservices orchestration with fallback strategies
+# Tests: nested parallel blocks, error handling at multiple levels, fallback patterns
+
+# Define the API request
+let request = session "Describe a user request: 'Get personalized product recommendations'"
+
+# Outer parallel: Independent service groups
+parallel (on-fail: "continue"):
+  # User data services (nested parallel with fallback)
+  user_data = try:
+    parallel ("first"):
+      try:
+        session "Query primary user-profile-service for user preferences"
+          context: request
+          retry: 2
+      catch:
+        session "User profile service failed, returning empty preferences"
+      try:
+        session "Query cache-service for recent user activity"
+          retry: 1
+      catch:
+        session "Cache miss, no recent activity available"
+  catch as err:
+    session "All user data services failed, using anonymous defaults"
+      context: err
+
+  # Product services (nested parallel, need 2 of 3)
+  products = try:
+    parallel ("any", count: 2, on-fail: "continue"):
+      try:
+        session "Query recommendation-engine for ML-based suggestions"
+          context: request
+          retry: 2
+          backoff: "exponential"
+      catch:
+        session "Recommendation engine timeout"
+      try:
+        session "Query trending-service for popular products"
+          retry: 1
+      catch:
+        session "Trending service unavailable"
+      try:
+        session "Query inventory-service for in-stock items"
+          retry: 1
+      catch:
+        session "Inventory service unavailable"
+  catch:
+    session "Product services degraded, showing generic bestsellers"
+
+  # Pricing services (nested parallel with priority fallback)
+  pricing = try:
+    parallel ("first", on-fail: "ignore"):
+      session "Query dynamic-pricing-service for personalized prices"
+        retry: 1
+      session "Query base-pricing-service for standard prices"
+  catch:
+    session "Using catalog prices as fallback"
+  finally:
+    session "Log pricing service response time for monitoring"
+
+# Aggregate results with graceful degradation
+session "Combine available data into response, noting any degraded services"
+  context: { user_data, products, pricing }
+
+# Final response assembly
+if **all services returned successfully**:
+  session "Build full personalized response with all features"
+    context: { user_data, products, pricing }
+else:
+  session "Build degraded response, clearly indicating limited personalization"
+    context: { user_data, products, pricing }

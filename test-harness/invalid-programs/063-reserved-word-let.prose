@@ -1,0 +1,4 @@
+# Invalid: Using reserved word as variable
+# Expected error: Reserved word
+
+let if = session "Reserved"

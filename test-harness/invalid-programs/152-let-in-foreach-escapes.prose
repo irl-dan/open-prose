@@ -1,0 +1,9 @@
+# Invalid: Loop variables should not escape scope
+# Expected error: Undefined variable (use reduce for accumulation)
+
+let items = session "Generate a list of 3 items"
+
+for item in items:
+  let processed = session "Process {item}"
+
+session "Last processed: {processed}"

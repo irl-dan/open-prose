@@ -1,0 +1,4 @@
+# Invalid: Import without path
+# Expected error: Expected path after "from"
+
+import "helper" from

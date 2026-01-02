@@ -1,0 +1,4 @@
+# Invalid: Retry count as float
+# Expected error: Retry must be integer
+
+session "Test" (retry: 3.5)

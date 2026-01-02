@@ -1,0 +1,4 @@
+# Invalid: Let without equals
+# Expected error: Expected "=" after variable name
+
+let x session "Get value"

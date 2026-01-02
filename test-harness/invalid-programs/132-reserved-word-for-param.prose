@@ -1,0 +1,5 @@
+# Invalid: Using 'catch' as block parameter
+# Expected error: Reserved word
+
+block handler(catch):
+  session "Handle {catch}"

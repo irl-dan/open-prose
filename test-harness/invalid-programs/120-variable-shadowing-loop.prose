@@ -1,0 +1,6 @@
+# Invalid: Shadowing loop variable
+# Expected error: Variable already defined
+
+for item in items:
+  let item = "shadow"
+  session "Use {item}"

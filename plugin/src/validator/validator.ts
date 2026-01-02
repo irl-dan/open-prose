@@ -73,6 +73,13 @@ interface VariableBinding {
   name: string;
   isConst: boolean;
   span: SourceSpan;
+  declarationLine: number;  // Track declaration order for use-before-declare checks
+}
+
+/** Scope for tracking variables in nested contexts */
+interface Scope {
+  variables: Map<string, VariableBinding>;
+  type: 'global' | 'block' | 'loop' | 'function' | 'try' | 'catch';
 }
 
 export class Validator {
@@ -80,10 +87,92 @@ export class Validator {
   private warnings: ValidationError[] = [];
   private definedAgents: Map<string, AgentDefinitionNode> = new Map();
   private importedSkills: Map<string, ImportStatementNode> = new Map();
-  private definedVariables: Map<string, VariableBinding> = new Map();
   private definedBlocks: Map<string, BlockDefinitionNode> = new Map();
 
+  // Scope chain for proper variable tracking
+  private scopeStack: Scope[] = [];
+
+  // Track whether we've seen non-import statements (for import ordering)
+  private seenNonImportStatement: boolean = false;
+  private firstNonImportSpan: SourceSpan | null = null;
+
+  // Track nesting depth to detect nested definitions
+  private nestingDepth: number = 0;
+
   constructor(private program: ProgramNode) {}
+
+  // ========== Scope Chain Methods ==========
+
+  /**
+   * Push a new scope onto the stack
+   */
+  private pushScope(type: Scope['type']): void {
+    this.scopeStack.push({
+      variables: new Map(),
+      type,
+    });
+  }
+
+  /**
+   * Pop the current scope from the stack
+   */
+  private popScope(): void {
+    this.scopeStack.pop();
+  }
+
+  /**
+   * Define a variable in the current scope
+   */
+  private defineVariable(name: string, binding: VariableBinding): void {
+    if (this.scopeStack.length === 0) {
+      // Should not happen, but safety check
+      return;
+    }
+    const currentScope = this.scopeStack[this.scopeStack.length - 1];
+
+    // Check for duplicate in current scope ONLY
+    if (currentScope.variables.has(name)) {
+      this.addError(`Duplicate variable definition: "${name}"`, binding.span);
+      return;
+    }
+
+    // Check for conflict with agents
+    if (this.definedAgents.has(name)) {
+      this.addError(`Variable "${name}" conflicts with agent name`, binding.span);
+      return;
+    }
+
+    // Check for shadowing in OUTER scopes only (warning only)
+    // Skip the current scope when checking for shadowing
+    for (let i = this.scopeStack.length - 2; i >= 0; i--) {
+      if (this.scopeStack[i].variables.has(name)) {
+        this.addWarning(`Variable "${name}" shadows outer variable`, binding.span);
+        break;
+      }
+    }
+
+    currentScope.variables.set(name, binding);
+  }
+
+  /**
+   * Look up a variable in the scope chain (innermost to outermost)
+   */
+  private lookupVariable(name: string): VariableBinding | null {
+    for (let i = this.scopeStack.length - 1; i >= 0; i--) {
+      const binding = this.scopeStack[i].variables.get(name);
+      if (binding) return binding;
+    }
+    return null;
+  }
+
+  /**
+   * Check if a variable is defined in any scope
+   */
+  private isVariableDefined(name: string): boolean {
+    return this.lookupVariable(name) !== null;
+  }
+
+  // ========== Main Validation ==========
 
   /**
    * Validate the program
@@ -93,10 +182,17 @@ export class Validator {
     this.warnings = [];
     this.definedAgents = new Map();
     this.importedSkills = new Map();
-    this.definedVariables = new Map();
     this.definedBlocks = new Map();
+    this.scopeStack = [];
+    this.seenNonImportStatement = false;
+    this.firstNonImportSpan = null;
+    this.nestingDepth = 0;
 
-    // First pass: collect imports, agent definitions, block definitions, and variable bindings
+    // Push global scope
+    this.pushScope('global');
+
+    // First pass: collect imports, agent definitions, and block definitions
+    // (Variables are collected during validation for proper scope tracking)
     for (const statement of this.program.statements) {
       if (statement.type === 'ImportStatement') {
         this.collectImport(statement);
@@ -104,14 +200,10 @@ export class Validator {
         this.collectAgentDefinition(statement);
       } else if (statement.type === 'BlockDefinition') {
         this.collectBlockDefinition(statement);
-      } else if (statement.type === 'LetBinding') {
-        this.collectLetBinding(statement);
-      } else if (statement.type === 'ConstBinding') {
-        this.collectConstBinding(statement);
       }
     }
 
-    // Second pass: validate all statements
+    // Second pass: validate all statements (variables collected during traversal)
     for (const statement of this.program.statements) {
       this.validateStatement(statement);
     }
@@ -120,6 +212,9 @@ export class Validator {
     for (const comment of this.program.comments) {
       this.validateComment(comment);
     }
+
+    // Pop global scope
+    this.popScope();
 
     return {
       valid: this.errors.length === 0,
@@ -169,48 +264,19 @@ export class Validator {
     }
   }
 
-  /**
-   * Collect let binding (first pass)
-   */
-  private collectLetBinding(binding: LetBindingNode): void {
-    const name = binding.name.name;
-
-    if (this.definedVariables.has(name)) {
-      this.addError(`Duplicate variable definition: "${name}"`, binding.name.span);
-    } else if (this.definedAgents.has(name)) {
-      this.addError(`Variable "${name}" conflicts with agent name`, binding.name.span);
-    } else {
-      this.definedVariables.set(name, {
-        name,
-        isConst: false,
-        span: binding.name.span,
-      });
-    }
-  }
-
-  /**
-   * Collect const binding (first pass)
-   */
-  private collectConstBinding(binding: ConstBindingNode): void {
-    const name = binding.name.name;
-
-    if (this.definedVariables.has(name)) {
-      this.addError(`Duplicate variable definition: "${name}"`, binding.name.span);
-    } else if (this.definedAgents.has(name)) {
-      this.addError(`Variable "${name}" conflicts with agent name`, binding.name.span);
-    } else {
-      this.definedVariables.set(name, {
-        name,
-        isConst: true,
-        span: binding.name.span,
-      });
-    }
-  }
 
   /**
    * Validate a statement
    */
   private validateStatement(statement: StatementNode): void {
+    // Track first non-import statement for import ordering validation
+    if (statement.type !== 'ImportStatement' && statement.type !== 'CommentStatement') {
+      if (!this.seenNonImportStatement) {
+        this.seenNonImportStatement = true;
+        this.firstNonImportSpan = statement.span;
+      }
+    }
+
     switch (statement.type) {
       case 'CommentStatement':
         this.validateCommentStatement(statement);
@@ -266,6 +332,9 @@ export class Validator {
       case 'Assignment':
         this.validateAssignment(statement);
         break;
+      case 'PipeExpression':
+        this.validatePipeExpression(statement as PipeExpressionNode);
+        break;
       // Other statement types will be added in later tiers
     }
   }
@@ -274,6 +343,11 @@ export class Validator {
    * Validate an import statement
    */
   private validateImportStatement(importStmt: ImportStatementNode): void {
+    // Check import ordering - imports must come before other statements
+    if (this.seenNonImportStatement) {
+      this.addError('Import statements must appear at the top of the file', importStmt.span);
+    }
+
     // Validate skill name is not empty
     if (!importStmt.skillName.value) {
       this.addError('Import skill name cannot be empty', importStmt.skillName.span);
@@ -340,6 +414,11 @@ export class Validator {
    * Validate an agent definition
    */
   private validateAgentDefinition(agent: AgentDefinitionNode): void {
+    // Agent definitions must be at top level
+    if (this.nestingDepth > 0) {
+      this.addError('Agent definitions must be at top level', agent.span);
+    }
+
     // Validate agent name
     if (!agent.name.name) {
       this.addError('Agent definition must have a name', agent.span);
@@ -350,15 +429,33 @@ export class Validator {
     for (const prop of agent.properties) {
       this.validateProperty(prop, 'agent', seenProps);
     }
+
+    // Check for required properties
+    if (!seenProps.has('model')) {
+      this.addError('Agent definition requires "model" property', agent.span);
+    }
+    if (!seenProps.has('prompt')) {
+      this.addError('Agent definition requires "prompt" property', agent.span);
+    }
   }
 
   /**
    * Validate a block definition
    */
   private validateBlockDefinition(block: BlockDefinitionNode): void {
+    // Block definitions must be at top level
+    if (this.nestingDepth > 0) {
+      this.addError('Block definitions must be at top level', block.span);
+    }
+
     // Validate block name
     if (!block.name.name) {
       this.addError('Block definition must have a name', block.span);
+    }
+
+    // Validate body is not empty
+    if (block.body.length === 0) {
+      this.addError('Block body cannot be empty', block.span);
     }
 
     // Check for duplicate parameter names
@@ -369,23 +466,19 @@ export class Validator {
       } else {
         paramNames.add(param.name);
       }
-
-      // Check if parameter shadows an outer variable
-      if (this.definedVariables.has(param.name)) {
-        this.addWarning(
-          `Parameter "${param.name}" shadows outer variable`,
-          param.span
-        );
-      }
     }
 
-    // Temporarily add parameters to scope for body validation
-    const savedVariables = new Map(this.definedVariables);
+    // Push new scope for block body
+    this.pushScope('function');
+    this.nestingDepth++;
+
+    // Add parameters to scope
     for (const param of block.parameters) {
-      this.definedVariables.set(param.name, {
+      this.defineVariable(param.name, {
         name: param.name,
         isConst: true,  // Block parameters are implicitly const
         span: param.span,
+        declarationLine: param.span.start.line,
       });
     }
 
@@ -394,12 +487,14 @@ export class Validator {
       this.validateStatement(stmt);
     }
 
-    // Restore previous scope
-    this.definedVariables = savedVariables;
+    // Pop scope
+    this.nestingDepth--;
+    this.popScope();
   }
 
   /**
    * Validate a do block (anonymous or invocation)
+   * Anonymous do blocks allow variable shadowing but non-shadowed variables escape.
    */
   private validateDoBlock(doBlock: DoBlockNode): void {
     if (doBlock.name) {
@@ -426,17 +521,161 @@ export class Validator {
         }
       }
     } else {
-      // Anonymous do block: validate body
+      // Anonymous do block: push a scope for shadowing support,
+      // but non-shadowed variables will be hoisted to parent scope
+      this.pushScope('block');
       for (const stmt of doBlock.body) {
-        this.validateStatement(stmt);
+        this.validateDoBlockStatement(stmt);
+      }
+      this.popScope();
+    }
+  }
+
+  /**
+   * Validate a statement inside a do block.
+   * Non-shadowed let/const bindings are hoisted to the outermost non-block scope.
+   */
+  private validateDoBlockStatement(statement: StatementNode): void {
+    if (statement.type === 'LetBinding') {
+      const binding = statement as LetBindingNode;
+      const name = binding.name.name;
+
+      // Check if this name exists in outer scopes (for shadowing)
+      const isShadowing = this.lookupVariableInOuterScopes(name);
+
+      // Validate the value expression first (in current scope)
+      this.validateBindingExpression(binding.value);
+
+      if (isShadowing) {
+        // Variable shadows outer scope - define in CURRENT scope only
+        this.addWarning(`Variable "${name}" shadows outer variable`, binding.name.span);
+        this.defineVariableInCurrentScope(name, {
+          name,
+          isConst: false,
+          span: binding.name.span,
+          declarationLine: binding.span.start.line,
+        });
+      } else {
+        // No shadowing - define in the outermost block scope (escape through nested do blocks)
+        const targetScope = this.findEscapeTargetScope();
+        if (targetScope) {
+          // Check for duplicate in target scope
+          if (targetScope.variables.has(name)) {
+            this.addError(`Duplicate variable definition: "${name}"`, binding.name.span);
+            return;
+          }
+          // Check for conflict with agents
+          if (this.definedAgents.has(name)) {
+            this.addError(`Variable "${name}" conflicts with agent name`, binding.name.span);
+            return;
+          }
+          targetScope.variables.set(name, {
+            name,
+            isConst: false,
+            span: binding.name.span,
+            declarationLine: binding.span.start.line,
+          });
+        }
+      }
+    } else if (statement.type === 'ConstBinding') {
+      const binding = statement as ConstBindingNode;
+      const name = binding.name.name;
+
+      // Check if this name exists in outer scopes (for shadowing)
+      const isShadowing = this.lookupVariableInOuterScopes(name);
+
+      // Validate the value expression first (in current scope)
+      this.validateBindingExpression(binding.value);
+
+      if (isShadowing) {
+        // Variable shadows outer scope - define in CURRENT scope only
+        this.addWarning(`Variable "${name}" shadows outer variable`, binding.name.span);
+        this.defineVariableInCurrentScope(name, {
+          name,
+          isConst: true,
+          span: binding.name.span,
+          declarationLine: binding.span.start.line,
+        });
+      } else {
+        // No shadowing - define in the outermost block scope (escape through nested do blocks)
+        const targetScope = this.findEscapeTargetScope();
+        if (targetScope) {
+          // Check for duplicate in target scope
+          if (targetScope.variables.has(name)) {
+            this.addError(`Duplicate variable definition: "${name}"`, binding.name.span);
+            return;
+          }
+          // Check for conflict with agents
+          if (this.definedAgents.has(name)) {
+            this.addError(`Variable "${name}" conflicts with agent name`, binding.name.span);
+            return;
+          }
+          targetScope.variables.set(name, {
+            name,
+            isConst: true,
+            span: binding.name.span,
+            declarationLine: binding.span.start.line,
+          });
+        }
+      }
+    } else if (statement.type === 'DoBlock') {
+      // Nested do block - recurse with the same special handling
+      this.validateDoBlock(statement as DoBlockNode);
+    } else {
+      // For other statements, validate normally
+      this.validateStatement(statement);
+    }
+  }
+
+  /**
+   * Find the scope that variables should escape to.
+   * This walks up the scope stack and finds the first non-block scope,
+   * or the global scope if we're in nested do blocks.
+   */
+  private findEscapeTargetScope(): Scope | null {
+    // Walk up from parent scope (skip current)
+    for (let i = this.scopeStack.length - 2; i >= 0; i--) {
+      const scope = this.scopeStack[i];
+      // If this is not a 'block' scope type, or if it's the global scope (index 0), use it
+      if (scope.type !== 'block' || i === 0) {
+        return scope;
       }
     }
+    return null;
+  }
+
+  /**
+   * Look up a variable in outer scopes only (excluding current scope)
+   */
+  private lookupVariableInOuterScopes(name: string): boolean {
+    for (let i = this.scopeStack.length - 2; i >= 0; i--) {
+      if (this.scopeStack[i].variables.has(name)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Define a variable in current scope only (without shadowing warning)
+   */
+  private defineVariableInCurrentScope(name: string, binding: VariableBinding): void {
+    if (this.scopeStack.length === 0) {
+      return;
+    }
+    const currentScope = this.scopeStack[this.scopeStack.length - 1];
+    currentScope.variables.set(name, binding);
   }
 
   /**
    * Validate a parallel block
    */
   private validateParallelBlock(parallel: ParallelBlockNode): void {
+    // Validate body is not empty
+    if (parallel.body.length === 0) {
+      this.addError('Parallel block body cannot be empty', parallel.span);
+    }
+
     // Validate join strategy if specified
     if (parallel.joinStrategy) {
       const strategy = parallel.joinStrategy.value;
@@ -444,6 +683,22 @@ export class Validator {
         this.addError(
           `Invalid join strategy: "${strategy}". Must be one of: ${VALID_JOIN_STRATEGIES.join(', ')}`,
           parallel.joinStrategy.span
+        );
+      }
+
+      // Validate branch count for strategies
+      if ((strategy === 'first' || strategy === 'any') && parallel.body.length < 2) {
+        this.addError(
+          `Parallel with "${strategy}" strategy needs at least 2 branches`,
+          parallel.span
+        );
+      }
+
+      // "any" strategy should have count
+      if (strategy === 'any' && !parallel.anyCount) {
+        this.addWarning(
+          'Parallel "any" strategy should specify count parameter',
+          parallel.span
         );
       }
     }
@@ -487,68 +742,107 @@ export class Validator {
       }
     }
 
-    // Collect any variable assignments inside the parallel block
+    // For parallel blocks, variables defined inside are visible after the block completes
+    // We pre-register let bindings in the current (outer) scope before pushing a new scope
     for (const stmt of parallel.body) {
-      // For assignments inside parallel blocks, register them as variables
-      if (stmt.type === 'Assignment') {
+      if (stmt.type === 'LetBinding') {
+        const binding = stmt as LetBindingNode;
+        this.defineVariable(binding.name.name, {
+          name: binding.name.name,
+          isConst: false,
+          span: binding.name.span,
+          declarationLine: binding.span.start.line,
+        });
+      } else if (stmt.type === 'ConstBinding') {
+        const binding = stmt as ConstBindingNode;
+        this.defineVariable(binding.name.name, {
+          name: binding.name.name,
+          isConst: true,
+          span: binding.name.span,
+          declarationLine: binding.span.start.line,
+        });
+      } else if (stmt.type === 'Assignment') {
         const assignment = stmt as AssignmentNode;
         const name = assignment.name.name;
-
-        // Check for duplicates with existing variables
-        if (this.definedVariables.has(name)) {
-          this.addError(`Duplicate variable definition: "${name}"`, assignment.name.span);
-        } else if (this.definedAgents.has(name)) {
-          this.addError(`Variable "${name}" conflicts with agent name`, assignment.name.span);
-        } else {
-          // Register the variable (parallel assignments are implicitly const-like but we treat as let)
-          this.definedVariables.set(name, {
+        // For assignments, only register if not already defined
+        if (!this.isVariableDefined(name)) {
+          this.defineVariable(name, {
             name,
             isConst: false,
             span: assignment.name.span,
+            declarationLine: assignment.span.start.line,
           });
         }
       }
-
-      // Validate the statement
-      this.validateStatement(stmt);
     }
+
+    // Push new scope for parallel block body validation
+    // (inner scope for any temporary variables, but main bindings are in parent scope)
+    this.pushScope('block');
+    this.nestingDepth++;
+
+    // Validate statements in parallel block
+    for (const stmt of parallel.body) {
+      // Skip re-defining variables since we pre-registered them above
+      if (stmt.type === 'LetBinding' || stmt.type === 'ConstBinding') {
+        // Just validate the value expression
+        const binding = stmt as LetBindingNode | ConstBindingNode;
+        this.validateBindingExpression(binding.value);
+      } else {
+        // Validate the statement normally
+        this.validateStatement(stmt);
+      }
+    }
+
+    // Pop scope
+    this.nestingDepth--;
+    this.popScope();
   }
 
   /**
    * Validate a repeat block
    */
   private validateRepeatBlock(repeat: RepeatBlockNode): void {
-    // Validate count is positive
-    if (repeat.count.value <= 0) {
-      this.addError(
-        `Repeat count must be positive, got ${repeat.count.value}`,
-        repeat.count.span
-      );
-    }
-
-    // Validate count is an integer
-    if (!Number.isInteger(repeat.count.value)) {
-      this.addError(
-        `Repeat count must be an integer, got ${repeat.count.value}`,
-        repeat.count.span
-      );
-    }
-
-    // If there's an index variable, temporarily add it to scope
-    const savedVariables = new Map(this.definedVariables);
-    if (repeat.indexVar) {
-      const indexName = repeat.indexVar.name;
-      // Check for shadowing
-      if (this.definedVariables.has(indexName)) {
-        this.addWarning(
-          `Loop variable "${indexName}" shadows outer variable`,
-          repeat.indexVar.span
+    // Validate count based on type
+    if (repeat.count.type === 'NumberLiteral') {
+      // Validate count is positive
+      if (repeat.count.value <= 0) {
+        this.addError(
+          `Repeat count must be positive, got ${repeat.count.value}`,
+          repeat.count.span
         );
       }
-      this.definedVariables.set(indexName, {
-        name: indexName,
+
+      // Validate count is an integer
+      if (!Number.isInteger(repeat.count.value)) {
+        this.addError(
+          `Repeat count must be an integer, got ${repeat.count.value}`,
+          repeat.count.span
+        );
+      }
+    } else if (repeat.count.type === 'Identifier') {
+      // Variable count - check if the variable is defined
+      const varName = repeat.count.name;
+      if (!this.isVariableDefined(varName)) {
+        this.addError(
+          `Undefined variable: "${varName}"`,
+          repeat.count.span
+        );
+      }
+      // Runtime will need to validate the value is a positive integer
+    }
+
+    // Push new scope for repeat body
+    this.pushScope('loop');
+    this.nestingDepth++;
+
+    // If there's an index variable, add it to scope
+    if (repeat.indexVar) {
+      this.defineVariable(repeat.indexVar.name, {
+        name: repeat.indexVar.name,
         isConst: true,  // Loop variables are implicitly const within each iteration
         span: repeat.indexVar.span,
+        declarationLine: repeat.indexVar.span.start.line,
       });
     }
 
@@ -557,8 +851,9 @@ export class Validator {
       this.validateStatement(stmt);
     }
 
-    // Restore previous scope
-    this.definedVariables = savedVariables;
+    // Pop scope
+    this.nestingDepth--;
+    this.popScope();
   }
 
   /**
@@ -568,7 +863,7 @@ export class Validator {
     // Validate collection reference if it's an identifier
     if (forEach.collection.type === 'Identifier') {
       const collectionName = (forEach.collection as IdentifierNode).name;
-      if (!this.definedVariables.has(collectionName)) {
+      if (!this.isVariableDefined(collectionName)) {
         this.addError(
           `Undefined collection variable: "${collectionName}"`,
           forEach.collection.span
@@ -576,36 +871,25 @@ export class Validator {
       }
     }
 
-    // Temporarily add loop variables to scope
-    const savedVariables = new Map(this.definedVariables);
+    // Push new scope for loop body
+    this.pushScope('loop');
+    this.nestingDepth++;
 
     // Add item variable
-    const itemName = forEach.itemVar.name;
-    if (this.definedVariables.has(itemName)) {
-      this.addWarning(
-        `Loop variable "${itemName}" shadows outer variable`,
-        forEach.itemVar.span
-      );
-    }
-    this.definedVariables.set(itemName, {
-      name: itemName,
+    this.defineVariable(forEach.itemVar.name, {
+      name: forEach.itemVar.name,
       isConst: true,  // Loop variables are implicitly const within each iteration
       span: forEach.itemVar.span,
+      declarationLine: forEach.itemVar.span.start.line,
     });
 
     // Add index variable if present
     if (forEach.indexVar) {
-      const indexName = forEach.indexVar.name;
-      if (this.definedVariables.has(indexName)) {
-        this.addWarning(
-          `Loop index variable "${indexName}" shadows outer variable`,
-          forEach.indexVar.span
-        );
-      }
-      this.definedVariables.set(indexName, {
-        name: indexName,
+      this.defineVariable(forEach.indexVar.name, {
+        name: forEach.indexVar.name,
         isConst: true,
         span: forEach.indexVar.span,
+        declarationLine: forEach.indexVar.span.start.line,
       });
     }
 
@@ -614,8 +898,9 @@ export class Validator {
       this.validateStatement(stmt);
     }
 
-    // Restore previous scope
-    this.definedVariables = savedVariables;
+    // Pop scope
+    this.nestingDepth--;
+    this.popScope();
   }
 
   /**
@@ -651,21 +936,17 @@ export class Validator {
       this.validateDiscretion(loop.condition);
     }
 
-    // If there's an iteration variable, temporarily add it to scope
-    const savedVariables = new Map(this.definedVariables);
+    // Push new scope for loop body
+    this.pushScope('loop');
+    this.nestingDepth++;
+
+    // If there's an iteration variable, add it to scope
     if (loop.iterationVar) {
-      const indexName = loop.iterationVar.name;
-      // Check for shadowing
-      if (this.definedVariables.has(indexName)) {
-        this.addWarning(
-          `Loop variable "${indexName}" shadows outer variable`,
-          loop.iterationVar.span
-        );
-      }
-      this.definedVariables.set(indexName, {
-        name: indexName,
+      this.defineVariable(loop.iterationVar.name, {
+        name: loop.iterationVar.name,
         isConst: true,  // Loop variables are implicitly const within each iteration
         span: loop.iterationVar.span,
+        declarationLine: loop.iterationVar.span.start.line,
       });
     }
 
@@ -674,12 +955,15 @@ export class Validator {
       this.validateStatement(stmt);
     }
 
-    // Restore previous scope
-    this.definedVariables = savedVariables;
+    // Pop scope
+    this.nestingDepth--;
+    this.popScope();
   }
 
   /**
    * Validate a try/catch/finally block (Tier 11)
+   * Note: Variables defined inside try/catch/finally are visible after the block.
+   * Only the error variable in catch is scoped to the catch block.
    */
   private validateTryBlock(tryBlock: TryBlockNode): void {
     // Must have at least catch or finally
@@ -690,45 +974,107 @@ export class Validator {
       );
     }
 
-    // Validate try body
+    // Validate try body (no new scope - variables escape to parent)
     for (const stmt of tryBlock.tryBody) {
       this.validateStatement(stmt);
     }
 
     // Validate catch body if present
     if (tryBlock.catchBody) {
-      // If there's an error variable, temporarily add it to scope
-      const savedVariables = new Map(this.definedVariables);
+      // Push a scope ONLY for the error variable
+      // let/const bindings should go to the parent scope
+      this.pushScope('catch');
 
+      // If there's an error variable, add it to the catch scope
       if (tryBlock.errorVar) {
-        const errorName = tryBlock.errorVar.name;
-        // Check for shadowing
-        if (this.definedVariables.has(errorName)) {
-          this.addWarning(
-            `Error variable "${errorName}" shadows outer variable`,
-            tryBlock.errorVar.span
-          );
-        }
-        this.definedVariables.set(errorName, {
-          name: errorName,
+        this.defineVariable(tryBlock.errorVar.name, {
+          name: tryBlock.errorVar.name,
           isConst: true,  // Error variables are implicitly const
           span: tryBlock.errorVar.span,
+          declarationLine: tryBlock.errorVar.span.start.line,
         });
       }
 
+      // Validate catch body, but let/const bindings should escape
       for (const stmt of tryBlock.catchBody) {
-        this.validateStatement(stmt);
+        this.validateCatchStatement(stmt);
       }
 
-      // Restore previous scope
-      this.definedVariables = savedVariables;
+      this.popScope();
     }
 
-    // Validate finally body if present
+    // Validate finally body if present (no new scope)
     if (tryBlock.finallyBody) {
       for (const stmt of tryBlock.finallyBody) {
         this.validateStatement(stmt);
       }
+    }
+  }
+
+  /**
+   * Validate a statement inside a catch block.
+   * let/const bindings are defined in the parent scope (before the catch scope).
+   */
+  private validateCatchStatement(statement: StatementNode): void {
+    if (statement.type === 'LetBinding') {
+      const binding = statement as LetBindingNode;
+      // Validate the value expression first (in current scope, which includes error var)
+      this.validateBindingExpression(binding.value);
+
+      // Define the variable in the PARENT scope (before the catch scope)
+      if (this.scopeStack.length >= 2) {
+        const parentScope = this.scopeStack[this.scopeStack.length - 2];
+        const name = binding.name.name;
+
+        // Check for duplicate in parent scope
+        if (parentScope.variables.has(name)) {
+          this.addError(`Duplicate variable definition: "${name}"`, binding.name.span);
+          return;
+        }
+        // Check for conflict with agents
+        if (this.definedAgents.has(name)) {
+          this.addError(`Variable "${name}" conflicts with agent name`, binding.name.span);
+          return;
+        }
+
+        parentScope.variables.set(name, {
+          name,
+          isConst: false,
+          span: binding.name.span,
+          declarationLine: binding.span.start.line,
+        });
+      }
+    } else if (statement.type === 'ConstBinding') {
+      const binding = statement as ConstBindingNode;
+      // Validate the value expression first (in current scope, which includes error var)
+      this.validateBindingExpression(binding.value);
+
+      // Define the variable in the PARENT scope (before the catch scope)
+      if (this.scopeStack.length >= 2) {
+        const parentScope = this.scopeStack[this.scopeStack.length - 2];
+        const name = binding.name.name;
+
+        // Check for duplicate in parent scope
+        if (parentScope.variables.has(name)) {
+          this.addError(`Duplicate variable definition: "${name}"`, binding.name.span);
+          return;
+        }
+        // Check for conflict with agents
+        if (this.definedAgents.has(name)) {
+          this.addError(`Variable "${name}" conflicts with agent name`, binding.name.span);
+          return;
+        }
+
+        parentScope.variables.set(name, {
+          name,
+          isConst: true,
+          span: binding.name.span,
+          declarationLine: binding.span.start.line,
+        });
+      }
+    } else {
+      // For other statements, validate normally
+      this.validateStatement(statement);
     }
   }
 
@@ -750,6 +1096,8 @@ export class Validator {
 
   /**
    * Validate a choice block (Tier 12)
+   * Each option has its own isolated scope since only one option executes.
+   * Variables defined in options do NOT escape to the parent scope.
    */
   private validateChoiceBlock(choice: ChoiceBlockNode): void {
     // Validate the criteria discretion
@@ -772,21 +1120,31 @@ export class Validator {
       }
       seenLabels.add(option.label.value);
 
-      // Validate option body
+      // Each option has its own isolated scope
+      // Variables don't escape because only one option executes
+      this.pushScope('block');
       for (const stmt of option.body) {
         this.validateStatement(stmt);
       }
+      this.popScope();
     }
   }
 
   /**
    * Validate an if/elif/else statement (Tier 12)
+   * Note: Unlike traditional languages, OpenProse uses Python-like scoping
+   * where variables defined inside if/else are visible after the block.
    */
   private validateIfStatement(ifStmt: IfStatementNode): void {
+    // Validate body is not empty
+    if (ifStmt.thenBody.length === 0) {
+      this.addError('If body cannot be empty', ifStmt.span);
+    }
+
     // Validate the main if condition
     this.validateDiscretion(ifStmt.condition);
 
-    // Validate then body
+    // Validate then body (no new scope - variables escape to parent)
     for (const stmt of ifStmt.thenBody) {
       this.validateStatement(stmt);
     }
@@ -814,12 +1172,17 @@ export class Validator {
     // Validate input expression
     if (pipe.input.type === 'Identifier') {
       const inputName = (pipe.input as IdentifierNode).name;
-      if (!this.definedVariables.has(inputName)) {
+      if (!this.isVariableDefined(inputName)) {
         this.addError(
           `Undefined collection variable: "${inputName}"`,
           pipe.input.span
         );
       }
+    }
+
+    // Must have at least one operation
+    if (pipe.operations.length === 0) {
+      this.addError('Pipeline must have at least one operation', pipe.span);
     }
 
     // Validate each operation in the chain
@@ -832,53 +1195,50 @@ export class Validator {
    * Validate a single pipe operation (map, filter, reduce, pmap)
    */
   private validatePipeOperation(operation: PipeOperationNode): void {
-    // Save current scope
-    const savedVariables = new Map(this.definedVariables);
+    // Validate that the operation has a body
+    if (operation.body.length === 0) {
+      this.addError('Pipeline operation body cannot be empty', operation.span);
+    }
+
+    // Validate that reduce has required parameters
+    if (operation.operator === 'reduce') {
+      if (!operation.accVar || !operation.itemVar) {
+        this.addError(
+          'Reduce operation requires (accumulator, item) parameters',
+          operation.span
+        );
+      }
+    }
+
+    // Push new scope for operation body
+    this.pushScope('block');
 
     // Add implicit/explicit variables to scope based on operator type
     if (operation.operator === 'reduce') {
       // For reduce, acc and item are explicit
       if (operation.accVar) {
-        const accName = operation.accVar.name;
-        if (this.definedVariables.has(accName)) {
-          this.addWarning(
-            `Reduce accumulator variable "${accName}" shadows outer variable`,
-            operation.accVar.span
-          );
-        }
-        this.definedVariables.set(accName, {
-          name: accName,
+        this.defineVariable(operation.accVar.name, {
+          name: operation.accVar.name,
           isConst: true,
           span: operation.accVar.span,
+          declarationLine: operation.accVar.span.start.line,
         });
       }
       if (operation.itemVar) {
-        const itemName = operation.itemVar.name;
-        if (this.definedVariables.has(itemName)) {
-          this.addWarning(
-            `Reduce item variable "${itemName}" shadows outer variable`,
-            operation.itemVar.span
-          );
-        }
-        this.definedVariables.set(itemName, {
-          name: itemName,
+        this.defineVariable(operation.itemVar.name, {
+          name: operation.itemVar.name,
           isConst: true,
           span: operation.itemVar.span,
+          declarationLine: operation.itemVar.span.start.line,
         });
       }
     } else {
       // For map, filter, pmap: 'item' is implicit
-      // Check if 'item' shadows an outer variable (warning only)
-      if (this.definedVariables.has('item')) {
-        this.addWarning(
-          `Implicit pipeline variable "item" shadows outer variable`,
-          operation.span
-        );
-      }
-      this.definedVariables.set('item', {
+      this.defineVariable('item', {
         name: 'item',
         isConst: true,
         span: operation.span,
+        declarationLine: operation.span.start.line,
       });
     }
 
@@ -887,8 +1247,8 @@ export class Validator {
       this.validateStatement(stmt);
     }
 
-    // Restore previous scope
-    this.definedVariables = savedVariables;
+    // Pop scope
+    this.popScope();
   }
 
   /**
@@ -943,16 +1303,32 @@ export class Validator {
    * Validate a let binding
    */
   private validateLetBinding(binding: LetBindingNode): void {
-    // Validate the value expression
+    // Validate the value expression first
     this.validateBindingExpression(binding.value);
+
+    // Define the variable in current scope
+    this.defineVariable(binding.name.name, {
+      name: binding.name.name,
+      isConst: false,
+      span: binding.name.span,
+      declarationLine: binding.span.start.line,
+    });
   }
 
   /**
    * Validate a const binding
    */
   private validateConstBinding(binding: ConstBindingNode): void {
-    // Validate the value expression
+    // Validate the value expression first
     this.validateBindingExpression(binding.value);
+
+    // Define the variable in current scope
+    this.defineVariable(binding.name.name, {
+      name: binding.name.name,
+      isConst: true,
+      span: binding.name.span,
+      declarationLine: binding.span.start.line,
+    });
   }
 
   /**
@@ -962,13 +1338,13 @@ export class Validator {
     const name = assignment.name.name;
 
     // Check if the variable exists
-    if (!this.definedVariables.has(name)) {
+    const binding = this.lookupVariable(name);
+    if (!binding) {
       this.addError(`Undefined variable: "${name}"`, assignment.name.span);
       return;
     }
 
     // Check if trying to assign to a const
-    const binding = this.definedVariables.get(name)!;
     if (binding.isConst) {
       this.addError(`Cannot reassign const variable: "${name}"`, assignment.name.span);
       return;
@@ -1007,19 +1383,25 @@ export class Validator {
     } else if (expr.type === 'Identifier') {
       // Variable reference - check if it exists
       const name = (expr as IdentifierNode).name;
-      if (!this.definedVariables.has(name) && !this.definedAgents.has(name)) {
+      if (!this.isVariableDefined(name) && !this.definedAgents.has(name)) {
         this.addError(`Undefined variable: "${name}"`, expr.span);
       }
+    } else if (expr.type === 'StringLiteral') {
+      // Validate interpolations in string literals
+      this.validateInterpolatedString(expr as StringLiteralNode);
     }
-    // Other expression types (strings, arrays) are generally valid
+    // Other expression types (arrays) are generally valid
   }
 
   /**
    * Validate a session statement
    */
   private validateSessionStatement(statement: SessionStatementNode): void {
-    // Session must have either a prompt or an agent reference
-    if (!statement.prompt && !statement.agent) {
+    // Check if prompt is in properties
+    const hasPromptProperty = statement.properties.some(p => p.name.name === 'prompt');
+
+    // Session must have either a prompt (inline or property), or an agent reference
+    if (!statement.prompt && !statement.agent && !hasPromptProperty) {
       this.addError('Session statement requires a prompt or agent reference', statement.span);
       return;
     }
@@ -1207,7 +1589,7 @@ export class Validator {
     if (value.type === 'Identifier') {
       // Single variable reference
       const name = (value as IdentifierNode).name;
-      if (!this.definedVariables.has(name)) {
+      if (!this.isVariableDefined(name)) {
         this.addError(`Undefined variable in context: "${name}"`, value.span);
       }
     } else if (value.type === 'ArrayExpression') {
@@ -1219,7 +1601,7 @@ export class Validator {
           continue;
         }
         const name = (element as IdentifierNode).name;
-        if (!this.definedVariables.has(name)) {
+        if (!this.isVariableDefined(name)) {
           this.addError(`Undefined variable in context: "${name}"`, element.span);
         }
       }
@@ -1229,7 +1611,7 @@ export class Validator {
       for (const propItem of objValue.properties) {
         // For shorthand properties, the name is also the variable reference
         const varName = propItem.name.name;
-        if (!this.definedVariables.has(varName)) {
+        if (!this.isVariableDefined(varName)) {
           this.addError(`Undefined variable in context: "${varName}"`, propItem.name.span);
         }
       }
@@ -1276,22 +1658,32 @@ export class Validator {
 
   /**
    * Validate backoff property (Tier 11)
-   * backoff: "none" | "linear" | "exponential"
+   * backoff: "none" | "linear" | "exponential" OR a number (delay in ms)
    */
   private validateBackoffProperty(prop: PropertyNode): void {
-    if (prop.value.type !== 'StringLiteral') {
-      this.addError('Backoff must be a string ("none", "linear", or "exponential")', prop.value.span);
-      return;
-    }
+    // Accept either a string strategy or a number (delay in ms)
+    if (prop.value.type === 'StringLiteral') {
+      const backoffValue = (prop.value as StringLiteralNode).value;
+      const validBackoffStrategies = ['none', 'linear', 'exponential'];
 
-    const backoffValue = (prop.value as StringLiteralNode).value;
-    const validBackoffStrategies = ['none', 'linear', 'exponential'];
+      if (!validBackoffStrategies.includes(backoffValue)) {
+        this.addError(
+          `Invalid backoff strategy: "${backoffValue}". Must be one of: ${validBackoffStrategies.join(', ')}`,
+          prop.value.span
+        );
+      }
+    } else if (prop.value.type === 'NumberLiteral') {
+      const backoffValue = (prop.value as NumberLiteralNode).value;
 
-    if (!validBackoffStrategies.includes(backoffValue)) {
-      this.addError(
-        `Invalid backoff strategy: "${backoffValue}". Must be one of: ${validBackoffStrategies.join(', ')}`,
-        prop.value.span
-      );
+      // Must be non-negative
+      if (backoffValue < 0) {
+        this.addError(
+          `Backoff delay must be non-negative, got ${backoffValue}`,
+          prop.value.span
+        );
+      }
+    } else {
+      this.addError('Backoff must be a string ("none", "linear", or "exponential") or a number (delay in ms)', prop.value.span);
     }
   }
 
@@ -1343,9 +1735,13 @@ export class Validator {
     // First, run general string validation
     this.validateStringLiteral(prompt);
 
-    // Warn on empty prompt
+    // Validate interpolations
+    this.validateInterpolatedString(prompt);
+
+    // Error on empty prompt
     if (prompt.value.length === 0) {
-      this.addWarning('Session has an empty prompt', prompt.span);
+      this.addError('Session prompt cannot be empty', prompt.span);
+      return;
     }
 
     // Warn on very long prompts (over 10,000 characters)
@@ -1360,6 +1756,35 @@ export class Validator {
     // Warn on prompts that are just whitespace
     if (prompt.value.length > 0 && prompt.value.trim().length === 0) {
       this.addWarning('Session prompt contains only whitespace', prompt.span);
+    }
+  }
+
+  /**
+   * Validate interpolated variables in a string literal
+   */
+  private validateInterpolatedString(str: StringLiteralNode): void {
+    const value = str.value;
+
+    // Replace escaped braces {{ and }} with placeholders for validation
+    // ({{ and }} are valid escape sequences for literal braces)
+    const normalizedValue = value.replace(/\{\{/g, '\x00').replace(/\}\}/g, '\x01');
+
+    // Check for unclosed interpolation (open brace without matching close)
+    // Pattern: { followed by chars (not { or }) with no matching }
+    const unclosedMatch = normalizedValue.match(/\{[^{}\x00\x01]*$/);
+    if (unclosedMatch) {
+      this.addError('Unclosed interpolation brace', str.span);
+      return;
+    }
+
+    // Validate each interpolated variable (on normalized value)
+    const interpolationRegex = /\{(\w+)\}/g;
+    let match;
+    while ((match = interpolationRegex.exec(normalizedValue)) !== null) {
+      const varName = match[1];
+      if (!this.isVariableDefined(varName)) {
+        this.addError(`Undefined variable in interpolation: "${varName}"`, str.span);
+      }
     }
   }
 

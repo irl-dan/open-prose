@@ -1,0 +1,7 @@
+# Invalid: Agent definition inside loop
+# Expected error: Agent must be at top level
+
+repeat 3:
+  agent dynamic:
+    model: sonnet
+    prompt: "Created in loop"

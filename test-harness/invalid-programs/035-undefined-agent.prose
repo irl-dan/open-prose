@@ -1,0 +1,5 @@
+# Invalid: Reference to undefined agent
+# Expected error: Undefined agent
+
+session: nonexistent_agent
+  "Do something"

@@ -1,0 +1,5 @@
+# Invalid: Parallel map without body
+# Expected error: Expected block body
+
+let items = session "Get items"
+items | pmap:

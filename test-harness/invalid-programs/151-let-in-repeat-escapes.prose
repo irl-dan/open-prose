@@ -1,0 +1,7 @@
+# Invalid: Loop variables should not escape scope
+# Expected error: Undefined variable (use reduce for accumulation)
+
+repeat 3:
+  let iteration = session "Do work"
+
+session "Last iteration was: {iteration}"

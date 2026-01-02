@@ -1,0 +1,6 @@
+# Invalid: Context references undefined variable
+# Expected error: Undefined variable in context
+
+session:
+  prompt: "Process data"
+  context: missing_data

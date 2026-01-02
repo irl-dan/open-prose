@@ -1,0 +1,7 @@
+# Permutation: Repeat loop (27)
+# Tests: Edge case - repeat 0 times
+
+repeat 0:
+  session "This should not run"
+
+session "After empty loop"

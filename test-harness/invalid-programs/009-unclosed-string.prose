@@ -1,0 +1,4 @@
+# Invalid: Unclosed string literal
+# Expected error: Parse error
+
+session "This string is never closed

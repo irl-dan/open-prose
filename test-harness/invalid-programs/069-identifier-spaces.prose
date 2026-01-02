@@ -1,0 +1,4 @@
+# Invalid: Identifier with spaces
+# Expected error: Invalid identifier
+
+let my var = session "Spaces in name"

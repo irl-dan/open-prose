@@ -1,0 +1,6 @@
+# Invalid: Map with explicit parameters (implicit item expected)
+# Expected error: Map does not take parameters
+
+let items = session "Get items"
+items | map(x, y):
+  session "Process {x}"

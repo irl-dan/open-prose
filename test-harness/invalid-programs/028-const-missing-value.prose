@@ -1,0 +1,4 @@
+# Invalid: Const without value
+# Expected error: Expected expression
+
+const x =

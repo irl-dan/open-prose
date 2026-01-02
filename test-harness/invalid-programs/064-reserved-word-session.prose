@@ -1,0 +1,4 @@
+# Invalid: Using reserved word as variable
+# Expected error: Reserved word
+
+let session = "Not a session"

@@ -1,0 +1,4 @@
+# Invalid: Arrow with no right-hand side
+# Expected error: Expected expression after "->"
+
+session "Step 1" ->

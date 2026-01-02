@@ -1,0 +1,5 @@
+# Invalid: Missing colon after agent definition
+# Expected error: Parse error
+
+agent myagent
+  model: sonnet

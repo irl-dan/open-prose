@@ -1,0 +1,5 @@
+# Invalid: Reassigning a const
+# Expected error: Cannot reassign constant
+
+const value = session "Get value"
+value = session "Change value"

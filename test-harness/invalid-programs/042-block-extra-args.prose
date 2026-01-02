@@ -1,0 +1,7 @@
+# Invalid: Too many arguments to block
+# Expected error: Too many arguments
+
+block greet(name):
+  session "Hello, {name}!"
+
+do greet("Alice", "Bob", "Charlie")

@@ -1,0 +1,4 @@
+# Invalid: For loop with empty body
+# Expected error: Empty block
+
+for item in items:

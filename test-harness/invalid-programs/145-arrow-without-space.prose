@@ -1,0 +1,4 @@
+# Invalid: Arrow operator without proper spacing
+# Expected error: Invalid syntax
+
+session "A"->session "B"

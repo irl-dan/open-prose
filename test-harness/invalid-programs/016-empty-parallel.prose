@@ -1,0 +1,6 @@
+# Invalid: Empty parallel block
+# Expected error: Parse or validation error
+
+parallel:
+
+session "After empty parallel"

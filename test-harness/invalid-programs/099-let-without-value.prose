@@ -1,0 +1,5 @@
+# Invalid: Let without value
+# Expected error: Missing value
+
+let x
+session "X is {x}"

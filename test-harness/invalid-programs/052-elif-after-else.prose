@@ -1,0 +1,9 @@
+# Invalid: Elif after else
+# Expected error: elif after else
+
+if **condition**:
+  session "If"
+else:
+  session "Else"
+elif **another**:
+  session "Elif"

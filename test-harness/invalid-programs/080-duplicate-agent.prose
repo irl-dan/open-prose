@@ -1,0 +1,10 @@
+# Invalid: Duplicate agent definition
+# Expected error: Agent already defined
+
+agent helper:
+  model: sonnet
+  prompt: "First definition"
+
+agent helper:
+  model: haiku
+  prompt: "Second definition"

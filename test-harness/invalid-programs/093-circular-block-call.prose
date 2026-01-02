@@ -1,0 +1,6 @@
+# Invalid: Block calling itself (infinite recursion)
+# Expected error: Recursive block call (or maybe valid?)
+
+block recursive:
+  session "Start"
+  do recursive()

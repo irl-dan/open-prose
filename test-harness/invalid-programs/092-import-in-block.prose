@@ -1,0 +1,5 @@
+# Invalid: Import inside block
+# Expected error: Import must be at top level
+
+block setup:
+  import "other.prose"

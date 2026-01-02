@@ -1,0 +1,5 @@
+# Invalid: Option without choice parent
+# Expected error: Orphan option clause
+
+option "A":
+  session "Standalone option"

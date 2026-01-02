@@ -1,0 +1,5 @@
+# Invalid: Negative retry count
+# Expected error: Invalid retry count
+
+session "Test"
+  retry: -1

@@ -1,0 +1,51 @@
+# Combinatorial Test: Try/Catch + Loop
+# Use case: Batch processing with error recovery and retry logic
+# Tests: error handling inside loops, retry patterns, continuing after failures
+
+# Define a batch of items to process (some will "fail")
+let items = ["valid_order_001", "corrupted_order", "valid_order_002", "missing_data_order", "valid_order_003"]
+
+# Track results
+let processed = session "Initialize an empty list to track processed orders"
+let failed = session "Initialize an empty list to track failed orders"
+
+# Process each item with error handling
+for item in items:
+  try:
+    # Attempt to process with retry
+    session "Process this order: validate format, check inventory, calculate total"
+      context: item
+      retry: 2
+
+    # If successful, add to processed list
+    processed = session "Add this order to the processed list"
+      context: [processed, item]
+  catch as err:
+    # Log the failure
+    session "Log the processing error for this order"
+      context: [item, err]
+
+    # Add to failed list
+    failed = session "Add this order to the failed list with error reason"
+      context: [failed, item, err]
+
+# Retry failed items once more with human review simulation
+if **there are failed orders to retry**:
+  session "Prepare failed orders for manual review"
+    context: failed
+
+  loop until **all recoverable orders have been addressed** (max: 2):
+    session "Attempt to recover the next failed order with additional validation"
+      context: failed
+
+    try:
+      session "Reprocess the recovered order"
+        retry: 1
+      processed = session "Move successfully recovered order to processed list"
+        context: processed
+    catch:
+      session "Mark order as permanently failed - requires human intervention"
+
+# Final summary
+session "Generate batch processing report: successful, failed, recovered"
+  context: [processed, failed]

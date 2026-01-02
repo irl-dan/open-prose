@@ -1,0 +1,9 @@
+# Invalid: Catch after finally
+# Expected error: catch after finally
+
+try:
+  session "Try"
+finally:
+  session "Finally"
+catch:
+  session "Catch"

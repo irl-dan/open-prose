@@ -1,0 +1,6 @@
+# Invalid: Parallel any with zero count
+# Expected error: Invalid parallel count
+
+parallel ("any", 0):
+  session "A"
+  session "B"

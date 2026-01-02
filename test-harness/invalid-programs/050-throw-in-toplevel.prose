@@ -1,0 +1,6 @@
+# Invalid: Throw at top level without try
+# Expected error: throw outside of try block (or maybe allowed?)
+
+session "Start"
+throw "Uncaught error"
+session "End"

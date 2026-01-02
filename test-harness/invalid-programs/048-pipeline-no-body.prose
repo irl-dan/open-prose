@@ -1,0 +1,6 @@
+# Invalid: Pipeline with no body
+# Expected error: Expected body after pipeline operator
+
+let items = session "Get items"
+
+items | map:

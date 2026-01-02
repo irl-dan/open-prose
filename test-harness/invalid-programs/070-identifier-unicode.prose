@@ -1,0 +1,4 @@
+# Invalid: Identifier with unicode
+# Expected error: Invalid identifier (or maybe valid?)
+
+let café = session "Unicode in name"

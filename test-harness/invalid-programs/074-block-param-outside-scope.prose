@@ -1,0 +1,7 @@
+# Invalid: Using block param outside block
+# Expected error: Undefined variable
+
+block greet(name):
+  session "Hello {name}"
+
+session "Name was {name}"

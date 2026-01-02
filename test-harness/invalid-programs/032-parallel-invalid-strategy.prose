@@ -1,0 +1,6 @@
+# Invalid: Unknown parallel strategy
+# Expected error: Invalid parallel strategy
+
+parallel("fastest"):
+  session "Task A"
+  session "Task B"

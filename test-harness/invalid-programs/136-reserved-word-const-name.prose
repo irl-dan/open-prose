@@ -1,0 +1,4 @@
+# Invalid: Using 'throw' as const name
+# Expected error: Reserved word
+
+const throw = "error"

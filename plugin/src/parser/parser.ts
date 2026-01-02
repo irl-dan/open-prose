@@ -227,12 +227,68 @@ export class Parser {
       return this.parseConstBinding();
     }
 
-    // Handle potential assignment (identifier followed by =)
+    // Handle potential assignment (identifier followed by =) or pipe expression
     if (this.check(TokenType.IDENTIFIER)) {
       // Look ahead for assignment
       if (this.peekNext().type === TokenType.EQUALS) {
         return this.parseAssignment();
       }
+      // Look ahead for pipe expression (could be on next line with indent)
+      if (this.peekAheadForPipe()) {
+        const id = this.parseIdentifier();
+        // Skip newlines and indents before pipe
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.INDENT)) {
+          this.advance();
+        }
+        return this.parsePipeExpression(id);
+      }
+    }
+
+    // Handle array that might be followed by pipe (e.g., [a, b, c] | map:)
+    if (this.check(TokenType.LBRACKET)) {
+      const arr = this.parseArrayExpression();
+      if (this.check(TokenType.PIPE)) {
+        return this.parsePipeExpression(arr);
+      }
+      // Otherwise, this is just an array expression - not valid as a statement
+      this.addError('Array expression cannot be a statement on its own');
+      return null;
+    }
+
+    // Detect orphan keywords - these should only appear inside their parent constructs
+    if (this.check(TokenType.CATCH)) {
+      this.addError('"catch" must follow a "try:" block');
+      this.advance();
+      this.skipToNextStatement();
+      return null;
+    }
+
+    if (this.check(TokenType.FINALLY)) {
+      this.addError('"finally" must follow a "try:" or "catch:" block');
+      this.advance();
+      this.skipToNextStatement();
+      return null;
+    }
+
+    if (this.check(TokenType.ELSE)) {
+      this.addError('"else" must follow an "if:" or "elif:" block');
+      this.advance();
+      this.skipToNextStatement();
+      return null;
+    }
+
+    if (this.check(TokenType.ELIF)) {
+      this.addError('"elif" must follow an "if:" or another "elif:" block');
+      this.advance();
+      this.skipToNextStatement();
+      return null;
+    }
+
+    if (this.check(TokenType.OPTION)) {
+      this.addError('"option" must appear inside a "choice:" block');
+      this.advance();
+      this.skipToNextStatement();
+      return null;
     }
 
     // Skip unknown tokens for now (will be expanded in later tiers)
@@ -241,6 +297,26 @@ export class Parser {
     }
 
     return null;
+  }
+
+  /**
+   * Skip tokens until we reach the next statement boundary
+   * (a newline followed by non-indented content, or EOF)
+   */
+  private skipToNextStatement(): void {
+    while (!this.isAtEnd()) {
+      if (this.check(TokenType.NEWLINE)) {
+        this.advance();
+        // If the next token is not an indent, we're at a statement boundary
+        if (!this.check(TokenType.INDENT)) {
+          return;
+        }
+      } else if (this.check(TokenType.DEDENT)) {
+        return;  // Don't consume the DEDENT, let caller handle it
+      } else {
+        this.advance();
+      }
+    }
   }
 
   /**
@@ -321,9 +397,9 @@ export class Parser {
     const letToken = this.advance(); // consume 'let'
     const start = letToken.span.start;
 
-    // Expect identifier (variable name)
+    // Expect identifier (variable name) - keywords like 'context' can be used as var names
     let name: IdentifierNode;
-    if (this.check(TokenType.IDENTIFIER)) {
+    if (this.check(TokenType.IDENTIFIER) || this.isKeywordAsIdentifier()) {
       name = this.parseIdentifier();
     } else {
       this.addError('Expected variable name after "let"');
@@ -360,9 +436,9 @@ export class Parser {
     const constToken = this.advance(); // consume 'const'
     const start = constToken.span.start;
 
-    // Expect identifier (variable name)
+    // Expect identifier (variable name) - keywords like 'context' can be used as var names
     let name: IdentifierNode;
-    if (this.check(TokenType.IDENTIFIER)) {
+    if (this.check(TokenType.IDENTIFIER) || this.isKeywordAsIdentifier()) {
       name = this.parseIdentifier();
     } else {
       this.addError('Expected variable name after "const"');
@@ -469,6 +545,11 @@ export class Parser {
     // If it's a string literal
     if (this.check(TokenType.STRING)) {
       return this.parseStringLiteral();
+    }
+
+    // If it's a number literal
+    if (this.check(TokenType.NUMBER)) {
+      return this.parseNumberLiteral();
     }
 
     // If it's an identifier (variable reference) - might be followed by pipe
@@ -627,7 +708,8 @@ export class Parser {
       value = this.parseStringLiteral();
     } else if (this.check(TokenType.NUMBER)) {
       value = this.parseNumberLiteral();
-    } else if (this.check(TokenType.IDENTIFIER)) {
+    } else if (this.check(TokenType.IDENTIFIER) || this.isKeywordAsIdentifier()) {
+      // Accept identifier or keyword used as identifier (e.g., context: context)
       value = this.parseIdentifier();
     } else if (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
       // permissions: followed by newline means nested block - we'll handle that specially
@@ -924,12 +1006,16 @@ export class Parser {
       prompt = this.createStringLiteralNode(stringToken);
     } else if (this.check(TokenType.COLON)) {
       // Session with agent: session: agent
+      // OR session with properties only: session:\n  prompt: "..."
       this.advance(); // consume ':'
 
       if (this.check(TokenType.IDENTIFIER)) {
         agent = this.parseIdentifier();
+      } else if (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+        // Properties-only session - no agent name, just properties block
+        // Will be handled below in the property block parsing
       } else {
-        this.addError('Expected agent name after ":"');
+        this.addError('Expected agent name or newline after ":"');
       }
     } else if (this.check(TokenType.IDENTIFIER)) {
       // Could be: session name: agent
@@ -1015,11 +1101,32 @@ export class Parser {
     const session = this.parseSessionStatement();
 
     // Check for arrow operator to create a sequence
-    if (this.check(TokenType.ARROW)) {
+    // The arrow might be after newlines/dedents when session has a property block
+    if (this.peekAheadForArrow()) {
+      // Skip any newlines/dedents before the arrow
+      while (this.check(TokenType.NEWLINE) || this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
       return this.parseArrowSequence(session);
     }
 
     return session;
+  }
+
+  /**
+   * Look ahead past newlines and dedents to see if there's an arrow.
+   */
+  private peekAheadForArrow(): boolean {
+    let offset = 0;
+    while (this.current + offset < this.tokens.length) {
+      const token = this.tokens[this.current + offset];
+      if (token.type === TokenType.NEWLINE || token.type === TokenType.DEDENT) {
+        offset++;
+        continue;
+      }
+      return token.type === TokenType.ARROW;
+    }
+    return false;
   }
 
   /**
@@ -1031,6 +1138,11 @@ export class Parser {
 
     // Consume the arrow
     this.advance();
+
+    // Skip newlines after arrow (the next session might be on a new line)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
 
     // Parse the right side (must be a session or do block)
     let right: ExpressionNode;
@@ -1056,8 +1168,18 @@ export class Parser {
     };
 
     // Check for more arrows (left-associative)
-    while (this.check(TokenType.ARROW)) {
-      this.advance();
+    // The arrow might be after newlines/dedents when previous session has a property block
+    while (this.peekAheadForArrow()) {
+      // Skip newlines/dedents before arrow
+      while (this.check(TokenType.NEWLINE) || this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+      this.advance(); // consume arrow
+
+      // Skip newlines after arrow
+      while (this.check(TokenType.NEWLINE)) {
+        this.advance();
+      }
 
       let nextRight: ExpressionNode;
       if (this.check(TokenType.SESSION)) {
@@ -1489,17 +1611,21 @@ export class Parser {
    *     body...
    *   repeat 5 as i:
    *     body...
+   *   repeat count:      (where count is a variable)
+   *     body...
    */
   private parseRepeatBlock(): RepeatBlockNode {
     const repeatToken = this.advance(); // consume 'repeat'
     const start = repeatToken.span.start;
 
-    // Expect number literal (count)
-    let count: NumberLiteralNode;
+    // Expect number literal or identifier (count)
+    let count: NumberLiteralNode | IdentifierNode;
     if (this.check(TokenType.NUMBER)) {
       count = this.parseNumberLiteral();
+    } else if (this.check(TokenType.IDENTIFIER)) {
+      count = this.parseIdentifier();
     } else {
-      this.addError('Expected number after "repeat"');
+      this.addError('Expected number or variable after "repeat"');
       count = {
         type: 'NumberLiteral',
         value: 1,
@@ -1632,7 +1758,7 @@ export class Parser {
 
     // Parse collection expression (identifier or array)
     let collection: ExpressionNode;
-    if (this.check(TokenType.IDENTIFIER)) {
+    if (this.check(TokenType.IDENTIFIER) || this.isKeywordAsIdentifier()) {
       collection = this.parseIdentifier();
     } else if (this.check(TokenType.LBRACKET)) {
       collection = this.parseArrayExpression();
@@ -1645,9 +1771,29 @@ export class Parser {
       };
     }
 
+    // Check for optional inline modifiers: (on-fail: "continue")
+    const modifiers: PropertyNode[] = [];
+    if (this.check(TokenType.LPAREN)) {
+      this.advance(); // consume '('
+
+      // Parse modifiers until closing paren
+      while (!this.check(TokenType.RPAREN) && !this.isAtEnd()) {
+        const mod = this.parseInlineModifier();
+        if (mod) {
+          modifiers.push(mod);
+        }
+        // Skip comma if present
+        this.match(TokenType.COMMA);
+      }
+
+      if (!this.match(TokenType.RPAREN)) {
+        this.addError('Expected ")" after modifiers');
+      }
+    }
+
     // Expect colon
     if (!this.match(TokenType.COLON)) {
-      this.addError('Expected ":" after collection');
+      this.addError('Expected ":" after collection or modifiers');
     }
 
     // Skip inline comment if present
@@ -1702,7 +1848,55 @@ export class Parser {
       indexVar,
       collection,
       isParallel,
+      modifiers,
       body,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse an inline modifier: on-fail: "continue" or any-count: 2
+   */
+  private parseInlineModifier(): PropertyNode | null {
+    const start = this.peek().span.start;
+
+    // Expect property name (identifier or keyword like 'on-fail')
+    if (!this.check(TokenType.IDENTIFIER) && !this.isKeywordAsIdentifier()) {
+      this.addError('Expected modifier name');
+      return null;
+    }
+
+    const propName = this.parseIdentifier();
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError(`Expected ":" after modifier name "${propName.name}"`);
+      return null;
+    }
+
+    // Parse value
+    let value: ExpressionNode;
+    if (this.check(TokenType.STRING)) {
+      value = this.parseStringLiteral();
+    } else if (this.check(TokenType.NUMBER)) {
+      value = this.parseNumberLiteral();
+    } else if (this.check(TokenType.IDENTIFIER) || this.isKeywordAsIdentifier()) {
+      value = this.parseIdentifier();
+    } else {
+      this.addError('Expected modifier value');
+      value = {
+        type: 'Identifier',
+        name: '',
+        span: this.peek().span,
+      };
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'Property',
+      name: propName,
+      value,
       span: { start, end },
     };
   }
@@ -2728,6 +2922,7 @@ export class Parser {
    * Parse an identifier
    */
   private parseIdentifier(): IdentifierNode {
+    // Handle both regular identifiers and keywords used as identifiers
     const token = this.advance();
     return {
       type: 'Identifier',
@@ -2774,6 +2969,25 @@ export class Parser {
     return this.tokens[this.current + 1];
   }
 
+  /**
+   * Look ahead past the current token and any newlines/indents to see if there's a pipe.
+   * Used to detect pipe expressions that span multiple lines:
+   *   items
+   *     | filter:
+   */
+  private peekAheadForPipe(): boolean {
+    let offset = 1;
+    while (this.current + offset < this.tokens.length) {
+      const token = this.tokens[this.current + offset];
+      if (token.type === TokenType.NEWLINE || token.type === TokenType.INDENT) {
+        offset++;
+        continue;
+      }
+      return token.type === TokenType.PIPE;
+    }
+    return false;
+  }
+
   private previous(): Token {
     return this.tokens[this.current - 1];
   }
@@ -2807,6 +3021,26 @@ export class Parser {
 
     this.addError(message);
     return this.peek();
+  }
+
+  /**
+   * Check if current token is a keyword that can be used as an identifier
+   * (for cases like `context: context` where context is both property name and value)
+   */
+  private isKeywordAsIdentifier(): boolean {
+    const keywordsAsIdentifiers = [
+      TokenType.CONTEXT,
+      TokenType.MODEL,
+      TokenType.PROMPT,
+      TokenType.SKILLS,
+      TokenType.PERMISSIONS,
+      TokenType.RETRY,
+      TokenType.BACKOFF,
+      TokenType.ERROR,
+      TokenType.AGENT,
+      TokenType.BLOCK,
+    ];
+    return keywordsAsIdentifiers.includes(this.peek().type);
   }
 
   private addError(message: string): void {

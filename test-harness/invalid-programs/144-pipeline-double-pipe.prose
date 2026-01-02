@@ -1,0 +1,5 @@
+# Invalid: Double pipe operator
+# Expected error: Invalid syntax
+
+let items = session "Get items"
+items || map: session "Process"

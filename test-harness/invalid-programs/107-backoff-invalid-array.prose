@@ -1,0 +1,6 @@
+# Invalid: Backoff with mixed types
+# Expected error: Invalid backoff specification
+
+session "Test"
+  retry: 3
+  backoff: [1s, "fast", 3s]

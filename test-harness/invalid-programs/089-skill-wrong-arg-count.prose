@@ -1,0 +1,7 @@
+# Invalid: Calling skill with wrong number of arguments
+# Expected error: Wrong number of arguments
+
+skill process(data, config):
+  session "Process {data} with {config}"
+
+do process("only one arg")

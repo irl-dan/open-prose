@@ -1,0 +1,5 @@
+# Invalid: For loop missing collection
+# Expected error: Expected collection
+
+for item in:
+  session "Process {item}"

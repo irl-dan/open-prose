@@ -1,0 +1,5 @@
+# Invalid: Duplicate variable in same scope
+# Expected error: Variable already defined
+
+let x = session "First"
+let x = session "Second"

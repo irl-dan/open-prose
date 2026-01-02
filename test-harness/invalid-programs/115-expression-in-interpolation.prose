@@ -1,0 +1,5 @@
+# Invalid: Arithmetic expression in interpolation
+# Expected error: Invalid interpolation (only variables allowed)
+
+let x = 5
+session "Value is {x + 1}"

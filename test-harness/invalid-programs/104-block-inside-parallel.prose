@@ -1,0 +1,7 @@
+# Invalid: Block definition inside parallel
+# Expected error: Block must be at top level
+
+parallel:
+  block inline-def:
+    session "Inside parallel"
+  session "Other task"

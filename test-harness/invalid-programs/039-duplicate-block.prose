@@ -1,0 +1,8 @@
+# Invalid: Duplicate block definition
+# Expected error: Duplicate block name
+
+block process:
+  session "First process"
+
+block process:
+  session "Second process"

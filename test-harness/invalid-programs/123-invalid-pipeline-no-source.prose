@@ -1,0 +1,4 @@
+# Invalid: Pipeline without source
+# Expected error: Invalid pipeline syntax
+
+| map: session "Process {item}"

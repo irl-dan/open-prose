@@ -1,0 +1,5 @@
+# Invalid: Finally without try
+# Expected error: Parse error
+
+finally:
+  session "Cleanup"

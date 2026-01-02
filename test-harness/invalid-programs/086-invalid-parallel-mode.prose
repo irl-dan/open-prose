@@ -1,0 +1,6 @@
+# Invalid: Invalid parallel mode
+# Expected error: Invalid parallel mode
+
+parallel invalid_mode:
+  session "A"
+  session "B"

@@ -1,0 +1,5 @@
+# Invalid: Unbalanced interpolation (missing closing brace)
+# Expected error: Unclosed interpolation
+
+let name = "test"
+session "Hello {name"

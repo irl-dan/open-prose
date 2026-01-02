@@ -1,0 +1,6 @@
+# Invalid: Empty block body (no statements)
+# Expected error: Parse or validation error
+
+block empty:
+
+session "After empty block"

@@ -1,0 +1,5 @@
+# Invalid: Method call in interpolation
+# Expected error: Invalid interpolation
+
+let text = "hello"
+session "Upper: {text.toUpperCase()}"

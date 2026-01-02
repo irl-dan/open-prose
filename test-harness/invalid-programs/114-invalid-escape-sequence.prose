@@ -1,0 +1,4 @@
+# Invalid: Invalid escape sequence
+# Expected error: Invalid escape sequence
+
+session "Test \q invalid escape"

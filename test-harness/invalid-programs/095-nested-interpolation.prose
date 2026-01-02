@@ -1,0 +1,5 @@
+# Invalid: Nested interpolation braces
+# Expected error: Invalid interpolation
+
+let x = "inner"
+session "Value is {{x}}"

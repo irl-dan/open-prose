@@ -1,0 +1,5 @@
+# Invalid: Import inside conditional
+# Expected error: Imports must be at top level
+
+if **need search**:
+  import "web-search" from "github:example/search"

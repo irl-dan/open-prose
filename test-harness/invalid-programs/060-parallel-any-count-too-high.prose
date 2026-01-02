@@ -1,0 +1,6 @@
+# Invalid: Parallel "any" count exceeds branches
+# Expected error: count greater than branch count
+
+parallel("any", count: 5):
+  session "One"
+  session "Two"

@@ -1,0 +1,5 @@
+# Invalid: Missing colon after loop
+# Expected error: Expected colon
+
+loop
+  session "Forever"

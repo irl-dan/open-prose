@@ -1,0 +1,5 @@
+# Invalid: Missing colon after repeat
+# Expected error: Parse error
+
+repeat 3
+  session "Do something"

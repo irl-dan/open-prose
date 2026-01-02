@@ -1,0 +1,6 @@
+# Invalid: Skills property on loop
+# Expected error: Invalid loop property
+
+repeat 3:
+  skills: ["web-search"]
+  session "Test"

@@ -1,0 +1,47 @@
+# Combinatorial Test: Pipeline + Block Parameters
+# Use case: Content processing pipeline with configurable transformation stages
+# Tests: pipelines with parameterized blocks, chaining, map/filter/reduce
+
+# Define parameterized transformation blocks that take content as parameter
+block analyze(content, aspect):
+  session "Analyze this content focusing on {aspect}"
+    context: content
+
+block score(content, criteria, scale):
+  session "Score from 1-{scale} based on {criteria}"
+    context: content
+
+block enhance(content, style):
+  session "Rewrite in {style} style while preserving meaning"
+    context: content
+
+# Source content: blog post ideas
+let ideas = ["AI in healthcare", "Remote work productivity", "Sustainable tech", "Cybersecurity basics", "Low-code platforms"]
+
+# Pipeline Stage 1: Filter for trending topics
+let trending = ideas | filter:
+  session "Is this topic trending in 2024? Answer yes or no."
+    context: item
+
+# Pipeline Stage 2: Parallel analysis of each topic
+let analyzed = trending | pmap:
+  session "Analyze market potential, content gaps, and viral potential (1-10 score)"
+    context: item
+
+# Pipeline Stage 3: Transform into article outlines using parameterized block
+let outlines = analyzed | map:
+  session "Create a 5-section article outline in engaging, conversational style"
+    context: item
+
+# Pipeline Stage 4: Reduce into a content calendar
+let calendar = outlines | reduce(schedule, outline):
+  session "Add this article to the content schedule, spacing posts 1 week apart"
+    context: [schedule, outline]
+
+# Use parameterized blocks on the final result
+do analyze(calendar, "content diversity")
+do score(calendar, "quarterly coverage", "100")
+
+# Final output
+session "Format the content calendar as a quarterly publishing plan"
+  context: calendar

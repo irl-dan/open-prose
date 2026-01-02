@@ -1,0 +1,4 @@
+# Invalid: Using undefined skill
+# Expected error: Undefined skill
+
+do some_undefined_skill()

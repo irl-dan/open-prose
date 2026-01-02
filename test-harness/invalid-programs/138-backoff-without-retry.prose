@@ -1,0 +1,5 @@
+# Invalid: Backoff without retry
+# Expected error: Backoff requires retry
+
+session "Test"
+  backoff: exponential

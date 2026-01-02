@@ -1,0 +1,7 @@
+# Invalid: Forward reference to block
+# Expected error: Block not defined
+
+do future-block
+
+block future-block:
+  session "Defined later"

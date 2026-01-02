@@ -1,0 +1,5 @@
+# Invalid: Repeat with negative count
+# Expected error: Invalid repeat count
+
+repeat -3 times:
+  session "Iteration"

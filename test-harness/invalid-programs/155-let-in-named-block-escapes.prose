@@ -1,0 +1,8 @@
+# Invalid: Named block internal variables should not escape
+# Expected error: Undefined variable (blocks have function-like scope)
+
+block process:
+  let result = session "Process something"
+
+do process
+session "Block result was: {result}"

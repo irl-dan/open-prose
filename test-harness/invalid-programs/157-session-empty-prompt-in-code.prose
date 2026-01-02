@@ -1,0 +1,6 @@
+# Invalid: Empty session prompt
+# Expected error: Session prompt cannot be empty
+
+let empty = ""
+session ""
+session "{empty} with prefix"

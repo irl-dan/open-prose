@@ -1,0 +1,7 @@
+# Invalid: Parallel "any" without count
+# Expected error: "any" strategy requires count
+
+parallel("any"):
+  session "Task A"
+  session "Task B"
+  session "Task C"

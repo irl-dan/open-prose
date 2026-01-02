@@ -1,0 +1,6 @@
+# Invalid: Choice block with no options
+# Expected error: Parse or validation error
+
+choice **which path**:
+
+session "After empty choice"

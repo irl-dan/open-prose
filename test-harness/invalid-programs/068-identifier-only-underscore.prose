@@ -1,0 +1,5 @@
+# Invalid: Identifier that is just underscore
+# Expected error: Invalid identifier (or maybe valid?)
+
+let _ = session "Underscore only"
+session "{_}"

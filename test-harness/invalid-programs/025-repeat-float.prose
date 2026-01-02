@@ -1,0 +1,5 @@
+# Invalid: Float repeat count
+# Expected error: Expected integer
+
+repeat 3.5:
+  session "Float iterations"

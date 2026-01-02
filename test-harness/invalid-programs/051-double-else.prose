@@ -1,0 +1,9 @@
+# Invalid: Two else blocks for one if
+# Expected error: Multiple else blocks
+
+if **condition**:
+  session "True branch"
+else:
+  session "First else"
+else:
+  session "Second else"

@@ -1,0 +1,41 @@
+# Combinatorial Test: Parallel + Named Blocks
+# Use case: Multi-stage code review with specialized parallel reviewers
+# Tests: parallel execution calling named blocks, context passing between stages
+
+# Define reusable review blocks
+block security-review:
+  session "Analyze the code for security vulnerabilities (SQL injection, XSS, auth issues)"
+  session "Suggest security improvements with code examples"
+
+block performance-review:
+  session "Analyze the code for performance issues (N+1 queries, memory leaks, slow algorithms)"
+  session "Suggest performance optimizations with benchmarks"
+
+block maintainability-review:
+  session "Analyze the code for maintainability (naming, complexity, duplication)"
+  session "Suggest refactoring improvements"
+
+# Stage 1: Get the code to review
+let code = session "Write a short Python function that queries a database and returns user data"
+
+# Stage 2: Run parallel specialized reviews using named blocks
+parallel:
+  sec = do:
+    session "Focus on this code for security review"
+      context: code
+    do security-review
+  perf = do:
+    session "Focus on this code for performance review"
+      context: code
+    do performance-review
+  maint = do:
+    session "Focus on this code for maintainability review"
+      context: code
+    do maintainability-review
+
+# Stage 3: Synthesize all reviews
+session "Create a unified code review report combining all findings"
+  context: { sec, perf, maint }
+
+# Stage 4: Prioritize fixes
+session "Prioritize the top 3 issues to fix first, with justification"

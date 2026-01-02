@@ -1,0 +1,5 @@
+# Invalid: For loop missing 'in'
+# Expected error: Expected "in" after loop variable
+
+for item items:
+  session "Process {item}"

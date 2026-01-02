@@ -1,0 +1,5 @@
+# Invalid: Using 'repeat' as variable name
+# Expected error: Reserved word
+
+let repeat = "value"
+session "Test {repeat}"

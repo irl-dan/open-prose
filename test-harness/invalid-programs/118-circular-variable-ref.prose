@@ -1,0 +1,4 @@
+# Invalid: Variable referencing itself in initialization
+# Expected error: Circular reference
+
+let x = session "Use {x}"

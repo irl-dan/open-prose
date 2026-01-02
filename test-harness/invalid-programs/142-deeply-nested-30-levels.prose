@@ -1,0 +1,34 @@
+# Invalid: Deeply nested structure (30 levels)
+# Expected error: Maximum nesting depth exceeded
+
+do:
+  do:
+    do:
+      do:
+        do:
+          do:
+            do:
+              do:
+                do:
+                  do:
+                    do:
+                      do:
+                        do:
+                          do:
+                            do:
+                              do:
+                                do:
+                                  do:
+                                    do:
+                                      do:
+                                        do:
+                                          do:
+                                            do:
+                                              do:
+                                                do:
+                                                  do:
+                                                    do:
+                                                      do:
+                                                        do:
+                                                          do:
+                                                            session "Too deep"

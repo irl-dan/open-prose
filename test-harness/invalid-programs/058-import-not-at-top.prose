@@ -1,0 +1,6 @@
+# Invalid: Import after other statements
+# Expected error: Import must be at top
+
+session "Before import"
+
+import "utils" from "./utils.prose"

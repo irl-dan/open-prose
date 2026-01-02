@@ -1,0 +1,7 @@
+# Invalid: Calling block with wrong number of arguments
+# Expected error: Wrong number of arguments
+
+block greet(name, age):
+  session "Hello {name}, age {age}"
+
+do greet("Alice")

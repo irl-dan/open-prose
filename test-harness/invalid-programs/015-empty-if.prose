@@ -1,0 +1,6 @@
+# Invalid: Empty if body
+# Expected error: Parse or validation error
+
+if **condition**:
+
+session "After empty if"

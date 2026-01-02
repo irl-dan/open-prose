@@ -1,0 +1,6 @@
+# Invalid: Agent with invalid model name
+# Expected error: Invalid model
+
+agent bad:
+  model: invalid_model_xyz
+  prompt: "Test"

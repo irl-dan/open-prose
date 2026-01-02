@@ -1,0 +1,41 @@
+# Combinatorial Test: Loop Until + Parallel
+# Use case: Iterative consensus building with multiple experts
+# Tests: unbounded loop with parallel execution inside, AI-evaluated termination
+
+# Define the topic for debate
+let topic = session "Name a controversial technology decision (e.g., monolith vs microservices)"
+
+# Get initial opinions from multiple experts in parallel
+let dev_opinion = session "As a senior developer, give your opinion on {topic}"
+let arch_opinion = session "As a solutions architect, give your opinion on {topic}"
+let ops_opinion = session "As a DevOps engineer, give your opinion on {topic}"
+
+# Iteratively discuss until consensus is reached
+loop until **the three experts have reached a reasonable consensus** (max: 4) as round:
+  # Identify disagreements based on current opinions
+  session "Identify the key points of disagreement between the experts"
+    context: [dev_opinion, arch_opinion, ops_opinion]
+
+  # Have experts respond to each other in parallel
+  parallel:
+    dev_response = session "Developer: Respond to the other perspectives and update your position"
+      context: [dev_opinion, arch_opinion, ops_opinion]
+    arch_response = session "Architect: Respond to the other perspectives and update your position"
+      context: [dev_opinion, arch_opinion, ops_opinion]
+    ops_response = session "DevOps: Respond to the other perspectives and update your position"
+      context: [dev_opinion, arch_opinion, ops_opinion]
+
+  # Update opinions for next round
+  dev_opinion = session "Summarize developer's current position"
+    context: dev_response
+  arch_opinion = session "Summarize architect's current position"
+    context: arch_response
+  ops_opinion = session "Summarize DevOps' current position"
+    context: ops_response
+
+  session "Summarize the current state of agreement after round {round}"
+    context: [dev_opinion, arch_opinion, ops_opinion]
+
+# Final recommendation
+session "Synthesize a final recommendation that incorporates all perspectives"
+  context: [dev_opinion, arch_opinion, ops_opinion]

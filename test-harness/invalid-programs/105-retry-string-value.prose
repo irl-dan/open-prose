@@ -1,0 +1,4 @@
+# Invalid: Retry count as string
+# Expected error: Retry must be integer
+
+session "Test" (retry: "three")

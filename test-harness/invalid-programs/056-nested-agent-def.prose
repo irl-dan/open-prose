@@ -1,0 +1,7 @@
+# Invalid: Agent defined inside block
+# Expected error: Agent must be at top level
+
+block wrapper:
+  agent nested:
+    model: sonnet
+    prompt: "Nested agent"

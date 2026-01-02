@@ -1,0 +1,6 @@
+# Invalid: Retry modifier on do block instead of session
+# Expected error: Retry only valid on session
+
+do (retry: 3):
+  session "A"
+  session "B"

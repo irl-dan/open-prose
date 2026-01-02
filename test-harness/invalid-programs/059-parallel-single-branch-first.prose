@@ -1,0 +1,5 @@
+# Invalid: Parallel "first" with single branch
+# Expected error: "first" needs multiple branches
+
+parallel("first"):
+  session "Only one"

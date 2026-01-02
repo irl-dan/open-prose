@@ -1,0 +1,5 @@
+# Invalid: Double colon after block name
+# Expected error: Unexpected token
+
+block test::
+  session "Inside"

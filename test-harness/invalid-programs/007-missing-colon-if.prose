@@ -1,0 +1,5 @@
+# Invalid: Missing colon after if condition
+# Expected error: Parse error
+
+if **condition**
+  session "Do something"

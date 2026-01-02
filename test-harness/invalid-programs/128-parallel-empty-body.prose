@@ -1,0 +1,5 @@
+# Invalid: Parallel with completely empty body
+# Expected error: Parallel requires at least one branch
+
+parallel:
+  # no branches

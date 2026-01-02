@@ -1,0 +1,5 @@
+# Invalid: Try block without catch or finally
+# Expected error: Try block must have catch or finally
+
+try:
+  session "Risky operation"

@@ -1,0 +1,5 @@
+# Invalid: Option without choice
+# Expected error: Parse error
+
+option "Standalone":
+  session "This doesn't work"

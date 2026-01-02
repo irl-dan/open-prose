@@ -1,0 +1,6 @@
+# Invalid: Unknown model name
+# Expected error: Invalid model
+
+agent myagent:
+  model: gpt4
+  prompt: "Hello"

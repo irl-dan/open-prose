@@ -1,0 +1,5 @@
+# Invalid: Using variable before declaration
+# Expected error: Undefined variable
+
+session "Value is {x}"
+let x = session "Define x"

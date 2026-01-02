@@ -1,0 +1,5 @@
+# Invalid: Missing colon after block definition
+# Expected error: Parse error
+
+block myblock
+  session "Do something"

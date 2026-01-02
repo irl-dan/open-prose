@@ -1,0 +1,5 @@
+# Invalid: Missing colon after session property keyword
+# Expected error: Parse error
+
+session
+  prompt: "Missing colon"

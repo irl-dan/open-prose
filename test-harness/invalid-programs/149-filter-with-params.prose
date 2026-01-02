@@ -1,0 +1,6 @@
+# Invalid: Filter with explicit parameters
+# Expected error: Filter does not take parameters
+
+let items = session "Get items"
+items | filter(elem):
+  session "Check {elem}"

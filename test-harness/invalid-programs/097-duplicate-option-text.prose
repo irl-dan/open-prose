@@ -1,0 +1,8 @@
+# Invalid: Duplicate option text in choice
+# Expected error: Duplicate option
+
+choice:
+  option "Same":
+    session "First"
+  option "Same":
+    session "Second"

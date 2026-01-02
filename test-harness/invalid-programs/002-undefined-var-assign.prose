@@ -1,0 +1,4 @@
+# Permutation: Variable reassignment (16)
+# Tests: Reassigning undefined variable (should error)
+
+undefined_var = session "Assign to undefined"

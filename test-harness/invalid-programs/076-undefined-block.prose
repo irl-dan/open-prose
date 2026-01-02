@@ -1,0 +1,4 @@
+# Invalid: Calling undefined block
+# Expected error: Undefined block
+
+do nonexistent_block()

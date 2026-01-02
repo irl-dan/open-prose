@@ -337,7 +337,11 @@ export class Compiler {
       // Repeat block as value
       const repeat = value as RepeatBlockNode;
       this.emit('repeat ');
-      this.emit(String(repeat.count.value));
+      if (repeat.count.type === 'NumberLiteral') {
+        this.emit(String(repeat.count.value));
+      } else {
+        this.emit(repeat.count.name);
+      }
       if (repeat.indexVar) {
         this.emit(' as ');
         this.emit(repeat.indexVar.name);
@@ -693,7 +697,11 @@ export class Compiler {
 
     this.emit(indent);
     this.emit('repeat ');
-    this.emit(String(repeat.count.value));
+    if (repeat.count.type === 'NumberLiteral') {
+      this.emit(String(repeat.count.value));
+    } else {
+      this.emit(repeat.count.name);
+    }
 
     // Emit index variable if present
     if (repeat.indexVar) {

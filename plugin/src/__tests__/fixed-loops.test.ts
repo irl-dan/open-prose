@@ -24,7 +24,10 @@ repeat 3:
 
       const repeat = result.program.statements[0] as RepeatBlockNode;
       expect(repeat.type).toBe('RepeatBlock');
-      expect(repeat.count.value).toBe(3);
+      expect(repeat.count.type).toBe('NumberLiteral');
+      if (repeat.count.type === 'NumberLiteral') {
+        expect(repeat.count.value).toBe(3);
+      }
       expect(repeat.indexVar).toBeNull();
       expect(repeat.body).toHaveLength(1);
     });
@@ -39,7 +42,10 @@ repeat 5 as i:
 
       const repeat = result.program.statements[0] as RepeatBlockNode;
       expect(repeat.type).toBe('RepeatBlock');
-      expect(repeat.count.value).toBe(5);
+      expect(repeat.count.type).toBe('NumberLiteral');
+      if (repeat.count.type === 'NumberLiteral') {
+        expect(repeat.count.value).toBe(5);
+      }
       expect(repeat.indexVar).not.toBeNull();
       expect(repeat.indexVar?.name).toBe('i');
     });
@@ -68,11 +74,17 @@ repeat 2:
       expect(result.errors).toHaveLength(0);
 
       const outer = result.program.statements[0] as RepeatBlockNode;
-      expect(outer.count.value).toBe(2);
+      expect(outer.count.type).toBe('NumberLiteral');
+      if (outer.count.type === 'NumberLiteral') {
+        expect(outer.count.value).toBe(2);
+      }
 
       const inner = outer.body[0] as RepeatBlockNode;
       expect(inner.type).toBe('RepeatBlock');
-      expect(inner.count.value).toBe(3);
+      expect(inner.count.type).toBe('NumberLiteral');
+      if (inner.count.type === 'NumberLiteral') {
+        expect(inner.count.value).toBe(3);
+      }
     });
 
     it('should parse repeat with decimal count', () => {
@@ -84,7 +96,10 @@ repeat 2.5:
       expect(result.errors).toHaveLength(0);
 
       const repeat = result.program.statements[0] as RepeatBlockNode;
-      expect(repeat.count.value).toBe(2.5);
+      expect(repeat.count.type).toBe('NumberLiteral');
+      if (repeat.count.type === 'NumberLiteral') {
+        expect(repeat.count.value).toBe(2.5);
+      }
     });
   });
 
@@ -357,7 +372,10 @@ repeat 5 as i:
 
       const repeat = result2.program.statements[0] as RepeatBlockNode;
       expect(repeat.type).toBe('RepeatBlock');
-      expect(repeat.count.value).toBe(3);
+      expect(repeat.count.type).toBe('NumberLiteral');
+      if (repeat.count.type === 'NumberLiteral') {
+        expect(repeat.count.value).toBe(3);
+      }
     });
   });
 

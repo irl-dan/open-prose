@@ -1,0 +1,4 @@
+# Invalid: Let without value
+# Expected error: Expected expression
+
+let x =

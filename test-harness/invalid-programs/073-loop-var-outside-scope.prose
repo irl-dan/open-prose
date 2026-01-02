@@ -1,0 +1,7 @@
+# Invalid: Using loop variable outside loop
+# Expected error: Undefined variable
+
+for each item in ["a", "b"]:
+  session "Process {item}"
+
+session "Last item was {item}"

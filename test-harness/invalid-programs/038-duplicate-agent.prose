@@ -1,0 +1,10 @@
+# Invalid: Duplicate agent definition
+# Expected error: Duplicate agent name
+
+agent helper:
+  model: sonnet
+  prompt: "First helper"
+
+agent helper:
+  model: opus
+  prompt: "Second helper"

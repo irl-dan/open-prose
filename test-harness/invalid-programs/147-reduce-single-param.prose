@@ -1,0 +1,6 @@
+# Invalid: Reduce with only one parameter
+# Expected error: Reduce requires two parameters
+
+let items = session "Get items"
+items | reduce(acc):
+  session "Missing item param"

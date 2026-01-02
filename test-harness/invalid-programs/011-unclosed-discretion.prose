@@ -1,0 +1,5 @@
+# Invalid: Unclosed discretion marker
+# Expected error: Parse error
+
+if **condition is missing end marker:
+  session "Do something"

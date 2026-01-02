@@ -1,0 +1,6 @@
+# Invalid: Model name as number
+# Expected error: Invalid model specification
+
+agent test:
+  model: 4
+  prompt: "Test agent"

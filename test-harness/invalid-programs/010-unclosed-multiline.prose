@@ -1,0 +1,6 @@
+# Invalid: Unclosed multi-line string
+# Expected error: Parse error
+
+session """
+This multi-line string
+is never closed

@@ -1,0 +1,5 @@
+# Invalid: Agent without model
+# Expected error: Agent requires model
+
+agent incomplete:
+  prompt: "I have no model"

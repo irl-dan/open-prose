@@ -1,0 +1,5 @@
+# Invalid: Catch without try
+# Expected error: Parse error
+
+catch:
+  session "Handle error"

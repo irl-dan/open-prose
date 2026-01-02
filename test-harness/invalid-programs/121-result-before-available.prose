@@ -1,0 +1,5 @@
+# Invalid: Using result before session runs
+# Expected error: Variable not yet defined
+
+session "Second uses {first}"
+let first = session "First task"

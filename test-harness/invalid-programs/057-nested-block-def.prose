@@ -1,0 +1,6 @@
+# Invalid: Block defined inside block
+# Expected error: Block must be at top level
+
+block outer:
+  block inner:
+    session "Inner block"

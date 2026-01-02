@@ -1,0 +1,6 @@
+# Invalid: Using 'import' as agent name
+# Expected error: Reserved word
+
+agent import:
+  model: sonnet
+  prompt: "Test"

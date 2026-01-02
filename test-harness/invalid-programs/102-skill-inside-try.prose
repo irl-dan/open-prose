@@ -1,0 +1,8 @@
+# Invalid: Import inside try block
+# Expected error: Imports must be at top level
+
+try:
+  import "web-search" from "github:example/search"
+  session "Use search"
+catch:
+  session "Handle error"

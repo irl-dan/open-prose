@@ -1,0 +1,4 @@
+# Invalid: Identifier exceeding reasonable length limit
+# Expected error: Identifier too long
+
+let thisIsAnExtremelyLongIdentifierNameThatShouldNotBeAllowedBecauseItExceedsAnyReasonableLengthLimitForVariableNamesInAnyProgrammingLanguageAndWouldBeVeryHardToReadAndMaintainInAnyCodebaseEspeciallyWhenYouHaveMultipleSuchLongNamesInTheSameScope = "value"

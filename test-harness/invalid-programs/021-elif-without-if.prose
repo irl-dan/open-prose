@@ -1,0 +1,5 @@
+# Invalid: Elif without if
+# Expected error: Parse error
+
+elif **condition**:
+  session "Alternative"

@@ -1,0 +1,4 @@
+# Invalid: Using undefined variable
+# Expected error: Undefined variable
+
+session "Result is {undefined_var}"

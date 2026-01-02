@@ -1,0 +1,4 @@
+# Invalid: Import without from
+# Expected error: Expected "from" after import name
+
+import "helper" "./helpers.prose"

@@ -1,0 +1,5 @@
+# Invalid: Using 'finally' as loop variable
+# Expected error: Reserved word
+
+for finally in items:
+  session "Process {finally}"

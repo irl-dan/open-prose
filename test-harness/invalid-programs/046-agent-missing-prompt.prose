@@ -1,0 +1,5 @@
+# Invalid: Agent without prompt
+# Expected error: Agent requires prompt
+
+agent incomplete:
+  model: sonnet

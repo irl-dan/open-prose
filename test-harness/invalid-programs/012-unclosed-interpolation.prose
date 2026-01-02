@@ -1,0 +1,5 @@
+# Invalid: Unclosed interpolation brace
+# Expected error: Parse error
+
+let x = session "Get value"
+session "The value is {x"

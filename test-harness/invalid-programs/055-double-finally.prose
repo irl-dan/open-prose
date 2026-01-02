@@ -1,0 +1,11 @@
+# Invalid: Two finally blocks
+# Expected error: Multiple finally blocks
+
+try:
+  session "Try"
+catch:
+  session "Catch"
+finally:
+  session "First finally"
+finally:
+  session "Second finally"

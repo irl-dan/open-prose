@@ -100,7 +100,8 @@ export type StatementNode =
   | ConstBindingNode
   | AssignmentNode
   | CommentStatementNode
-  | ArrowExpressionNode;
+  | ArrowExpressionNode
+  | PipeExpressionNode;
 
 /**
  * A standalone comment as a statement
@@ -212,7 +213,7 @@ export interface LoopBlockNode extends ASTNode {
  */
 export interface RepeatBlockNode extends ASTNode {
   type: 'RepeatBlock';
-  count: NumberLiteralNode;  // The iteration count
+  count: NumberLiteralNode | IdentifierNode;  // The iteration count (number or variable)
   indexVar: IdentifierNode | null;  // Optional "as i" variable
   body: StatementNode[];
 }
@@ -233,6 +234,7 @@ export interface ForEachBlockNode extends ASTNode {
   indexVar: IdentifierNode | null;  // Optional index variable
   collection: ExpressionNode;  // Array or variable reference
   isParallel: boolean;  // Whether this is "parallel for"
+  modifiers: PropertyNode[];  // Inline modifiers like (on-fail: "continue")
   body: StatementNode[];
 }
 

@@ -1,0 +1,7 @@
+# Invalid: Context property on agent definition
+# Expected error: Invalid agent property
+
+agent researcher:
+  model: sonnet
+  context: some_var
+  prompt: "Research"

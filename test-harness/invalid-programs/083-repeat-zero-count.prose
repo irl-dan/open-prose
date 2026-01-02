@@ -1,0 +1,5 @@
+# Invalid: Repeat with zero count
+# Expected error: Invalid repeat count (or maybe valid?)
+
+repeat 0 times:
+  session "Never runs"

@@ -1,0 +1,7 @@
+# Invalid: Break inside parallel block (not a loop)
+# Expected error: Break outside loop
+
+parallel:
+  session "A"
+  break
+  session "B"

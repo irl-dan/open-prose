@@ -1,0 +1,6 @@
+# Invalid: Mixed tabs and spaces for indentation
+# Expected error: Inconsistent indentation
+
+block test:
+  session "First"
+	session "Second"
