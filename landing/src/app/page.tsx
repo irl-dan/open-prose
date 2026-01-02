@@ -53,12 +53,12 @@ function SemanticSpan({ children }: { children: React.ReactNode }) {
 
 function HeroSection() {
   return (
-    <section className="min-h-screen flex flex-col justify-center px-6 py-20 md:py-32">
-      <div className="max-w-4xl mx-auto w-full">
+    <section className="min-h-screen flex flex-col justify-center px-6 py-20 md:py-32 overflow-hidden">
+      <div className="max-w-4xl mx-auto w-full min-w-0">
         {/* Logo/Name */}
         <div className="mb-8 opacity-0 animate-fade-in-up">
           <h1 className="text-5xl md:text-7xl font-light tracking-tight" style={{ fontFamily: "var(--font-prose)" }}>
-            prose<span className="text-[var(--ink-light)]">.md</span>
+            <span className="text-[var(--ink-light)]">Open</span> Prose
           </h1>
         </div>
 
@@ -78,7 +78,7 @@ function HeroSection() {
         </div>
 
         {/* Hero code example */}
-        <div className="mb-12 opacity-0 animate-fade-in-up animation-delay-400">
+        <div className="mb-12 opacity-0 animate-fade-in-up animation-delay-400 min-w-0">
           <CodeBlock>
             <span className="token-comment"># Research and write workflow</span>
             {"\n"}
@@ -135,17 +135,17 @@ function HeroSection() {
 
 function ConceptSection() {
   return (
-    <section id="concept" className="px-6 py-24 bg-[var(--paper-warm)]">
-      <div className="max-w-4xl mx-auto">
+    <section id="concept" className="py-24 bg-[var(--paper-warm)]">
+      <div className="max-w-4xl mx-auto px-6">
         <h2 className="text-3xl md:text-4xl font-light mb-6 tracking-tight">
           The intelligent inversion of control
         </h2>
-        <p className="text-lg text-[var(--ink-medium)] mb-16 max-w-2xl">
+        <p className="text-lg text-[var(--ink-medium)] mb-12 md:mb-16 max-w-2xl">
           Traditional orchestration frameworks require you to write explicit coordination code.
           OpenProse inverts this—you declare agent primitives, and an AI session wires them up and executes them.
         </p>
 
-        <div className="grid md:grid-cols-2 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 mb-12 md:mb-16">
           {/* Card 1: Intelligent IoC */}
           <div className="bg-[var(--paper-cream)] p-8 rounded-lg border border-[var(--paper-aged)]">
             <div className="w-10 h-10 rounded-full bg-[var(--semantic-gold-bg)] flex items-center justify-center mb-4">
@@ -214,14 +214,14 @@ function ConceptSection() {
             But complex workflows need unambiguous structure for control flow. The AI shouldn&apos;t have to guess
             whether you want sequential or parallel execution.
           </p>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="min-w-0">
               <p className="text-sm font-mono text-[var(--ink-light)] mb-2">Ambiguous (plain English):</p>
               <CodeBlock className="text-sm">
                 <span className="token-string">&quot;Research the topic, then write about it, and get feedback until it&apos;s good&quot;</span>
               </CodeBlock>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm font-mono text-[var(--ink-light)] mb-2">Unambiguous (OpenProse):</p>
               <CodeBlock className="text-sm">
                 <span className="token-keyword">let</span> research = <span className="token-keyword">session</span> <span className="token-string">&quot;Research&quot;</span>
@@ -264,6 +264,10 @@ function FAQSection() {
     {
       question: "What AI assistants are supported?",
       answer: "Currently Claude Code via the plugin. OpenCode, Codex, and Amp support are planned. The language is designed to be framework-agnostic—it's just a skill you import."
+    },
+    {
+      question: "How will you make money?",
+      answer: "I won't, directly. OpenProse is an open gift to the world. I've raised no VC funds and work independently of the big labs. This project exists because I think the idea is worth exploring, not because there's a business model behind it. That said—I'm a father of four kids under five, and independent work isn't free. If OpenProse is useful to you, consider supporting the project or hiring me for agent architecture consulting."
     },
   ];
 
@@ -308,8 +312,8 @@ function FAQSection() {
 
 function GettingStartedSection() {
   return (
-    <section id="start" className="px-6 py-24 bg-[var(--paper-warm)]">
-      <div className="max-w-3xl mx-auto">
+    <section id="start" className="py-24 bg-[var(--paper-warm)]">
+      <div className="max-w-3xl mx-auto px-6">
         <div className="inline-block px-4 py-1 bg-[var(--semantic-gold-bg)] text-[var(--semantic-gold)] rounded-full text-sm font-mono mb-6">
           Available Now
         </div>
@@ -362,6 +366,145 @@ function GettingStartedSection() {
 }
 
 // ============================================
+// SUPPORT SECTION
+// ============================================
+
+function DonationTier({
+  name,
+  amount,
+  href,
+  isHighlighted = false
+}: {
+  name: string;
+  amount: string;
+  href: string;
+  isHighlighted?: boolean;
+}) {
+  return (
+    <a
+      href={href}
+      className={`
+        group relative flex flex-col items-center p-6 rounded-lg transition-all duration-300
+        ${isHighlighted
+          ? 'bg-[var(--paper-cream)] border-2 border-[var(--semantic-gold)] shadow-[0_0_0_4px_var(--semantic-gold-bg)] sm:scale-105 z-10 order-first sm:order-none'
+          : 'bg-[var(--paper-warm)] border border-[var(--paper-aged)] hover:border-[var(--ink-light)] hover:shadow-md'
+        }
+      `}
+    >
+      {/* Popular badge for highlighted tier */}
+      {isHighlighted && (
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <span className="px-3 py-1 bg-[var(--semantic-gold)] text-white text-xs font-mono font-medium rounded-full tracking-wide">
+            POPULAR
+          </span>
+        </div>
+      )}
+
+      {/* Amount */}
+      <div className={`text-3xl md:text-4xl font-light tracking-tight mb-1 ${isHighlighted ? 'text-[var(--semantic-gold)]' : 'text-[var(--ink-dark)]'}`}>
+        {amount}
+      </div>
+
+      {/* Tier name */}
+      <div className="text-sm font-mono text-[var(--ink-light)] uppercase tracking-wider mb-4">
+        {name}
+      </div>
+
+      {/* Button indicator */}
+      <div className={`
+        w-full py-2 px-4 rounded text-center text-sm font-mono transition-colors
+        ${isHighlighted
+          ? 'bg-[var(--semantic-gold)] text-white group-hover:bg-[var(--semantic-gold-soft)]'
+          : 'bg-[var(--ink-dark)] text-[var(--paper-cream)] group-hover:bg-[var(--ink-medium)]'
+        }
+      `}>
+        Select
+      </div>
+    </a>
+  );
+}
+
+function SupportSection() {
+  return (
+    <section id="support" className="px-6 py-24">
+      <div className="max-w-4xl mx-auto">
+        <h2 className="text-3xl md:text-4xl font-light mb-6 tracking-tight">
+          Support the project
+        </h2>
+
+        <p className="text-lg text-[var(--ink-medium)] mb-12 max-w-2xl">
+          OpenProse is an open gift to the world—no VC funds, no big lab backing.
+          I&apos;m a father of four kids under five, building this because the idea is worth exploring.
+        </p>
+
+        {/* Donation Tiers */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6 items-end">
+          <DonationTier
+            name="Supporter"
+            amount="$20"
+            href="https://buy.stripe.com/9B64gA2OH0bwcu76EM5AQ02"
+          />
+          <DonationTier
+            name="Sponsor"
+            amount="$100"
+            href="https://buy.stripe.com/9B66oI1KDaQa1Ptfbi5AQ03"
+            isHighlighted
+          />
+          <DonationTier
+            name="Patron"
+            amount="$10k"
+            href="https://buy.stripe.com/5kQcN6exp6zUbq35AI5AQ04"
+          />
+        </div>
+
+        {/* Custom amount link */}
+        <div className="text-center mb-16">
+          <a
+            href="https://buy.stripe.com/9B67sM60TaQacu77IQ5AQ01"
+            className="inline-flex items-center gap-2 text-sm text-[var(--ink-light)] hover:text-[var(--ink-dark)] transition-colors font-mono"
+          >
+            <span>Or choose your own amount</span>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </a>
+        </div>
+
+        <div className="section-divider"></div>
+
+        {/* Consulting card */}
+        <div className="max-w-xl mx-auto">
+          <div className="bg-[var(--paper-warm)] p-8 rounded-lg border border-[var(--paper-aged)]">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-full bg-[var(--edit-blue)]/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-[var(--edit-blue)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-medium mb-2 text-[var(--ink-dark)]">
+                  Hire me for consulting
+                </h3>
+                <p className="text-[var(--ink-medium)] text-base mb-4">
+                  I do freelance agent architecture and AI systems consulting.
+                  If you&apos;re building something serious with AI agents, let&apos;s talk.
+                </p>
+                <a
+                  href="mailto:dan@draftsofthefuture.com"
+                  className="btn-secondary inline-flex items-center justify-center gap-2"
+                >
+                  Get in touch
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================
 // FOOTER
 // ============================================
 
@@ -371,7 +514,7 @@ function Footer() {
       <div className="max-w-4xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="text-center md:text-left">
           <div className="text-xl font-light tracking-tight mb-1" style={{ fontFamily: "var(--font-prose)" }}>
-            prose<span className="text-[var(--ink-light)]">.md</span>
+            <span className="text-[var(--ink-light)]">Open</span> Prose
           </div>
           <p className="text-sm text-[var(--ink-light)]">
             An open standard for AI orchestration.
@@ -393,6 +536,7 @@ function Footer() {
 
 function Navigation() {
   const [scrolled, setScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -402,21 +546,101 @@ function Navigation() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Close menu on escape key
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileMenuOpen(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, []);
+
+  // Prevent body scroll when menu is open
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  const navLinks = [
+    { href: "#concept", label: "Concept" },
+    { href: "#faq", label: "FAQ" },
+    { href: "#start", label: "Get Started" },
+    { href: "#support", label: "Support" },
+  ];
+
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled ? "bg-[var(--paper-cream)]/95 backdrop-blur-sm shadow-sm" : ""
-    }`}>
-      <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
-        <a href="#" className="text-lg font-light tracking-tight" style={{ fontFamily: "var(--font-prose)" }}>
-          prose<span className="text-[var(--ink-light)]">.md</span>
-        </a>
-        <div className="hidden md:flex gap-8 text-sm text-[var(--ink-light)]">
-          <a href="#concept" className="hover:text-[var(--ink-dark)] transition-colors">Concept</a>
-          <a href="#faq" className="hover:text-[var(--ink-dark)] transition-colors">FAQ</a>
-          <a href="#start" className="hover:text-[var(--ink-dark)] transition-colors">Get Started</a>
+    <>
+      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled ? "bg-[var(--paper-cream)]/95 backdrop-blur-sm shadow-sm" : ""
+      }`}>
+        <div className="max-w-5xl mx-auto px-6 py-4 flex justify-between items-center">
+          <a href="#" className="text-lg font-light tracking-tight" style={{ fontFamily: "var(--font-prose)" }}>
+            <span className="text-[var(--ink-light)]">Open</span> Prose
+          </a>
+
+          {/* Desktop navigation */}
+          <div className="hidden md:flex gap-8 text-sm text-[var(--ink-light)]">
+            {navLinks.map((link) => (
+              <a key={link.href} href={link.href} className="hover:text-[var(--ink-dark)] transition-colors">
+                {link.label}
+              </a>
+            ))}
+          </div>
+
+          {/* Mobile hamburger button */}
+          <button
+            className="hamburger-btn md:hidden"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Open menu"
+          >
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Mobile menu overlay */}
+      <div
+        className={`mobile-menu-overlay ${mobileMenuOpen ? "open" : ""}`}
+        onClick={() => setMobileMenuOpen(false)}
+      />
+
+      {/* Mobile menu drawer */}
+      <div className={`mobile-menu-drawer ${mobileMenuOpen ? "open" : ""}`}>
+        <div className="mobile-menu-header">
+          <span className="text-lg font-light tracking-tight" style={{ fontFamily: "var(--font-prose)" }}>
+            <span className="text-[var(--ink-light)]">Open</span> Prose
+          </span>
+          <button
+            onClick={() => setMobileMenuOpen(false)}
+            className="w-10 h-10 flex items-center justify-center text-[var(--ink-medium)] hover:text-[var(--ink-dark)]"
+            aria-label="Close menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="mobile-menu-links">
+          {navLinks.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              {link.label}
+            </a>
+          ))}
         </div>
       </div>
-    </nav>
+    </>
   );
 }
 
@@ -433,6 +657,7 @@ export default function Home() {
         <ConceptSection />
         <FAQSection />
         <GettingStartedSection />
+        <SupportSection />
       </main>
       <Footer />
     </>
