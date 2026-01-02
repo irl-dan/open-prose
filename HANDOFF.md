@@ -1,4 +1,4 @@
-# Handoff: Implement Tier 10 (Pipeline Operations)
+# Handoff: Implement Tier 11 (Error Handling)
 
 ## Project Overview
 
@@ -6,7 +6,7 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. It'
 
 ## Current Status
 
-**Implemented (Tier 0 through Tier 9):**
+**Implemented (Tier 0 through Tier 10):**
 - Comments (`# comment`)
 - Single-line strings (`"string"` with escapes)
 - Simple session (`session "prompt"`)
@@ -32,13 +32,15 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. It'
 - Repeat blocks (`repeat N:` and `repeat N as i:`)
 - For-each blocks (`for item in items:` and `for item, i in items:`)
 - Parallel for-each (`parallel for item in items:`)
-- **Unbounded loops** (`loop:`, `loop until **condition**:`, `loop while **condition**:`)
-- **Loop with max iterations** (`loop (max: N):`)
-- **Loop with iteration variable** (`loop as i:`, `loop until **done** as i:`)
+- Unbounded loops (`loop:`, `loop until **condition**:`, `loop while **condition**:`)
+- Loop with max iterations (`loop (max: N):`)
+- Loop with iteration variable (`loop as i:`, `loop until **done** as i:`)
+- **Pipeline operations** (`items | map:`, `items | filter:`, `items | reduce(acc, item):`, `items | pmap:`)
+- **Pipeline chaining** (`| filter: ... | map: ... | reduce: ...`)
 
 **All tests passing:**
-- 602 unit tests in `plugin/`
-- E2E tests in `test-harness/` (including 5 Tier 9 tests, all passing with 4.98/5.0 avg)
+- 644 unit tests in `plugin/`
+- E2E tests in `test-harness/` (including 5 Tier 10 tests, all passing with 4.95/5.0 avg)
 
 ## Files to Read First
 
@@ -48,111 +50,132 @@ Read these files in order to understand the project:
 2. **`BUILD_PLAN.md`** - Development roadmap and feature checklist
 3. **`plugin/skills/open-prose/prose.md`** - Current DSL reference (comprehensive)
 4. **`plugin/src/parser/ast.ts`** - Current AST node definitions
-5. **`plugin/src/__tests__/unbounded-loops.test.ts`** - Tier 9 tests (good template for test structure)
+5. **`plugin/src/__tests__/pipeline.test.ts`** - Tier 10 tests (good template for test structure)
 
-## Your Task: Implement Tier 10 (Pipeline Operations)
+## Your Task: Implement Tier 11 (Error Handling)
 
-Implement functional-style collection transformations using the pipe operator:
+Implement try/catch/finally blocks and retry mechanisms:
 
 | Feature | Syntax | Example |
 |---------|--------|---------|
-| 10.1 | `map` | `items \| map: session "..."` |
-| 10.2 | `filter` | `items \| filter: session "..."` |
-| 10.3 | `reduce` | `items \| reduce(acc, item): ...` |
-| 10.4 | `pmap` | Parallel map (like map but concurrent) |
-| 10.5 | Chaining | `\| filter: ... \| map: ... \| reduce:` |
+| 11.1 | `try`/`catch` | Basic error handling |
+| 11.2 | `try`/`catch`/`finally` | With cleanup |
+| 11.3 | Nested try/catch | Inner catches don't trigger outer |
+| 11.4 | `throw` | Rethrow to outer handler |
+| 11.5 | `retry` | `session "..." (retry: 3)` |
+| 11.6 | Retry with backoff | `(retry: 3, backoff: "exponential")` |
+| 11.7 | Try in parallel | Error handling inside parallel branches |
 
 ### Target Syntax
 
 ```prose
-# Map: transform each item
-let summaries = articles | map:
-  session "Summarize this article in one sentence"
-    context: item
+# Basic try/catch
+try:
+  session "Risky operation that might fail"
+catch:
+  session "Handle the error gracefully"
 
-# Filter: keep items matching a condition
-let important = items | filter:
-  session "Is this item important? Answer yes or no."
-    context: item
+# Try/catch/finally
+try:
+  session "Attempt to connect to external service"
+catch:
+  session "Log the connection failure"
+finally:
+  session "Clean up resources regardless of outcome"
 
-# Reduce: accumulate into a single result
-let combined = items | reduce(acc, item):
-  session "Combine the accumulator with this item"
-    context: [acc, item]
+# Nested try/catch
+try:
+  try:
+    session "Inner risky operation"
+  catch:
+    session "Handle inner error"
+  session "Continue after inner try"
+catch:
+  session "Handle outer error (only if inner doesn't catch)"
 
-# Parallel map: like map but runs concurrently
-let results = items | pmap:
-  session "Process this item"
-    context: item
+# Throw/rethrow
+try:
+  session "Check preconditions"
+  throw  # Explicitly trigger error
+catch:
+  session "Handle thrown error"
 
-# Chaining: compose multiple operations
-let final = articles
-  | filter:
-      session "Is this relevant?"
-        context: item
-  | map:
-      session "Summarize"
-        context: item
-  | reduce(acc, item):
-      session "Combine summaries"
-        context: [acc, item]
+# Retry modifier on sessions
+session "Flaky API call" (retry: 3)
+
+# Retry with backoff
+session "Rate-limited API" (retry: 5, backoff: "exponential")
+
+# Try inside parallel
+parallel:
+  try:
+    session "Branch A - might fail"
+  catch:
+    session "Recover branch A"
+  session "Branch B - always runs"
 ```
 
 ### Key Design Decisions
 
-1. **Pipe Operator**: The `|` operator chains operations. It passes the left-hand side as input to the right-hand side operation.
+1. **Catch Semantics**: The `catch` block receives context about what failed. Consider whether to make the error accessible via an implicit variable (like `error`) or require explicit naming.
 
-2. **Implicit Variables**: Inside pipeline operations:
-   - `item` refers to the current element (for map/filter/pmap)
-   - `acc` and `item` for reduce (accumulator and current)
-   - These could be explicit or implicit - decide based on consistency with existing patterns
+2. **Finally Timing**: `finally` always runs, whether `try` succeeded or `catch` was triggered.
 
-3. **Filter Semantics**: The filter session should return something the Orchestrator can interpret as truthy/falsy. This might use discretion markers or rely on intelligent interpretation.
+3. **Throw Behavior**: `throw` without arguments re-raises the current error. Could optionally support `throw "message"` for explicit errors.
 
-4. **Reduce Initial Value**: Consider whether reduce needs an explicit initial value or uses the first item.
+4. **Retry Scope**: Retry applies to individual sessions, not blocks. Consider whether retry should be on the session statement itself or as a modifier.
+
+5. **Backoff Options**: Common patterns include:
+   - `"none"` (default) - immediate retry
+   - `"linear"` - fixed delay between retries
+   - `"exponential"` - doubling delay (1s, 2s, 4s, 8s...)
 
 ### Suggested AST Nodes
 
 ```typescript
-export interface PipeExpressionNode extends ASTNode {
-  type: 'PipeExpression';
-  input: ExpressionNode;  // Left side of |
-  operations: PipeOperationNode[];  // Chain of operations
+export interface TryBlockNode extends ASTNode {
+  type: 'TryBlock';
+  tryBody: StatementNode[];
+  catchBody: StatementNode[] | null;
+  finallyBody: StatementNode[] | null;
+  errorVar: IdentifierNode | null;  // Optional: `catch as err:`
 }
 
-export interface PipeOperationNode extends ASTNode {
-  type: 'PipeOperation';
-  operator: 'map' | 'filter' | 'reduce' | 'pmap';
-  itemVar: IdentifierNode | null;  // Custom name for item variable
-  accVar: IdentifierNode | null;  // For reduce: accumulator variable
-  body: StatementNode[];
+export interface ThrowStatementNode extends ASTNode {
+  type: 'ThrowStatement';
+  message: StringLiteralNode | null;  // Optional error message
 }
+
+// Retry is likely a modifier on SessionStatementNode, not a separate node
+// Add to SessionStatementNode:
+//   retryCount: number | null;
+//   retryBackoff: 'none' | 'linear' | 'exponential' | null;
 ```
 
 ### Lexer Tokens Needed
 
-You'll likely need to add:
-- `PIPE` token for `|`
-- `MAP`, `FILTER`, `REDUCE`, `PMAP` keywords
+You'll need to add:
+- `TRY`, `CATCH`, `FINALLY`, `THROW` keywords
+- `RETRY`, `BACKOFF` keywords (for modifiers)
 
 Check `plugin/src/parser/tokens.ts` for the current token definitions.
 
 ### Implementation Notes
 
-- The existing `ForEachBlockNode` handles iteration - pipeline operations are similar but functional
-- Consider how pipeline results flow - each operation transforms the collection
-- `pmap` should behave like `parallel for` but in pipeline syntax
-- The Orchestrator interprets filter results intelligently (like discretion conditions)
+- The existing `parallel (on-fail: ...)` handles failure at the parallel level; try/catch handles it at the statement level
+- Consider how errors propagate up from nested blocks
+- The Orchestrator needs to understand what constitutes a "failure" (session error, timeout, etc.)
+- Retry should be transparent to the rest of the program - it just makes the session more resilient
 
 ### Verification
 
 ```bash
 # From plugin/
-npm test                    # Should pass 600+ tests
+npm test                    # Should pass 644+ tests
 npm run lint                # Should have no type errors
 
 # From test-harness/
-npx ts-node index.ts tier-10-map    # Run E2E test with judge
+npx ts-node index.ts tier-11-try-catch    # Run E2E test with judge
 ```
 
 ## Architecture Quick Reference
@@ -173,7 +196,7 @@ plugin/
 │   ├── lsp/
 │   │   └── semantic-tokens.ts  # Syntax highlighting
 │   └── __tests__/
-│       ├── unbounded-loops.test.ts  # Tier 9 tests (template)
+│       ├── pipeline.test.ts    # Tier 10 tests (template)
 │       └── ...
 ├── examples/              # Example .prose files
 └── skills/open-prose/
@@ -188,75 +211,89 @@ test-harness/
 ## Test Program Ideas
 
 ```prose
-# tier-10-map.prose
-let fruits = ["apple", "banana", "cherry"]
+# tier-11-try-catch.prose
+try:
+  session "Attempt a task that might fail"
+catch:
+  session "Explain what went wrong and how to recover"
 
-let descriptions = fruits | map:
-  session "Describe this fruit in one creative sentence"
-    context: item
-
-session "Present all the fruit descriptions"
-  context: descriptions
+session "Continue with the rest of the program"
 ```
 
 ```prose
-# tier-10-filter.prose
-let numbers = ["one", "two", "three", "four", "five"]
+# tier-11-finally.prose
+try:
+  session "Open a resource and do work"
+catch:
+  session "Handle any errors"
+finally:
+  session "Always clean up the resource"
 
-let short = numbers | filter:
-  session "Does this word have 4 or fewer letters? Answer only yes or no."
-    context: item
-
-session "List the short words that passed the filter"
-  context: short
+session "Program continues after cleanup"
 ```
 
 ```prose
-# tier-10-reduce.prose
-let ideas = ["AI assistant", "smart home", "health tracker"]
+# tier-11-retry.prose
+session "Call a flaky external API" (retry: 3)
 
-let combined = ideas | reduce(summary, idea):
-  session "Add this idea to the summary, creating a cohesive product concept"
-    context: [summary, idea]
-
-session "Present the final combined product concept"
-  context: combined
+session "Process the API response"
 ```
 
 ```prose
-# tier-10-chain.prose
-let topics = ["quantum computing", "blockchain", "machine learning", "IoT", "cybersecurity"]
+# tier-11-nested.prose
+try:
+  session "Outer operation begins"
+  try:
+    session "Inner risky operation"
+  catch:
+    session "Handle inner failure"
+  session "Outer operation continues"
+catch:
+  session "Handle outer failure (only if inner rethrows)"
+```
 
-let result = topics
-  | filter:
-      session "Is this topic trending in 2024? Answer yes or no."
-        context: item
-  | map:
-      session "Write a one-line startup pitch for this topic"
-        context: item
+```prose
+# tier-11-parallel-try.prose
+parallel:
+  try:
+    session "Branch A might fail"
+  catch:
+    session "Recover from branch A failure"
+  try:
+    session "Branch B might fail"
+  catch:
+    session "Recover from branch B failure"
 
-session "Present the startup pitches for trending topics"
-  context: result
+session "Combine results from both branches"
 ```
 
 ## Implementation Pattern
 
 Follow the same pattern used in previous tiers:
 
-1. **Tokens** (`tokens.ts`) - Add PIPE, MAP, FILTER, REDUCE, PMAP tokens
+1. **Tokens** (`tokens.ts`) - Add TRY, CATCH, FINALLY, THROW, RETRY, BACKOFF tokens
 2. **Lexer** (`lexer.ts`) - Add lexing rules for new tokens
-3. **AST** (`ast.ts`) - Define PipeExpressionNode, PipeOperationNode
-4. **Parser** (`parser.ts`) - Add parsePipeExpression(), parsePipeOperation()
-5. **Validator** (`validator.ts`) - Add validatePipeExpression()
-6. **Compiler** (`compiler.ts`) - Add compilePipeExpression()
+3. **AST** (`ast.ts`) - Define TryBlockNode, ThrowStatementNode, update SessionStatementNode
+4. **Parser** (`parser.ts`) - Add parseTryBlock(), parseThrowStatement(), parse retry modifiers
+5. **Validator** (`validator.ts`) - Add validateTryBlock(), validateThrowStatement()
+6. **Compiler** (`compiler.ts`) - Add compileTryBlock(), compileThrowStatement()
 7. **LSP** (`semantic-tokens.ts`) - Usually no changes needed if tokens are keywords
-8. **Tests** - Create `pipeline.test.ts` with comprehensive unit tests
+8. **Tests** - Create `error-handling.test.ts` with comprehensive unit tests
 9. **Documentation** - Update `prose.md` with new section
 10. **E2E Tests** - Create test programs and run with judge
 
 ## Notes
 
-- Look at how `ForEachBlockNode` handles iteration for reference
-- The pipe operator creates a chain, so parsing needs to handle left-associativity
-- Filter's truthiness evaluation is similar to how `loop until` evaluates conditions
-- Consider edge cases: empty collections, single-item collections, nested pipelines
+- Look at how `parallel (on-fail: ...)` handles failure policies for reference
+- The try/catch pattern is similar to JavaScript but with OpenProse's indentation-based syntax
+- Consider edge cases: try without catch, catch without finally, empty blocks
+- Retry is a session modifier, similar to how `context:` is a property but `(retry: N)` is inline
+- The parentheses syntax for retry matches the pattern used in `parallel ("first"):`
+
+## Recent Commit for Reference
+
+```
+22abf2f Implement Tier 10: Pipeline Operations
+```
+
+This commit shows the pattern: AST types, parser methods, validator methods, compiler methods, tests, docs, and E2E test programs.
