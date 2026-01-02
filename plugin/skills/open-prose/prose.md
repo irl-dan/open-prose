@@ -16,10 +16,11 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. Thi
 8. [Variables & Context](#variables--context)
 9. [Composition Blocks](#composition-blocks)
 10. [Parallel Blocks](#parallel-blocks)
-11. [Execution Model](#execution-model)
-12. [Validation Rules](#validation-rules)
-13. [Examples](#examples)
-14. [Future Features](#future-features)
+11. [Fixed Loops](#fixed-loops)
+12. [Execution Model](#execution-model)
+13. [Validation Rules](#validation-rules)
+14. [Examples](#examples)
+15. [Future Features](#future-features)
 
 ---
 
@@ -60,6 +61,11 @@ The following features are implemented:
 | Object context | Implemented | `context: { a, b, c }` shorthand |
 | Join strategies | Implemented | `parallel ("first"):` or `parallel ("any"):` |
 | Failure policies | Implemented | `parallel (on-fail: "continue"):` |
+| Repeat blocks | Implemented | `repeat N:` fixed iterations |
+| Repeat with index | Implemented | `repeat N as i:` with index variable |
+| For-each blocks | Implemented | `for item in items:` iteration |
+| For-each with index | Implemented | `for item, i in items:` with index |
+| Parallel for-each | Implemented | `parallel for item in items:` fan-out |
 
 ---
 
@@ -1055,6 +1061,157 @@ When the Orchestrator encounters a `parallel:` block:
 
 ---
 
+## Fixed Loops
+
+Fixed loops provide bounded iteration over a set number of times or over a collection.
+
+### Repeat Block
+
+The `repeat` block executes its body a fixed number of times.
+
+#### Basic Syntax
+
+```prose
+repeat 3:
+  session "Generate a creative idea"
+```
+
+#### With Index Variable
+
+Access the current iteration index using `as`:
+
+```prose
+repeat 5 as i:
+  session "Process item"
+    context: i
+```
+
+The index variable `i` is scoped to the loop body and starts at 0.
+
+### For-Each Block
+
+The `for` block iterates over a collection.
+
+#### Basic Syntax
+
+```prose
+let fruits = ["apple", "banana", "cherry"]
+for fruit in fruits:
+  session "Describe this fruit"
+    context: fruit
+```
+
+#### With Inline Array
+
+```prose
+for topic in ["AI", "climate", "space"]:
+  session "Research this topic"
+    context: topic
+```
+
+#### With Index Variable
+
+Access both the item and its index:
+
+```prose
+let items = ["a", "b", "c"]
+for item, i in items:
+  session "Process item with index"
+    context: [item, i]
+```
+
+### Parallel For-Each
+
+The `parallel for` block runs all iterations concurrently (fan-out pattern):
+
+```prose
+let topics = ["AI", "climate", "space"]
+parallel for topic in topics:
+  session "Research this topic"
+    context: topic
+
+session "Combine all research"
+```
+
+This is equivalent to:
+
+```prose
+parallel:
+  session "Research AI" context: "AI"
+  session "Research climate" context: "climate"
+  session "Research space" context: "space"
+```
+
+But more concise and dynamic.
+
+### Variable Scoping
+
+Loop variables are scoped to the loop body:
+
+- They are implicitly `const` within each iteration
+- They shadow outer variables of the same name (with a warning)
+- They are not accessible outside the loop
+
+```prose
+let item = session "outer"
+for item in ["a", "b"]:
+  # 'item' here is the loop variable
+  session "process loop item"
+    context: item
+# 'item' here refers to the outer variable again
+session "use outer item"
+  context: item
+```
+
+### Nesting
+
+Loops can be nested:
+
+```prose
+repeat 2:
+  repeat 3:
+    session "Inner task"
+```
+
+Different loop types can be combined:
+
+```prose
+let items = ["a", "b"]
+repeat 2:
+  for item in items:
+    session "Process item"
+      context: item
+```
+
+### Complete Example
+
+```prose
+# Generate multiple variations of ideas
+repeat 3:
+  session "Generate a creative startup idea"
+
+session "Select the best idea from the options above"
+
+# Research the selected idea from multiple angles
+let angles = ["market", "technology", "competition"]
+parallel for angle in angles:
+  session "Research this angle of the startup idea"
+    context: angle
+
+session "Synthesize all research into a business plan"
+```
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Repeat count must be positive | Error | Repeat count must be positive |
+| Repeat count must be integer | Error | Repeat count must be an integer |
+| Undefined collection variable | Error | Undefined collection variable |
+| Loop variable shadows outer | Warning | Loop variable shadows outer variable |
+
+---
+
 ## Execution Model
 
 OpenProse uses a two-phase execution model.
@@ -1286,10 +1443,8 @@ The following features are specified but not yet implemented:
 - Join strategies (`parallel ("first"):`, `parallel ("any"):`)
 - Failure policies (`on-fail: "continue"`, `on-fail: "ignore"`)
 
-### Tier 8-9: Loops
-- `repeat N:` fixed iterations
-- `for item in items:` iteration
-- `loop until **condition**:` unbounded loops
+### Tier 9: Unbounded Loops
+- `loop until **condition**:` unbounded loops with AI-evaluated conditions
 
 ### Tier 10: Pipeline Operations
 - `map`, `filter`, `reduce`
@@ -1311,7 +1466,7 @@ The following features are specified but not yet implemented:
 
 ```
 program     → statement* EOF
-statement   → agentDef | blockDef | parallelBlock | session | doBlock | arrowExpr | letBinding | constBinding | assignment | comment
+statement   → agentDef | blockDef | parallelBlock | repeatBlock | forEachBlock | session | doBlock | arrowExpr | letBinding | constBinding | assignment | comment
 agentDef    → "agent" IDENTIFIER ":" NEWLINE INDENT property* DEDENT
 blockDef    → "block" IDENTIFIER ":" NEWLINE INDENT statement* DEDENT
 parallelBlock → "parallel" parallelMods? ":" NEWLINE INDENT parallelBranch* DEDENT
@@ -1320,6 +1475,9 @@ joinStrategy  → string                              # "all" | "first" | "any"
 onFail        → "on-fail" ":" string                # "fail-fast" | "continue" | "ignore"
 countMod      → "count" ":" NUMBER                  # only valid with "any"
 parallelBranch → ( IDENTIFIER "=" )? statement
+repeatBlock → "repeat" NUMBER ( "as" IDENTIFIER )? ":" NEWLINE INDENT statement* DEDENT
+forEachBlock → "parallel"? "for" IDENTIFIER ( "," IDENTIFIER )? "in" collection ":" NEWLINE INDENT statement* DEDENT
+collection  → IDENTIFIER | array
 doBlock     → "do" ( ":" NEWLINE INDENT statement* DEDENT | IDENTIFIER )
 arrowExpr   → session "->" session ( "->" session )*
 session     → "session" ( string | ":" IDENTIFIER | IDENTIFIER ":" IDENTIFIER )
@@ -1327,7 +1485,7 @@ session     → "session" ( string | ":" IDENTIFIER | IDENTIFIER ":" IDENTIFIER 
 letBinding  → "let" IDENTIFIER "=" expression
 constBinding → "const" IDENTIFIER "=" expression
 assignment  → IDENTIFIER "=" expression
-expression  → session | doBlock | parallelBlock | arrowExpr | string | IDENTIFIER | array | objectContext
+expression  → session | doBlock | parallelBlock | repeatBlock | forEachBlock | arrowExpr | string | IDENTIFIER | array | objectContext
 property    → ( "model" | "prompt" | "context" | IDENTIFIER ) ":" ( IDENTIFIER | string | array | objectContext )
 array       → "[" ( expression ( "," expression )* )? "]"
 objectContext → "{" ( IDENTIFIER ( "," IDENTIFIER )* )? "}"

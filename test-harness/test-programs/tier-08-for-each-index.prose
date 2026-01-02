@@ -1,0 +1,13 @@
+# Tier 8.4: For-Each Block with Index
+# Tests for item, i in collection: syntax with both item and index access
+
+# Define programming languages to explore
+let languages = ["Python", "Rust", "TypeScript"]
+
+# Describe each language with its ranking
+for lang, i in languages:
+  session "This language is ranked at this position in our list. Describe one key strength of this programming language."
+    context: [lang, i]
+
+# Create a learning path
+session "Based on the language descriptions above, suggest a learning order for someone who wants to become a versatile programmer"

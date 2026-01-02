@@ -1,0 +1,13 @@
+# Tier 8.5: Parallel For-Each Block
+# Tests parallel for item in collection: syntax for fan-out pattern
+
+# Define research topics
+let topics = ["renewable energy", "artificial intelligence", "quantum computing"]
+
+# Research all topics in parallel (fan-out)
+parallel for topic in topics:
+  session "Research the latest developments in this field and provide 3 key trends for 2024"
+    context: topic
+
+# Synthesize all research (fan-in)
+session "Review all the research above and identify any cross-cutting themes or connections between these technology areas"

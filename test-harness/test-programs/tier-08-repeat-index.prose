@@ -1,0 +1,10 @@
+# Tier 8.2: Repeat Block with Index Variable
+# Tests repeat N as i: syntax with accessible index variable
+
+# Generate numbered facts about space
+repeat 5 as i:
+  session "Generate an interesting fact about space exploration. This is fact number for this iteration. Keep it concise."
+    context: i
+
+# Summarize all the facts
+session "Review all 5 space facts generated above and create a brief summary paragraph that ties them together"

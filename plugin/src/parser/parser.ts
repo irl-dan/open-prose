@@ -35,6 +35,8 @@ import {
   BlockDefinitionNode,
   ArrowExpressionNode,
   ParallelBlockNode,
+  RepeatBlockNode,
+  ForEachBlockNode,
   createProgramNode,
   createCommentNode,
 } from './ast';
@@ -155,9 +157,23 @@ export class Parser {
       return this.parseDoBlock();
     }
 
-    // Handle parallel block
+    // Handle parallel block (including parallel for)
     if (this.check(TokenType.PARALLEL)) {
+      // Check for parallel for
+      if (this.peekNext().type === TokenType.FOR) {
+        return this.parseForEachBlock(true);
+      }
       return this.parseParallelBlock();
+    }
+
+    // Handle repeat block
+    if (this.check(TokenType.REPEAT)) {
+      return this.parseRepeatBlock();
+    }
+
+    // Handle for-each block
+    if (this.check(TokenType.FOR)) {
+      return this.parseForEachBlock(false);
     }
 
     // Handle session keyword (may be followed by -> for arrow sequences)
@@ -385,9 +401,23 @@ export class Parser {
       return this.parseDoBlock();
     }
 
-    // If it's a parallel block
+    // If it's a parallel block (or parallel for)
     if (this.check(TokenType.PARALLEL)) {
+      // Check for parallel for
+      if (this.peekNext().type === TokenType.FOR) {
+        return this.parseForEachBlock(true);
+      }
       return this.parseParallelBlock();
+    }
+
+    // If it's a repeat block
+    if (this.check(TokenType.REPEAT)) {
+      return this.parseRepeatBlock();
+    }
+
+    // If it's a for-each block
+    if (this.check(TokenType.FOR)) {
+      return this.parseForEachBlock(false);
     }
 
     // If it's a string literal
@@ -1348,6 +1378,231 @@ export class Parser {
       type: 'Assignment',
       name,
       value,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a repeat block
+   * Syntax variants:
+   *   repeat 3:
+   *     body...
+   *   repeat 5 as i:
+   *     body...
+   */
+  private parseRepeatBlock(): RepeatBlockNode {
+    const repeatToken = this.advance(); // consume 'repeat'
+    const start = repeatToken.span.start;
+
+    // Expect number literal (count)
+    let count: NumberLiteralNode;
+    if (this.check(TokenType.NUMBER)) {
+      count = this.parseNumberLiteral();
+    } else {
+      this.addError('Expected number after "repeat"');
+      count = {
+        type: 'NumberLiteral',
+        value: 1,
+        raw: '1',
+        span: this.peek().span,
+      };
+    }
+
+    // Check for optional "as i" index variable
+    let indexVar: IdentifierNode | null = null;
+    if (this.check(TokenType.AS)) {
+      this.advance(); // consume 'as'
+      if (this.check(TokenType.IDENTIFIER)) {
+        indexVar = this.parseIdentifier();
+      } else {
+        this.addError('Expected identifier after "as"');
+      }
+    }
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after repeat count');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse indented body
+    const body: StatementNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        const stmt = this.parseStatement();
+        if (stmt) {
+          body.push(stmt);
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'RepeatBlock',
+      count,
+      indexVar,
+      body,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a for-each block (including parallel for)
+   * Syntax variants:
+   *   for item in items:
+   *     body...
+   *   for item, i in items:
+   *     body...
+   *   parallel for item in items:
+   *     body...
+   */
+  private parseForEachBlock(isParallel: boolean): ForEachBlockNode {
+    let start;
+
+    if (isParallel) {
+      const parallelToken = this.advance(); // consume 'parallel'
+      start = parallelToken.span.start;
+      this.advance(); // consume 'for'
+    } else {
+      const forToken = this.advance(); // consume 'for'
+      start = forToken.span.start;
+    }
+
+    // Expect item variable identifier
+    let itemVar: IdentifierNode;
+    if (this.check(TokenType.IDENTIFIER)) {
+      itemVar = this.parseIdentifier();
+    } else {
+      this.addError('Expected item variable after "for"');
+      itemVar = {
+        type: 'Identifier',
+        name: '',
+        span: this.peek().span,
+      };
+    }
+
+    // Check for optional index variable: for item, i in items
+    let indexVar: IdentifierNode | null = null;
+    if (this.check(TokenType.COMMA)) {
+      this.advance(); // consume ','
+      if (this.check(TokenType.IDENTIFIER)) {
+        indexVar = this.parseIdentifier();
+      } else {
+        this.addError('Expected index variable after ","');
+      }
+    }
+
+    // Expect 'in' keyword
+    if (!this.match(TokenType.IN)) {
+      this.addError('Expected "in" in for-each');
+    }
+
+    // Parse collection expression (identifier or array)
+    let collection: ExpressionNode;
+    if (this.check(TokenType.IDENTIFIER)) {
+      collection = this.parseIdentifier();
+    } else if (this.check(TokenType.LBRACKET)) {
+      collection = this.parseArrayExpression();
+    } else {
+      this.addError('Expected collection (identifier or array) after "in"');
+      collection = {
+        type: 'Identifier',
+        name: '',
+        span: this.peek().span,
+      };
+    }
+
+    // Expect colon
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after collection');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse indented body
+    const body: StatementNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        const stmt = this.parseStatement();
+        if (stmt) {
+          body.push(stmt);
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ForEachBlock',
+      itemVar,
+      indexVar,
+      collection,
+      isParallel,
+      body,
       span: { start, end },
     };
   }

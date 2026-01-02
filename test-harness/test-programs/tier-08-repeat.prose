@@ -1,0 +1,9 @@
+# Tier 8.1: Repeat Block
+# Tests basic repeat N: syntax for fixed iterations
+
+# Generate 3 creative pet names
+repeat 3:
+  session "Generate a unique and creative name for a pet hamster"
+
+# Pick the best one from all generated names
+session "Review all the pet names generated above and select the best one, explaining why it stands out"

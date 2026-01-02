@@ -61,6 +61,8 @@ export type {
   DoBlockNode,
   ParallelBlockNode,
   LoopBlockNode,
+  RepeatBlockNode,
+  ForEachBlockNode,
   TryBlockNode,
   LetBindingNode,
   ConstBindingNode,

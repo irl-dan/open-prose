@@ -90,6 +90,8 @@ export type StatementNode =
   | DoBlockNode
   | ParallelBlockNode
   | LoopBlockNode
+  | RepeatBlockNode
+  | ForEachBlockNode
   | TryBlockNode
   | LetBindingNode
   | ConstBindingNode
@@ -177,7 +179,7 @@ export interface ParallelBlockNode extends ASTNode {
 }
 
 /**
- * Loop block
+ * Loop block (unbounded - Tier 9)
  */
 export interface LoopBlockNode extends ASTNode {
   type: 'LoopBlock';
@@ -186,6 +188,40 @@ export interface LoopBlockNode extends ASTNode {
   count: NumberLiteralNode | null;
   iterator: IdentifierNode | null;
   iterable: ExpressionNode | null;
+  body: StatementNode[];
+}
+
+/**
+ * Repeat block (Tier 8) - fixed iteration count
+ * Syntax:
+ *   repeat 3:
+ *     body...
+ *   repeat 5 as i:
+ *     body...
+ */
+export interface RepeatBlockNode extends ASTNode {
+  type: 'RepeatBlock';
+  count: NumberLiteralNode;  // The iteration count
+  indexVar: IdentifierNode | null;  // Optional "as i" variable
+  body: StatementNode[];
+}
+
+/**
+ * For-each block (Tier 8) - iteration over collection
+ * Syntax:
+ *   for item in items:
+ *     body...
+ *   for item, i in items:
+ *     body...
+ *   parallel for item in items:
+ *     body...
+ */
+export interface ForEachBlockNode extends ASTNode {
+  type: 'ForEachBlock';
+  itemVar: IdentifierNode;  // The item variable
+  indexVar: IdentifierNode | null;  // Optional index variable
+  collection: ExpressionNode;  // Array or variable reference
+  isParallel: boolean;  // Whether this is "parallel for"
   body: StatementNode[];
 }
 
@@ -239,7 +275,9 @@ export type ExpressionNode =
   | PipeExpressionNode
   | ArrowExpressionNode
   | DoBlockNode
-  | ParallelBlockNode;
+  | ParallelBlockNode
+  | RepeatBlockNode
+  | ForEachBlockNode;
 
 /**
  * Array expression
@@ -326,6 +364,8 @@ export interface ASTVisitor<T = void> {
   visitDoBlock?(node: DoBlockNode): T;
   visitParallelBlock?(node: ParallelBlockNode): T;
   visitLoopBlock?(node: LoopBlockNode): T;
+  visitRepeatBlock?(node: RepeatBlockNode): T;
+  visitForEachBlock?(node: ForEachBlockNode): T;
   visitTryBlock?(node: TryBlockNode): T;
   visitLetBinding?(node: LetBindingNode): T;
   visitConstBinding?(node: ConstBindingNode): T;
@@ -370,6 +410,10 @@ export function walkAST<T>(node: ASTNode, visitor: ASTVisitor<T>): T | undefined
       return visitor.visitParallelBlock?.(node as ParallelBlockNode);
     case 'LoopBlock':
       return visitor.visitLoopBlock?.(node as LoopBlockNode);
+    case 'RepeatBlock':
+      return visitor.visitRepeatBlock?.(node as RepeatBlockNode);
+    case 'ForEachBlock':
+      return visitor.visitForEachBlock?.(node as ForEachBlockNode);
     case 'TryBlock':
       return visitor.visitTryBlock?.(node as TryBlockNode);
     case 'LetBinding':

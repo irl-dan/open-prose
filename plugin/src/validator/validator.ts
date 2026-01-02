@@ -29,6 +29,8 @@ import {
   BlockDefinitionNode,
   ArrowExpressionNode,
   ParallelBlockNode,
+  RepeatBlockNode,
+  ForEachBlockNode,
   walkAST,
   ASTVisitor,
 } from '../parser';
@@ -219,6 +221,12 @@ export class Validator {
         break;
       case 'ParallelBlock':
         this.validateParallelBlock(statement);
+        break;
+      case 'RepeatBlock':
+        this.validateRepeatBlock(statement);
+        break;
+      case 'ForEachBlock':
+        this.validateForEachBlock(statement);
         break;
       case 'ArrowExpression':
         this.validateArrowExpression(statement);
@@ -433,6 +441,110 @@ export class Validator {
   }
 
   /**
+   * Validate a repeat block
+   */
+  private validateRepeatBlock(repeat: RepeatBlockNode): void {
+    // Validate count is positive
+    if (repeat.count.value <= 0) {
+      this.addError(
+        `Repeat count must be positive, got ${repeat.count.value}`,
+        repeat.count.span
+      );
+    }
+
+    // Validate count is an integer
+    if (!Number.isInteger(repeat.count.value)) {
+      this.addError(
+        `Repeat count must be an integer, got ${repeat.count.value}`,
+        repeat.count.span
+      );
+    }
+
+    // If there's an index variable, temporarily add it to scope
+    const savedVariables = new Map(this.definedVariables);
+    if (repeat.indexVar) {
+      const indexName = repeat.indexVar.name;
+      // Check for shadowing
+      if (this.definedVariables.has(indexName)) {
+        this.addWarning(
+          `Loop variable "${indexName}" shadows outer variable`,
+          repeat.indexVar.span
+        );
+      }
+      this.definedVariables.set(indexName, {
+        name: indexName,
+        isConst: true,  // Loop variables are implicitly const within each iteration
+        span: repeat.indexVar.span,
+      });
+    }
+
+    // Validate body statements
+    for (const stmt of repeat.body) {
+      this.validateStatement(stmt);
+    }
+
+    // Restore previous scope
+    this.definedVariables = savedVariables;
+  }
+
+  /**
+   * Validate a for-each block
+   */
+  private validateForEachBlock(forEach: ForEachBlockNode): void {
+    // Validate collection reference if it's an identifier
+    if (forEach.collection.type === 'Identifier') {
+      const collectionName = (forEach.collection as IdentifierNode).name;
+      if (!this.definedVariables.has(collectionName)) {
+        this.addError(
+          `Undefined collection variable: "${collectionName}"`,
+          forEach.collection.span
+        );
+      }
+    }
+
+    // Temporarily add loop variables to scope
+    const savedVariables = new Map(this.definedVariables);
+
+    // Add item variable
+    const itemName = forEach.itemVar.name;
+    if (this.definedVariables.has(itemName)) {
+      this.addWarning(
+        `Loop variable "${itemName}" shadows outer variable`,
+        forEach.itemVar.span
+      );
+    }
+    this.definedVariables.set(itemName, {
+      name: itemName,
+      isConst: true,  // Loop variables are implicitly const within each iteration
+      span: forEach.itemVar.span,
+    });
+
+    // Add index variable if present
+    if (forEach.indexVar) {
+      const indexName = forEach.indexVar.name;
+      if (this.definedVariables.has(indexName)) {
+        this.addWarning(
+          `Loop index variable "${indexName}" shadows outer variable`,
+          forEach.indexVar.span
+        );
+      }
+      this.definedVariables.set(indexName, {
+        name: indexName,
+        isConst: true,
+        span: forEach.indexVar.span,
+      });
+    }
+
+    // Validate body statements
+    for (const stmt of forEach.body) {
+      this.validateStatement(stmt);
+    }
+
+    // Restore previous scope
+    this.definedVariables = savedVariables;
+  }
+
+  /**
    * Validate an arrow expression (session -> session)
    */
   private validateArrowExpression(arrow: ArrowExpressionNode): void {
@@ -505,6 +617,10 @@ export class Validator {
       this.validateDoBlock(expr as DoBlockNode);
     } else if (expr.type === 'ParallelBlock') {
       this.validateParallelBlock(expr as ParallelBlockNode);
+    } else if (expr.type === 'RepeatBlock') {
+      this.validateRepeatBlock(expr as RepeatBlockNode);
+    } else if (expr.type === 'ForEachBlock') {
+      this.validateForEachBlock(expr as ForEachBlockNode);
     } else if (expr.type === 'ArrowExpression') {
       this.validateArrowExpression(expr as ArrowExpressionNode);
     } else if (expr.type === 'Identifier') {

@@ -29,6 +29,8 @@ import {
   BlockDefinitionNode,
   ArrowExpressionNode,
   ParallelBlockNode,
+  RepeatBlockNode,
+  ForEachBlockNode,
 } from '../parser';
 import { SourceSpan } from '../parser/tokens';
 
@@ -136,6 +138,12 @@ export class Compiler {
         break;
       case 'ParallelBlock':
         this.compileParallelBlock(statement);
+        break;
+      case 'RepeatBlock':
+        this.compileRepeatBlock(statement);
+        break;
+      case 'ForEachBlock':
+        this.compileForEachBlock(statement);
         break;
       case 'ArrowExpression':
         this.compileArrowExpression(statement);
@@ -295,6 +303,41 @@ export class Compiler {
       this.emit(':');
       this.emitNewline();
       for (const stmt of parallel.body) {
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
+    } else if (value.type === 'RepeatBlock') {
+      // Repeat block as value
+      const repeat = value as RepeatBlockNode;
+      this.emit('repeat ');
+      this.emit(String(repeat.count.value));
+      if (repeat.indexVar) {
+        this.emit(' as ');
+        this.emit(repeat.indexVar.name);
+      }
+      this.emit(':');
+      this.emitNewline();
+      for (const stmt of repeat.body) {
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
+    } else if (value.type === 'ForEachBlock') {
+      // For-each block as value
+      const forEach = value as ForEachBlockNode;
+      if (forEach.isParallel) {
+        this.emit('parallel ');
+      }
+      this.emit('for ');
+      this.emit(forEach.itemVar.name);
+      if (forEach.indexVar) {
+        this.emit(', ');
+        this.emit(forEach.indexVar.name);
+      }
+      this.emit(' in ');
+      this.compileExpression(forEach.collection);
+      this.emit(':');
+      this.emitNewline();
+      for (const stmt of forEach.body) {
         this.emit(this.options.indent);
         this.compileStatementInline(stmt);
       }
@@ -467,6 +510,78 @@ export class Compiler {
   }
 
   /**
+   * Compile a repeat block
+   * Syntax: repeat N: or repeat N as i:
+   */
+  private compileRepeatBlock(repeat: RepeatBlockNode, indentLevel: number = 0): void {
+    // Add source mapping
+    this.addSourceMapping(repeat.span.start.line, repeat.span.start.column);
+
+    const indent = this.options.indent.repeat(indentLevel);
+
+    this.emit(indent);
+    this.emit('repeat ');
+    this.emit(String(repeat.count.value));
+
+    // Emit index variable if present
+    if (repeat.indexVar) {
+      this.emit(' as ');
+      this.emit(repeat.indexVar.name);
+    }
+
+    this.emit(':');
+    this.emitNewline();
+
+    // Emit body with indentation
+    for (const stmt of repeat.body) {
+      this.emit(indent);
+      this.emit(this.options.indent);
+      this.compileStatementInline(stmt);
+    }
+  }
+
+  /**
+   * Compile a for-each block
+   * Syntax: for item in items: or for item, i in items: or parallel for item in items:
+   */
+  private compileForEachBlock(forEach: ForEachBlockNode, indentLevel: number = 0): void {
+    // Add source mapping
+    this.addSourceMapping(forEach.span.start.line, forEach.span.start.column);
+
+    const indent = this.options.indent.repeat(indentLevel);
+
+    this.emit(indent);
+
+    if (forEach.isParallel) {
+      this.emit('parallel ');
+    }
+
+    this.emit('for ');
+    this.emit(forEach.itemVar.name);
+
+    // Emit index variable if present
+    if (forEach.indexVar) {
+      this.emit(', ');
+      this.emit(forEach.indexVar.name);
+    }
+
+    this.emit(' in ');
+
+    // Emit collection
+    this.compileExpression(forEach.collection);
+
+    this.emit(':');
+    this.emitNewline();
+
+    // Emit body with indentation
+    for (const stmt of forEach.body) {
+      this.emit(indent);
+      this.emit(this.options.indent);
+      this.compileStatementInline(stmt);
+    }
+  }
+
+  /**
    * Compile an arrow expression (session "A" -> session "B")
    */
   private compileArrowExpression(arrow: ArrowExpressionNode, indentLevel: number = 0): void {
@@ -544,6 +659,12 @@ export class Compiler {
         break;
       case 'ParallelBlock':
         this.compileParallelBlock(stmt, 0);
+        break;
+      case 'RepeatBlock':
+        this.compileRepeatBlock(stmt, 0);
+        break;
+      case 'ForEachBlock':
+        this.compileForEachBlock(stmt, 0);
         break;
       case 'ArrowExpression':
         this.compileArrowExpression(stmt, 0);

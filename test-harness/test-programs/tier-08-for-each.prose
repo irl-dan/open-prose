@@ -1,0 +1,13 @@
+# Tier 8.3: For-Each Block
+# Tests for item in collection: syntax for iterating over items
+
+# Define a collection of fruits
+let fruits = ["apple", "banana", "mango"]
+
+# Describe each fruit
+for fruit in fruits:
+  session "Describe the taste, texture, and best way to eat this fruit in 2-3 sentences"
+    context: fruit
+
+# Compare all fruits
+session "Based on the descriptions above, which fruit would you recommend for a tropical smoothie and why?"
