@@ -319,19 +319,19 @@ Concurrent execution of sessions.
 
 ---
 
-### Tier 7: Parallel (Advanced)
+### Tier 7: Parallel (Advanced) ✅
 
 Join strategies and failure policies.
 
-| #   | Feature                 | Description                      | Test Program              |
-| --- | ----------------------- | -------------------------------- | ------------------------- |
-| 7.1 | parallel ("first")      | First to complete wins (race)    | `tier-07-first.prose`      |
-| 7.2 | parallel ("any")        | First success wins               | `tier-07-any.prose`        |
-| 7.3 | parallel ("regardless") | All complete, ignore failures    | `tier-07-regardless.prose` |
-| 7.4 | on-fail: "continue"     | Let all complete, collect errors | `tier-07-continue.prose`   |
-| 7.5 | on-fail: "ignore"       | Silently ignore failures         | `tier-07-ignore.prose`     |
+| #   | Feature                 | Description                      | Test Program                    | Status |
+| --- | ----------------------- | -------------------------------- | ------------------------------- | ------ |
+| 7.1 | parallel ("first")      | First to complete wins (race)    | `tier-07-join-first.prose`      | ✅     |
+| 7.2 | parallel ("any")        | Any N successes (count: N)       | `tier-07-join-any.prose`        | ✅     |
+| 7.3 | on-fail: "continue"     | Let all complete, collect errors | `tier-07-onfail-continue.prose` | ✅     |
+| 7.4 | on-fail: "ignore"       | Silently ignore failures         | `tier-07-onfail-ignore.prose`   | ✅     |
+| 7.5 | Combined modifiers      | Strategy + on-fail together      | `tier-07-combined-modifiers.prose` | ✅  |
 
-**Milestone:** Full parallel execution with all join strategies and failure policies.
+**Milestone:** Full parallel execution with all join strategies and failure policies. ✅
 
 ---
 

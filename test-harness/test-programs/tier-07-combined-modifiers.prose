@@ -1,0 +1,18 @@
+# Tier 7.5: Combined Modifiers
+# Tests parallel with multiple modifiers
+
+# Race with resilience: get first result, but continue even if errors
+parallel ("first", on-fail: "continue"):
+  session "Suggest a book about productivity"
+  session "Suggest a book about creativity"
+  session "Suggest a book about leadership"
+
+# Get any 2 results while ignoring failures
+parallel ("any", count: 2, on-fail: "ignore"):
+  session "Name a famous scientist"
+  session "Name a famous artist"
+  session "Name a famous musician"
+  session "Name a famous author"
+
+# Use results from both parallel blocks
+session "Create a reading and inspiration list based on the suggestions above"

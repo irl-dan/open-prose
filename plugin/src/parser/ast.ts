@@ -170,7 +170,9 @@ export interface DoBlockNode extends ASTNode {
  */
 export interface ParallelBlockNode extends ASTNode {
   type: 'ParallelBlock';
-  joinStrategy: StringLiteralNode | null;  // "all", "first", "any", "regardless"
+  joinStrategy: StringLiteralNode | null;  // "all", "first", "any"
+  anyCount: NumberLiteralNode | null;  // For "any" strategy: how many results needed
+  onFail: StringLiteralNode | null;  // "fail-fast", "continue", "ignore"
   body: StatementNode[];
 }
 

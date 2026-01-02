@@ -1,0 +1,11 @@
+# Tier 7.1: Join Strategy - First
+# Tests parallel ("first"): for race pattern
+
+# Race: first to complete wins
+parallel ("first"):
+  session "Count from 1 to 10 slowly"
+  session "Count from A to E quickly"
+  session "Count from 100 to 105 at medium speed"
+
+# Only the first completed result is available
+session "Report which counting task finished first and its result"

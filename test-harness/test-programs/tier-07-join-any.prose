@@ -1,0 +1,12 @@
+# Tier 7.2: Join Strategy - Any N
+# Tests parallel ("any", count: N): for getting N successes
+
+# Get any 2 of 4 successful results
+parallel ("any", count: 2):
+  session "Generate a haiku about mountains"
+  session "Generate a haiku about the ocean"
+  session "Generate a haiku about forests"
+  session "Generate a haiku about rivers"
+
+# Continue with the 2 haikus that completed first
+session "Create a poem combining themes from the haikus above"

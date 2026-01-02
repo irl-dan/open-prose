@@ -1,0 +1,11 @@
+# Tier 7.3: Failure Policy - Continue
+# Tests parallel (on-fail: "continue"): to gather all results
+
+# Continue even if some branches might have issues
+parallel (on-fail: "continue"):
+  session "List 3 common programming languages"
+  session "List 3 popular databases"
+  session "List 3 cloud providers"
+
+# Process all results, including any that had issues
+session "Create a technology stack recommendation from all the options listed above"

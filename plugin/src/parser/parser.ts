@@ -1174,17 +1174,92 @@ export class Parser {
 
   /**
    * Parse a parallel block
-   * Syntax: parallel:
-   *           statement...
-   *           name = statement (named result)
+   * Syntax variants:
+   *   parallel:
+   *   parallel ("first"):
+   *   parallel ("any"):
+   *   parallel ("any", count: 2):
+   *   parallel (on-fail: "continue"):
+   *   parallel (on-fail: "ignore"):
+   *   parallel ("first", on-fail: "continue"):
    */
   private parseParallelBlock(): ParallelBlockNode {
     const parallelToken = this.advance(); // consume 'parallel'
     const start = parallelToken.span.start;
 
+    // Parse optional modifiers in parentheses
+    let joinStrategy: StringLiteralNode | null = null;
+    let anyCount: NumberLiteralNode | null = null;
+    let onFail: StringLiteralNode | null = null;
+
+    if (this.check(TokenType.LPAREN)) {
+      this.advance(); // consume '('
+
+      // Parse modifiers until we hit ')'
+      while (!this.isAtEnd() && !this.check(TokenType.RPAREN)) {
+        if (this.check(TokenType.STRING)) {
+          // Join strategy: "first", "any", or "all"
+          if (joinStrategy) {
+            this.addError('Duplicate join strategy specified');
+          }
+          joinStrategy = this.parseStringLiteral();
+        } else if (this.check(TokenType.IDENTIFIER)) {
+          // Named modifier like on-fail: "continue" or count: 2
+          const modifierName = this.peek().value;
+
+          if (modifierName === 'on-fail') {
+            this.advance(); // consume 'on-fail'
+            if (!this.match(TokenType.COLON)) {
+              this.addError('Expected ":" after "on-fail"');
+            }
+            if (this.check(TokenType.STRING)) {
+              if (onFail) {
+                this.addError('Duplicate on-fail policy specified');
+              }
+              onFail = this.parseStringLiteral();
+            } else {
+              this.addError('Expected string value for "on-fail" (e.g., "continue" or "ignore")');
+            }
+          } else if (modifierName === 'count') {
+            this.advance(); // consume 'count'
+            if (!this.match(TokenType.COLON)) {
+              this.addError('Expected ":" after "count"');
+            }
+            if (this.check(TokenType.NUMBER)) {
+              if (anyCount) {
+                this.addError('Duplicate count specified');
+              }
+              anyCount = this.parseNumberLiteral();
+            } else {
+              this.addError('Expected number value for "count"');
+            }
+          } else {
+            this.addError(`Unknown parallel modifier: "${modifierName}"`);
+            this.advance();
+          }
+        } else {
+          // Unexpected token in modifiers
+          this.addError('Unexpected token in parallel modifiers');
+          this.advance();
+        }
+
+        // Expect comma or closing paren
+        if (!this.check(TokenType.RPAREN)) {
+          if (!this.match(TokenType.COMMA)) {
+            this.addError('Expected "," or ")" in parallel modifiers');
+            break;
+          }
+        }
+      }
+
+      if (!this.match(TokenType.RPAREN)) {
+        this.addError('Expected ")" after parallel modifiers');
+      }
+    }
+
     // Expect colon
     if (!this.match(TokenType.COLON)) {
-      this.addError('Expected ":" after "parallel"');
+      this.addError('Expected ":" after "parallel" or parallel modifiers');
     }
 
     // Skip inline comment if present
@@ -1243,7 +1318,9 @@ export class Parser {
 
     return {
       type: 'ParallelBlock',
-      joinStrategy: null, // Default is 'all', handled by orchestrator
+      joinStrategy,
+      anyCount,
+      onFail,
       body,
       span: { start, end },
     };

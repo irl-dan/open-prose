@@ -17,6 +17,7 @@ import {
   ImportStatementNode,
   PropertyNode,
   StringLiteralNode,
+  NumberLiteralNode,
   IdentifierNode,
   ArrayExpressionNode,
   ObjectExpressionNode,
@@ -47,6 +48,12 @@ export interface ValidationResult {
 
 /** Valid model values */
 const VALID_MODELS = ['sonnet', 'opus', 'haiku'];
+
+/** Valid parallel join strategies */
+const VALID_JOIN_STRATEGIES = ['all', 'first', 'any'];
+
+/** Valid on-fail policies */
+const VALID_ON_FAIL_POLICIES = ['fail-fast', 'continue', 'ignore'];
 
 /** Variable binding info */
 interface VariableBinding {
@@ -348,6 +355,56 @@ export class Validator {
    * Validate a parallel block
    */
   private validateParallelBlock(parallel: ParallelBlockNode): void {
+    // Validate join strategy if specified
+    if (parallel.joinStrategy) {
+      const strategy = parallel.joinStrategy.value;
+      if (!VALID_JOIN_STRATEGIES.includes(strategy)) {
+        this.addError(
+          `Invalid join strategy: "${strategy}". Must be one of: ${VALID_JOIN_STRATEGIES.join(', ')}`,
+          parallel.joinStrategy.span
+        );
+      }
+    }
+
+    // Validate on-fail policy if specified
+    if (parallel.onFail) {
+      const onFailValue = parallel.onFail.value;
+      if (!VALID_ON_FAIL_POLICIES.includes(onFailValue)) {
+        this.addError(
+          `Invalid on-fail policy: "${onFailValue}". Must be one of: ${VALID_ON_FAIL_POLICIES.join(', ')}`,
+          parallel.onFail.span
+        );
+      }
+    }
+
+    // Validate anyCount (count) if specified
+    if (parallel.anyCount) {
+      // count is only valid with "any" strategy
+      if (!parallel.joinStrategy || parallel.joinStrategy.value !== 'any') {
+        this.addError(
+          'The "count" modifier is only valid with the "any" join strategy',
+          parallel.anyCount.span
+        );
+      }
+
+      // count must be a positive integer
+      const countValue = parallel.anyCount.value;
+      if (countValue < 1) {
+        this.addError(
+          `Invalid count: ${countValue}. Count must be at least 1`,
+          parallel.anyCount.span
+        );
+      }
+
+      // count should not exceed the number of branches
+      if (parallel.body.length > 0 && countValue > parallel.body.length) {
+        this.addWarning(
+          `Count (${countValue}) exceeds number of parallel branches (${parallel.body.length})`,
+          parallel.anyCount.span
+        );
+      }
+    }
+
     // Collect any variable assignments inside the parallel block
     for (const stmt of parallel.body) {
       // For assignments inside parallel blocks, register them as variables

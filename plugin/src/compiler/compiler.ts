@@ -270,7 +270,29 @@ export class Compiler {
     } else if (value.type === 'ParallelBlock') {
       // Parallel block as value
       const parallel = value as ParallelBlockNode;
-      this.emit('parallel:');
+      this.emit('parallel');
+
+      // Emit modifiers if present
+      const hasModifiers = parallel.joinStrategy || parallel.onFail || parallel.anyCount;
+      if (hasModifiers) {
+        this.emit(' (');
+        const modifierParts: string[] = [];
+
+        if (parallel.joinStrategy) {
+          modifierParts.push(`"${this.escapeString(parallel.joinStrategy.value)}"`);
+        }
+        if (parallel.anyCount) {
+          modifierParts.push(`count: ${parallel.anyCount.value}`);
+        }
+        if (parallel.onFail) {
+          modifierParts.push(`on-fail: "${this.escapeString(parallel.onFail.value)}"`);
+        }
+
+        this.emit(modifierParts.join(', '));
+        this.emit(')');
+      }
+
+      this.emit(':');
       this.emitNewline();
       for (const stmt of parallel.body) {
         this.emit(this.options.indent);
@@ -406,7 +428,34 @@ export class Compiler {
     const indent = this.options.indent.repeat(indentLevel);
 
     this.emit(indent);
-    this.emit('parallel:');
+    this.emit('parallel');
+
+    // Emit modifiers if present
+    const hasModifiers = parallel.joinStrategy || parallel.onFail || parallel.anyCount;
+    if (hasModifiers) {
+      this.emit(' (');
+      const modifierParts: string[] = [];
+
+      // Join strategy comes first
+      if (parallel.joinStrategy) {
+        modifierParts.push(`"${this.escapeString(parallel.joinStrategy.value)}"`);
+      }
+
+      // Then count (only valid with "any")
+      if (parallel.anyCount) {
+        modifierParts.push(`count: ${parallel.anyCount.value}`);
+      }
+
+      // Then on-fail
+      if (parallel.onFail) {
+        modifierParts.push(`on-fail: "${this.escapeString(parallel.onFail.value)}"`);
+      }
+
+      this.emit(modifierParts.join(', '));
+      this.emit(')');
+    }
+
+    this.emit(':');
     this.emitNewline();
 
     // Emit body with indentation

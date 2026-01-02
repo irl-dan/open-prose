@@ -1,0 +1,11 @@
+# Tier 7.4: Failure Policy - Ignore
+# Tests parallel (on-fail: "ignore"): for optional enrichments
+
+# Ignore all failures - these are optional enrichments
+parallel (on-fail: "ignore"):
+  session "Generate a fun fact about cats"
+  session "Generate a fun fact about space"
+  session "Generate a fun fact about ancient history"
+
+# This always runs regardless of what happened above
+session "Write a brief newsletter intro, optionally mentioning any fun facts if they were generated"

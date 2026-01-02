@@ -58,6 +58,8 @@ The following features are implemented:
 | Parallel blocks | Implemented | `parallel:` for concurrent execution |
 | Named parallel results | Implemented | `x = session "..."` inside parallel |
 | Object context | Implemented | `context: { a, b, c }` shorthand |
+| Join strategies | Implemented | `parallel ("first"):` or `parallel ("any"):` |
+| Failure policies | Implemented | `parallel (on-fail: "continue"):` |
 
 ---
 
@@ -908,13 +910,119 @@ session "Create unified review report"
   context: { sec, perf, style }
 ```
 
-### Validation Rules
+### Join Strategies
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Duplicate variable in parallel | Error | Variable already defined |
-| Variable conflicts with agent | Error | Variable name conflicts with agent name |
-| Undefined variable in object context | Error | Undefined variable in context |
+By default, parallel blocks wait for all branches to complete. You can specify alternative join strategies:
+
+#### First (Race)
+
+Return as soon as the first branch completes, cancel others:
+
+```prose
+parallel ("first"):
+  session "Try approach A"
+  session "Try approach B"
+  session "Try approach C"
+```
+
+The first successful result wins. Other branches are cancelled.
+
+#### Any (N of M)
+
+Return when any N branches complete successfully:
+
+```prose
+# Default: any 1 success
+parallel ("any"):
+  session "Attempt 1"
+  session "Attempt 2"
+
+# Specific count: wait for 2 successes
+parallel ("any", count: 2):
+  session "Attempt 1"
+  session "Attempt 2"
+  session "Attempt 3"
+```
+
+#### All (Default)
+
+Wait for all branches to complete:
+
+```prose
+# Implicit - this is the default
+parallel:
+  session "Task A"
+  session "Task B"
+
+# Explicit
+parallel ("all"):
+  session "Task A"
+  session "Task B"
+```
+
+### Failure Policies
+
+Control how the parallel block handles branch failures:
+
+#### Fail-Fast (Default)
+
+If any branch fails, fail immediately and cancel other branches:
+
+```prose
+parallel:  # Implicit fail-fast
+  session "Critical task 1"
+  session "Critical task 2"
+
+# Explicit
+parallel (on-fail: "fail-fast"):
+  session "Critical task 1"
+  session "Critical task 2"
+```
+
+#### Continue
+
+Let all branches complete, then report all failures:
+
+```prose
+parallel (on-fail: "continue"):
+  session "Task 1"
+  session "Task 2"
+  session "Task 3"
+
+# Continue regardless of which branches failed
+session "Process results, including failures"
+```
+
+#### Ignore
+
+Ignore all failures, always succeed:
+
+```prose
+parallel (on-fail: "ignore"):
+  session "Optional enrichment 1"
+  session "Optional enrichment 2"
+
+# This always runs, even if all branches failed
+session "Continue regardless"
+```
+
+### Combining Modifiers
+
+Join strategies and failure policies can be combined:
+
+```prose
+# Race with resilience
+parallel ("first", on-fail: "continue"):
+  session "Fast but unreliable"
+  session "Slow but reliable"
+
+# Get any 2 results, ignoring failures
+parallel ("any", count: 2, on-fail: "ignore"):
+  session "Approach 1"
+  session "Approach 2"
+  session "Approach 3"
+  session "Approach 4"
+```
 
 ### Execution Semantics
 
@@ -922,10 +1030,28 @@ When the Orchestrator encounters a `parallel:` block:
 
 1. **Fork**: Start all branches concurrently
 2. **Execute**: Each branch runs independently
-3. **Join**: Wait for all branches to complete
-4. **Continue**: Proceed to the next statement with all results available
+3. **Join**: Wait according to join strategy:
+   - `"all"` (default): Wait for all branches
+   - `"first"`: Return on first completion
+   - `"any"`: Return on first success (or N successes with `count`)
+4. **Handle failures**: According to on-fail policy:
+   - `"fail-fast"` (default): Cancel remaining and fail immediately
+   - `"continue"`: Wait for all, then report failures
+   - `"ignore"`: Treat failures as successes
+5. **Continue**: Proceed to the next statement with available results
 
-By default, parallel blocks use "all" strategy (wait for all) with "fail-fast" policy (if any fails, fail immediately).
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Invalid join strategy | Error | Must be "all", "first", or "any" |
+| Invalid on-fail policy | Error | Must be "fail-fast", "continue", or "ignore" |
+| Count without "any" | Error | Count is only valid with "any" strategy |
+| Count less than 1 | Error | Count must be at least 1 |
+| Count exceeds branches | Warning | Count exceeds number of parallel branches |
+| Duplicate variable in parallel | Error | Variable already defined |
+| Variable conflicts with agent | Error | Variable name conflicts with agent name |
+| Undefined variable in object context | Error | Undefined variable in context |
 
 ---
 
@@ -1188,7 +1314,11 @@ program     → statement* EOF
 statement   → agentDef | blockDef | parallelBlock | session | doBlock | arrowExpr | letBinding | constBinding | assignment | comment
 agentDef    → "agent" IDENTIFIER ":" NEWLINE INDENT property* DEDENT
 blockDef    → "block" IDENTIFIER ":" NEWLINE INDENT statement* DEDENT
-parallelBlock → "parallel" ":" NEWLINE INDENT parallelBranch* DEDENT
+parallelBlock → "parallel" parallelMods? ":" NEWLINE INDENT parallelBranch* DEDENT
+parallelMods  → "(" ( joinStrategy | onFail | countMod ) ( "," ( joinStrategy | onFail | countMod ) )* ")"
+joinStrategy  → string                              # "all" | "first" | "any"
+onFail        → "on-fail" ":" string                # "fail-fast" | "continue" | "ignore"
+countMod      → "count" ":" NUMBER                  # only valid with "any"
 parallelBranch → ( IDENTIFIER "=" )? statement
 doBlock     → "do" ( ":" NEWLINE INDENT statement* DEDENT | IDENTIFIER )
 arrowExpr   → session "->" session ( "->" session )*
