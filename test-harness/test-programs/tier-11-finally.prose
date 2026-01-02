@@ -1,0 +1,11 @@
+# Tier 11: Try/Catch/Finally
+# Tests: cleanup with finally block
+
+try:
+  session "Open a resource and perform work with it."
+catch:
+  session "Handle any errors that occurred."
+finally:
+  session "Always clean up and close the resource, regardless of success or failure."
+
+session "Program continues after cleanup is complete."

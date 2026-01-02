@@ -93,6 +93,7 @@ export type StatementNode =
   | RepeatBlockNode
   | ForEachBlockNode
   | TryBlockNode
+  | ThrowStatementNode
   | LetBindingNode
   | ConstBindingNode
   | AssignmentNode
@@ -235,12 +236,33 @@ export interface ForEachBlockNode extends ASTNode {
 
 /**
  * Try/catch/finally block
+ *
+ * Syntax:
+ *   try:
+ *     body...
+ *   catch [as err]:
+ *     handleError...
+ *   finally:
+ *     cleanup...
  */
 export interface TryBlockNode extends ASTNode {
   type: 'TryBlock';
   tryBody: StatementNode[];
   catchBody: StatementNode[] | null;
   finallyBody: StatementNode[] | null;
+  errorVar: IdentifierNode | null;  // Optional "catch as err:" variable
+}
+
+/**
+ * Throw statement for raising/rethrowing errors
+ *
+ * Syntax:
+ *   throw              # Rethrow current error
+ *   throw "message"    # Throw with custom message
+ */
+export interface ThrowStatementNode extends ASTNode {
+  type: 'ThrowStatement';
+  message: StringLiteralNode | null;  // Optional error message
 }
 
 /**
@@ -286,7 +308,8 @@ export type ExpressionNode =
   | ParallelBlockNode
   | LoopBlockNode
   | RepeatBlockNode
-  | ForEachBlockNode;
+  | ForEachBlockNode
+  | TryBlockNode;
 
 /**
  * Array expression
@@ -400,6 +423,7 @@ export interface ASTVisitor<T = void> {
   visitRepeatBlock?(node: RepeatBlockNode): T;
   visitForEachBlock?(node: ForEachBlockNode): T;
   visitTryBlock?(node: TryBlockNode): T;
+  visitThrowStatement?(node: ThrowStatementNode): T;
   visitLetBinding?(node: LetBindingNode): T;
   visitConstBinding?(node: ConstBindingNode): T;
   visitAssignment?(node: AssignmentNode): T;
@@ -450,6 +474,8 @@ export function walkAST<T>(node: ASTNode, visitor: ASTVisitor<T>): T | undefined
       return visitor.visitForEachBlock?.(node as ForEachBlockNode);
     case 'TryBlock':
       return visitor.visitTryBlock?.(node as TryBlockNode);
+    case 'ThrowStatement':
+      return visitor.visitThrowStatement?.(node as ThrowStatementNode);
     case 'LetBinding':
       return visitor.visitLetBinding?.(node as LetBindingNode);
     case 'ConstBinding':

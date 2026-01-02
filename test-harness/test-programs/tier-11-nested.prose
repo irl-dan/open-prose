@@ -1,0 +1,14 @@
+# Tier 11: Nested Try/Catch
+# Tests: inner catch handles inner errors, outer catch for outer errors
+
+try:
+  session "Begin outer operation"
+  try:
+    session "Perform inner risky operation"
+  catch:
+    session "Handle inner error gracefully"
+  session "Continue outer operation after inner try"
+catch:
+  session "Handle outer error (only if inner rethrows)"
+
+session "Program continues after all error handling"

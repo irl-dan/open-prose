@@ -39,6 +39,8 @@ import {
   LoopBlockNode,
   RepeatBlockNode,
   ForEachBlockNode,
+  TryBlockNode,
+  ThrowStatementNode,
   PipeExpressionNode,
   PipeOperationNode,
   createProgramNode,
@@ -183,6 +185,16 @@ export class Parser {
     // Handle loop block (unbounded - Tier 9)
     if (this.check(TokenType.LOOP)) {
       return this.parseLoopBlock();
+    }
+
+    // Handle try block (Tier 11)
+    if (this.check(TokenType.TRY)) {
+      return this.parseTryBlock();
+    }
+
+    // Handle throw statement (Tier 11)
+    if (this.check(TokenType.THROW)) {
+      return this.parseThrowStatement();
     }
 
     // Handle session keyword (may be followed by -> for arrow sequences)
@@ -434,6 +446,11 @@ export class Parser {
       return this.parseLoopBlock();
     }
 
+    // If it's a try block
+    if (this.check(TokenType.TRY)) {
+      return this.parseTryBlock();
+    }
+
     // If it's a string literal
     if (this.check(TokenType.STRING)) {
       return this.parseStringLiteral();
@@ -563,11 +580,12 @@ export class Parser {
   private parseProperty(): PropertyNode | null {
     const start = this.peek().span.start;
 
-    // Property name can be model, prompt, skills, permissions, context, or any identifier
+    // Property name can be model, prompt, skills, permissions, context, retry, backoff, or any identifier
     let propName: IdentifierNode;
     if (this.check(TokenType.MODEL) || this.check(TokenType.PROMPT) ||
         this.check(TokenType.SKILLS) || this.check(TokenType.PERMISSIONS) ||
-        this.check(TokenType.CONTEXT) || this.check(TokenType.IDENTIFIER)) {
+        this.check(TokenType.CONTEXT) || this.check(TokenType.RETRY) ||
+        this.check(TokenType.BACKOFF) || this.check(TokenType.IDENTIFIER)) {
       propName = this.parsePropertyName();
     } else {
       // Skip unknown tokens
@@ -592,6 +610,8 @@ export class Parser {
       value = this.parseArrayExpression();
     } else if (this.check(TokenType.STRING)) {
       value = this.parseStringLiteral();
+    } else if (this.check(TokenType.NUMBER)) {
+      value = this.parseNumberLiteral();
     } else if (this.check(TokenType.IDENTIFIER)) {
       value = this.parseIdentifier();
     } else if (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
@@ -1775,6 +1795,250 @@ export class Parser {
       iterationVar,
       maxIterations,
       body,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a try/catch/finally block (Tier 11)
+   *
+   * Syntax:
+   *   try:
+   *     body...
+   *   catch [as err]:
+   *     handleError...
+   *   finally:
+   *     cleanup...
+   *
+   * Must have at least catch or finally.
+   */
+  private parseTryBlock(): TryBlockNode {
+    const tryToken = this.advance(); // consume 'try'
+    const start = tryToken.span.start;
+
+    // Expect colon after try
+    if (!this.match(TokenType.COLON)) {
+      this.addError('Expected ":" after "try"');
+    }
+
+    // Skip inline comment if present
+    if (this.check(TokenType.COMMENT)) {
+      const commentToken = this.advance();
+      const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+      this.comments.push(inlineComment);
+    }
+
+    // Skip newline(s)
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse try body
+    const tryBody: StatementNode[] = [];
+
+    if (this.check(TokenType.INDENT)) {
+      this.advance(); // consume INDENT
+
+      while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+        // Skip newlines and comments inside the block
+        while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+          if (this.check(TokenType.COMMENT)) {
+            const commentToken = this.advance();
+            const comment = createCommentNode(commentToken.value, commentToken.span, false);
+            this.comments.push(comment);
+          } else {
+            this.advance();
+          }
+        }
+
+        if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+        const stmt = this.parseStatement();
+        if (stmt) {
+          tryBody.push(stmt);
+        }
+      }
+
+      // Consume DEDENT
+      if (this.check(TokenType.DEDENT)) {
+        this.advance();
+      }
+    }
+
+    // Skip newlines before catch/finally
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse optional catch block
+    let catchBody: StatementNode[] | null = null;
+    let errorVar: IdentifierNode | null = null;
+
+    if (this.check(TokenType.CATCH)) {
+      this.advance(); // consume 'catch'
+
+      // Check for optional "as err" error variable
+      if (this.check(TokenType.AS)) {
+        this.advance(); // consume 'as'
+        if (this.check(TokenType.IDENTIFIER)) {
+          errorVar = this.parseIdentifier();
+        } else {
+          this.addError('Expected identifier after "as"');
+        }
+      }
+
+      // Expect colon after catch
+      if (!this.match(TokenType.COLON)) {
+        this.addError('Expected ":" after "catch"');
+      }
+
+      // Skip inline comment if present
+      if (this.check(TokenType.COMMENT)) {
+        const commentToken = this.advance();
+        const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+        this.comments.push(inlineComment);
+      }
+
+      // Skip newline(s)
+      while (this.check(TokenType.NEWLINE)) {
+        this.advance();
+      }
+
+      // Parse catch body
+      catchBody = [];
+
+      if (this.check(TokenType.INDENT)) {
+        this.advance(); // consume INDENT
+
+        while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+          // Skip newlines and comments inside the block
+          while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+            if (this.check(TokenType.COMMENT)) {
+              const commentToken = this.advance();
+              const comment = createCommentNode(commentToken.value, commentToken.span, false);
+              this.comments.push(comment);
+            } else {
+              this.advance();
+            }
+          }
+
+          if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+          const stmt = this.parseStatement();
+          if (stmt) {
+            catchBody.push(stmt);
+          }
+        }
+
+        // Consume DEDENT
+        if (this.check(TokenType.DEDENT)) {
+          this.advance();
+        }
+      }
+    }
+
+    // Skip newlines before finally
+    while (this.check(TokenType.NEWLINE)) {
+      this.advance();
+    }
+
+    // Parse optional finally block
+    let finallyBody: StatementNode[] | null = null;
+
+    if (this.check(TokenType.FINALLY)) {
+      this.advance(); // consume 'finally'
+
+      // Expect colon after finally
+      if (!this.match(TokenType.COLON)) {
+        this.addError('Expected ":" after "finally"');
+      }
+
+      // Skip inline comment if present
+      if (this.check(TokenType.COMMENT)) {
+        const commentToken = this.advance();
+        const inlineComment = createCommentNode(commentToken.value, commentToken.span, true);
+        this.comments.push(inlineComment);
+      }
+
+      // Skip newline(s)
+      while (this.check(TokenType.NEWLINE)) {
+        this.advance();
+      }
+
+      // Parse finally body
+      finallyBody = [];
+
+      if (this.check(TokenType.INDENT)) {
+        this.advance(); // consume INDENT
+
+        while (!this.isAtEnd() && !this.check(TokenType.DEDENT)) {
+          // Skip newlines and comments inside the block
+          while (this.check(TokenType.NEWLINE) || this.check(TokenType.COMMENT)) {
+            if (this.check(TokenType.COMMENT)) {
+              const commentToken = this.advance();
+              const comment = createCommentNode(commentToken.value, commentToken.span, false);
+              this.comments.push(comment);
+            } else {
+              this.advance();
+            }
+          }
+
+          if (this.check(TokenType.DEDENT) || this.isAtEnd()) break;
+
+          const stmt = this.parseStatement();
+          if (stmt) {
+            finallyBody.push(stmt);
+          }
+        }
+
+        // Consume DEDENT
+        if (this.check(TokenType.DEDENT)) {
+          this.advance();
+        }
+      }
+    }
+
+    // Validate: must have at least catch or finally
+    if (catchBody === null && finallyBody === null) {
+      this.addError('Try block must have at least "catch:" or "finally:"');
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'TryBlock',
+      tryBody,
+      catchBody,
+      finallyBody,
+      errorVar,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a throw statement (Tier 11)
+   *
+   * Syntax:
+   *   throw              # Rethrow current error
+   *   throw "message"    # Throw with custom message
+   */
+  private parseThrowStatement(): ThrowStatementNode {
+    const throwToken = this.advance(); // consume 'throw'
+    const start = throwToken.span.start;
+
+    // Check for optional string message
+    let message: StringLiteralNode | null = null;
+
+    if (this.check(TokenType.STRING)) {
+      const stringToken = this.advance();
+      message = this.createStringLiteralNode(stringToken);
+    }
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ThrowStatement',
+      message,
       span: { start, end },
     };
   }

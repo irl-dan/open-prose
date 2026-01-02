@@ -1,4 +1,4 @@
-# Handoff: Implement Tier 11 (Error Handling)
+# Handoff: Implement Tier 12 (Advanced Features)
 
 ## Project Overview
 
@@ -6,7 +6,7 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. It'
 
 ## Current Status
 
-**Implemented (Tier 0 through Tier 10):**
+**Implemented (Tier 0 through Tier 11):**
 - Comments (`# comment`)
 - Single-line strings (`"string"` with escapes)
 - Simple session (`session "prompt"`)
@@ -35,12 +35,36 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. It'
 - Unbounded loops (`loop:`, `loop until **condition**:`, `loop while **condition**:`)
 - Loop with max iterations (`loop (max: N):`)
 - Loop with iteration variable (`loop as i:`, `loop until **done** as i:`)
-- **Pipeline operations** (`items | map:`, `items | filter:`, `items | reduce(acc, item):`, `items | pmap:`)
-- **Pipeline chaining** (`| filter: ... | map: ... | reduce: ...`)
+- Pipeline operations (`items | map:`, `items | filter:`, `items | reduce(acc, item):`, `items | pmap:`)
+- Pipeline chaining (`| filter: ... | map: ... | reduce: ...`)
+- **Try/catch blocks** (`try:` / `catch:` / `catch as err:`)
+- **Try/catch/finally** (`finally:` block always runs)
+- **Throw statements** (`throw` for rethrow, `throw "message"` for custom errors)
+- **Retry property** (`retry: 3` on sessions)
+- **Backoff strategy** (`backoff: "exponential"`, `"linear"`, `"none"`)
 
 **All tests passing:**
-- 644 unit tests in `plugin/`
-- E2E tests in `test-harness/` (including 5 Tier 10 tests, all passing with 4.95/5.0 avg)
+- 705 unit tests in `plugin/`
+- E2E tests in `test-harness/` (including 5 Tier 11 tests, all passing with 4.93/5.0 avg)
+
+## Tier 11 Implementation Summary
+
+Tier 11 added comprehensive error handling with these key design decisions:
+
+1. **Error variable access**: Optional via `catch as err:` - error is contextual info (transcript/description), not structured JSON
+2. **Retry syntax**: Property in block style (`retry: 3` as indented property under session)
+3. **Throw syntax**: Optional message - `throw` rethrows current error, `throw "message"` for custom errors
+4. **Backoff values**: `"none"` (default), `"linear"`, `"exponential"`
+
+Files modified:
+- `plugin/src/parser/tokens.ts` - Added RETRY, BACKOFF tokens
+- `plugin/src/parser/ast.ts` - Updated TryBlockNode (added errorVar), added ThrowStatementNode
+- `plugin/src/parser/parser.ts` - Added parseTryBlock(), parseThrowStatement()
+- `plugin/src/validator/validator.ts` - Added validateTryBlock(), validateThrowStatement(), retry/backoff validation
+- `plugin/src/compiler/compiler.ts` - Added compileTryBlock(), compileThrowStatement()
+- `plugin/src/__tests__/error-handling.test.ts` - 61 comprehensive tests
+- `plugin/skills/open-prose/prose.md` - Error Handling documentation section
+- `test-harness/test-programs/tier-11-*.prose` - 5 E2E test programs
 
 ## Files to Read First
 
@@ -50,132 +74,162 @@ Read these files in order to understand the project:
 2. **`BUILD_PLAN.md`** - Development roadmap and feature checklist
 3. **`plugin/skills/open-prose/prose.md`** - Current DSL reference (comprehensive)
 4. **`plugin/src/parser/ast.ts`** - Current AST node definitions
-5. **`plugin/src/__tests__/pipeline.test.ts`** - Tier 10 tests (good template for test structure)
+5. **`plugin/src/__tests__/error-handling.test.ts`** - Tier 11 tests (good template for test structure)
 
-## Your Task: Implement Tier 11 (Error Handling)
+## Your Task: Implement Tier 12 (Advanced Features)
 
-Implement try/catch/finally blocks and retry mechanisms:
+Implement multi-line strings, string interpolation, block parameters, and conditional branching:
 
 | Feature | Syntax | Example |
 |---------|--------|---------|
-| 11.1 | `try`/`catch` | Basic error handling |
-| 11.2 | `try`/`catch`/`finally` | With cleanup |
-| 11.3 | Nested try/catch | Inner catches don't trigger outer |
-| 11.4 | `throw` | Rethrow to outer handler |
-| 11.5 | `retry` | `session "..." (retry: 3)` |
-| 11.6 | Retry with backoff | `(retry: 3, backoff: "exponential")` |
-| 11.7 | Try in parallel | Error handling inside parallel branches |
+| 12.1 | Multi-line strings | `"""..."""` |
+| 12.2 | String interpolation | `"Process {item}"` |
+| 12.3 | Block parameters | `block name(param):` |
+| 12.4 | Block invocation with args | `do name("arg")` |
+| 12.5 | choice **criteria**: | Orchestrator-selected branch |
+| 12.6 | if/else | Conditional branching |
 
 ### Target Syntax
 
 ```prose
-# Basic try/catch
-try:
-  session "Risky operation that might fail"
-catch:
-  session "Handle the error gracefully"
+# Multi-line strings
+session """
+  This is a long prompt that spans
+  multiple lines for readability.
+  It preserves internal formatting.
+"""
 
-# Try/catch/finally
-try:
-  session "Attempt to connect to external service"
-catch:
-  session "Log the connection failure"
-finally:
-  session "Clean up resources regardless of outcome"
+# String interpolation
+let item = session "Get next item"
+session "Process {item} and return results"
 
-# Nested try/catch
-try:
-  try:
-    session "Inner risky operation"
-  catch:
-    session "Handle inner error"
-  session "Continue after inner try"
-catch:
-  session "Handle outer error (only if inner doesn't catch)"
+# Block parameters
+block process-item(item):
+  session "Analyze {item}"
+  session "Transform the analysis"
 
-# Throw/rethrow
-try:
-  session "Check preconditions"
-  throw  # Explicitly trigger error
-catch:
-  session "Handle thrown error"
+# Block invocation with arguments
+let data = session "Fetch data"
+do process-item(data)
 
-# Retry modifier on sessions
-session "Flaky API call" (retry: 3)
+# Choice (Orchestrator-selected branch)
+choice **which approach is best for this task**:
+  option "quick":
+    session "Do the fast approach"
+  option "thorough":
+    session "Do the comprehensive approach"
+  option "creative":
+    session "Do the innovative approach"
 
-# Retry with backoff
-session "Rate-limited API" (retry: 5, backoff: "exponential")
+# If/else conditional
+if **the data is valid**:
+  session "Process the valid data"
+else:
+  session "Handle invalid data"
 
-# Try inside parallel
-parallel:
-  try:
-    session "Branch A - might fail"
-  catch:
-    session "Recover branch A"
-  session "Branch B - always runs"
+# If/elif/else
+if **the response is positive**:
+  session "Handle positive case"
+elif **the response is negative**:
+  session "Handle negative case"
+else:
+  session "Handle neutral case"
 ```
 
 ### Key Design Decisions
 
-1. **Catch Semantics**: The `catch` block receives context about what failed. Consider whether to make the error accessible via an implicit variable (like `error`) or require explicit naming.
+1. **Multi-line String Handling**: Triple quotes `"""` preserve internal whitespace. Leading/trailing newlines immediately after/before the quotes should likely be stripped.
 
-2. **Finally Timing**: `finally` always runs, whether `try` succeeded or `catch` was triggered.
+2. **String Interpolation Scope**: Only variables in scope can be interpolated. Use `{varname}` syntax (like Python f-strings but without the `f` prefix).
 
-3. **Throw Behavior**: `throw` without arguments re-raises the current error. Could optionally support `throw "message"` for explicit errors.
+3. **Block Parameters**: Parameters are passed by value. Consider whether to support default values (`block name(param = "default"):`).
 
-4. **Retry Scope**: Retry applies to individual sessions, not blocks. Consider whether retry should be on the session statement itself or as a modifier.
+4. **Choice Semantics**: The `**criteria**` is evaluated by the Orchestrator to select which option to execute. Only ONE option runs.
 
-5. **Backoff Options**: Common patterns include:
-   - `"none"` (default) - immediate retry
-   - `"linear"` - fixed delay between retries
-   - `"exponential"` - doubling delay (1s, 2s, 4s, 8s...)
+5. **If/Else Conditions**: Conditions use `**...**` discretion syntax for Orchestrator evaluation. Consider whether to support compound conditions.
 
 ### Suggested AST Nodes
 
 ```typescript
-export interface TryBlockNode extends ASTNode {
-  type: 'TryBlock';
-  tryBody: StatementNode[];
-  catchBody: StatementNode[] | null;
-  finallyBody: StatementNode[] | null;
-  errorVar: IdentifierNode | null;  // Optional: `catch as err:`
+export interface MultiLineStringNode extends ASTNode {
+  type: 'MultiLineString';
+  value: string;
+  raw: string;  // Original with quotes
 }
 
-export interface ThrowStatementNode extends ASTNode {
-  type: 'ThrowStatement';
-  message: StringLiteralNode | null;  // Optional error message
+export interface InterpolatedStringNode extends ASTNode {
+  type: 'InterpolatedString';
+  parts: (StringLiteralNode | IdentifierNode)[];  // Alternating text and variables
 }
 
-// Retry is likely a modifier on SessionStatementNode, not a separate node
-// Add to SessionStatementNode:
-//   retryCount: number | null;
-//   retryBackoff: 'none' | 'linear' | 'exponential' | null;
+export interface BlockDefinitionNode extends ASTNode {
+  type: 'BlockDefinition';
+  name: IdentifierNode;
+  parameters: IdentifierNode[];  // Parameter names
+  body: StatementNode[];
+}
+
+export interface DoStatementNode extends ASTNode {
+  type: 'DoStatement';
+  blockName: IdentifierNode;
+  arguments: ExpressionNode[];  // Arguments to pass
+}
+
+export interface ChoiceBlockNode extends ASTNode {
+  type: 'ChoiceBlock';
+  criteria: DiscretionNode;  // The **criteria** condition
+  options: ChoiceOptionNode[];
+}
+
+export interface ChoiceOptionNode extends ASTNode {
+  type: 'ChoiceOption';
+  label: StringLiteralNode;  // The option name
+  body: StatementNode[];
+}
+
+export interface IfStatementNode extends ASTNode {
+  type: 'IfStatement';
+  condition: DiscretionNode;  // The **condition**
+  thenBody: StatementNode[];
+  elseIfClauses: ElseIfClauseNode[];
+  elseBody: StatementNode[] | null;
+}
+
+export interface ElseIfClauseNode extends ASTNode {
+  type: 'ElseIfClause';
+  condition: DiscretionNode;
+  body: StatementNode[];
+}
 ```
 
 ### Lexer Tokens Needed
 
-You'll need to add:
-- `TRY`, `CATCH`, `FINALLY`, `THROW` keywords
-- `RETRY`, `BACKOFF` keywords (for modifiers)
+You'll likely need:
+- `TRIPLE_QUOTE` - For `"""`
+- `LBRACE`, `RBRACE` - For `{` and `}` in interpolation (may already exist)
+- `CHOICE`, `OPTION` - For choice blocks
+- `IF`, `ELIF`, `ELSE` - For conditionals
 
-Check `plugin/src/parser/tokens.ts` for the current token definitions.
+Check `plugin/src/parser/tokens.ts` for current tokens. Some may already exist.
 
 ### Implementation Notes
 
-- The existing `parallel (on-fail: ...)` handles failure at the parallel level; try/catch handles it at the statement level
-- Consider how errors propagate up from nested blocks
-- The Orchestrator needs to understand what constitutes a "failure" (session error, timeout, etc.)
-- Retry should be transparent to the rest of the program - it just makes the session more resilient
+- Multi-line strings need special lexer handling to track opening/closing triple quotes
+- String interpolation requires parsing the string content to find `{...}` patterns
+- Block parameters extend the existing `BlockDefinitionNode` - check if it already has a `parameters` field
+- Choice is similar to a switch statement but with Orchestrator-evaluated selection
+- If/else extends the language with conditional execution (currently only loops have conditions)
 
 ### Verification
 
 ```bash
 # From plugin/
-npm test                    # Should pass 644+ tests
+npm test                    # Should pass 705+ tests
 npm run lint                # Should have no type errors
 
 # From test-harness/
-npx ts-node index.ts tier-11-try-catch    # Run E2E test with judge
+npx ts-node index.ts tier-12-multiline      # Run E2E test with judge
+npx ts-node index.ts tier-12-interpolation  # etc.
 ```
 
 ## Architecture Quick Reference
@@ -196,7 +250,7 @@ plugin/
 │   ├── lsp/
 │   │   └── semantic-tokens.ts  # Syntax highlighting
 │   └── __tests__/
-│       ├── pipeline.test.ts    # Tier 10 tests (template)
+│       ├── error-handling.test.ts  # Tier 11 tests (template)
 │       └── ...
 ├── examples/              # Example .prose files
 └── skills/open-prose/
@@ -211,89 +265,109 @@ test-harness/
 ## Test Program Ideas
 
 ```prose
-# tier-11-try-catch.prose
-try:
-  session "Attempt a task that might fail"
-catch:
-  session "Explain what went wrong and how to recover"
+# tier-12-multiline.prose
+session """
+  You are a helpful assistant.
+  Please analyze the following data
+  and provide insights.
+"""
 
-session "Continue with the rest of the program"
+session "Summarize the analysis"
 ```
 
 ```prose
-# tier-11-finally.prose
-try:
-  session "Open a resource and do work"
-catch:
-  session "Handle any errors"
-finally:
-  session "Always clean up the resource"
-
-session "Program continues after cleanup"
+# tier-12-interpolation.prose
+let topic = session "Pick an interesting topic"
+session "Write a brief essay about {topic}"
+session "Now provide counterarguments to the essay about {topic}"
 ```
 
 ```prose
-# tier-11-retry.prose
-session "Call a flaky external API" (retry: 3)
+# tier-12-block-params.prose
+block analyze(subject):
+  session "Research {subject}"
+  session "Summarize findings about {subject}"
 
-session "Process the API response"
+do analyze("climate change")
+do analyze("artificial intelligence")
 ```
 
 ```prose
-# tier-11-nested.prose
-try:
-  session "Outer operation begins"
-  try:
-    session "Inner risky operation"
-  catch:
-    session "Handle inner failure"
-  session "Outer operation continues"
-catch:
-  session "Handle outer failure (only if inner rethrows)"
+# tier-12-choice.prose
+let problem = session "Describe the problem"
+
+choice **which solution approach is most appropriate**:
+  option "analytical":
+    session "Apply systematic analysis to solve the problem"
+  option "creative":
+    session "Brainstorm creative solutions"
+  option "incremental":
+    session "Break down into small steps and solve iteratively"
+
+session "Implement the chosen solution"
 ```
 
 ```prose
-# tier-11-parallel-try.prose
-parallel:
-  try:
-    session "Branch A might fail"
-  catch:
-    session "Recover from branch A failure"
-  try:
-    session "Branch B might fail"
-  catch:
-    session "Recover from branch B failure"
+# tier-12-if-else.prose
+let response = session "Get user feedback on the proposal"
 
-session "Combine results from both branches"
+if **the feedback is positive**:
+  session "Proceed with implementation"
+elif **the feedback requests changes**:
+  session "Revise the proposal based on feedback"
+else:
+  session "Start over with a new approach"
+
+session "Document the outcome"
+```
+
+```prose
+# tier-12-block-args.prose
+block greet(name, style):
+  if **style is formal**:
+    session "Write a formal greeting for {name}"
+  else:
+    session "Write a casual greeting for {name}"
+
+do greet("Alice", "formal")
+do greet("Bob", "casual")
 ```
 
 ## Implementation Pattern
 
 Follow the same pattern used in previous tiers:
 
-1. **Tokens** (`tokens.ts`) - Add TRY, CATCH, FINALLY, THROW, RETRY, BACKOFF tokens
-2. **Lexer** (`lexer.ts`) - Add lexing rules for new tokens
-3. **AST** (`ast.ts`) - Define TryBlockNode, ThrowStatementNode, update SessionStatementNode
-4. **Parser** (`parser.ts`) - Add parseTryBlock(), parseThrowStatement(), parse retry modifiers
-5. **Validator** (`validator.ts`) - Add validateTryBlock(), validateThrowStatement()
-6. **Compiler** (`compiler.ts`) - Add compileTryBlock(), compileThrowStatement()
+1. **Tokens** (`tokens.ts`) - Add TRIPLE_QUOTE, CHOICE, OPTION, IF, ELIF, ELSE tokens
+2. **Lexer** (`lexer.ts`) - Add lexing rules for new tokens, especially multi-line string handling
+3. **AST** (`ast.ts`) - Define new node types
+4. **Parser** (`parser.ts`) - Add parse methods for each new construct
+5. **Validator** (`validator.ts`) - Add validation methods
+6. **Compiler** (`compiler.ts`) - Add compilation methods
 7. **LSP** (`semantic-tokens.ts`) - Usually no changes needed if tokens are keywords
-8. **Tests** - Create `error-handling.test.ts` with comprehensive unit tests
-9. **Documentation** - Update `prose.md` with new section
+8. **Tests** - Create `advanced-features.test.ts` with comprehensive unit tests
+9. **Documentation** - Update `prose.md` with new sections
 10. **E2E Tests** - Create test programs and run with judge
 
 ## Notes
 
-- Look at how `parallel (on-fail: ...)` handles failure policies for reference
-- The try/catch pattern is similar to JavaScript but with OpenProse's indentation-based syntax
-- Consider edge cases: try without catch, catch without finally, empty blocks
-- Retry is a session modifier, similar to how `context:` is a property but `(retry: N)` is inline
-- The parentheses syntax for retry matches the pattern used in `parallel ("first"):`
+- Look at how `**condition**` is handled in loops for reference on discretion syntax
+- String interpolation may require a two-pass approach: lex the string, then parse interpolations
+- Block parameters need scope management - parameters should shadow outer variables
+- Choice is unique - it's the first construct where the Orchestrator selects between options
+- If/else completes the control flow story (loops + conditionals + error handling)
 
-## Recent Commit for Reference
+## Suggested Implementation Order
+
+1. **Multi-line strings** (12.1) - Simplest, just lexer changes
+2. **String interpolation** (12.2) - Builds on strings, affects lexer and parser
+3. **Block parameters** (12.3) - Extends existing blocks
+4. **Block invocation with args** (12.4) - Pairs with 12.3
+5. **If/else** (12.6) - Uses existing `**condition**` pattern
+6. **Choice** (12.5) - Most complex, new control structure
+
+## Recent Commits for Reference
 
 ```
+[this commit] Implement Tier 11: Error Handling
 22abf2f Implement Tier 10: Pipeline Operations
 ```
-
-This commit shows the pattern: AST types, parser methods, validator methods, compiler methods, tests, docs, and E2E test programs.

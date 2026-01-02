@@ -18,6 +18,7 @@ import {
   ImportStatementNode,
   PropertyNode,
   StringLiteralNode,
+  NumberLiteralNode,
   IdentifierNode,
   DiscretionNode,
   ArrayExpressionNode,
@@ -33,6 +34,8 @@ import {
   LoopBlockNode,
   RepeatBlockNode,
   ForEachBlockNode,
+  TryBlockNode,
+  ThrowStatementNode,
   PipeExpressionNode,
   PipeOperationNode,
 } from '../parser';
@@ -151,6 +154,12 @@ export class Compiler {
         break;
       case 'LoopBlock':
         this.compileLoopBlock(statement);
+        break;
+      case 'TryBlock':
+        this.compileTryBlock(statement);
+        break;
+      case 'ThrowStatement':
+        this.compileThrowStatement(statement);
         break;
       case 'ArrowExpression':
         this.compileArrowExpression(statement);
@@ -708,6 +717,95 @@ export class Compiler {
   }
 
   /**
+   * Compile a try/catch/finally block (Tier 11)
+   *
+   * Syntax:
+   *   try:
+   *     body...
+   *   catch [as err]:
+   *     handleError...
+   *   finally:
+   *     cleanup...
+   */
+  private compileTryBlock(tryBlock: TryBlockNode, indentLevel: number = 0): void {
+    // Add source mapping
+    this.addSourceMapping(tryBlock.span.start.line, tryBlock.span.start.column);
+
+    const indent = this.options.indent.repeat(indentLevel);
+
+    // Emit try block
+    this.emit(indent);
+    this.emit('try:');
+    this.emitNewline();
+
+    // Emit try body with indentation
+    for (const stmt of tryBlock.tryBody) {
+      this.emit(indent);
+      this.emit(this.options.indent);
+      this.compileStatementInline(stmt);
+    }
+
+    // Emit catch block if present
+    if (tryBlock.catchBody) {
+      this.emit(indent);
+      this.emit('catch');
+      if (tryBlock.errorVar) {
+        this.emit(' as ');
+        this.emit(tryBlock.errorVar.name);
+      }
+      this.emit(':');
+      this.emitNewline();
+
+      // Emit catch body with indentation
+      for (const stmt of tryBlock.catchBody) {
+        this.emit(indent);
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
+    }
+
+    // Emit finally block if present
+    if (tryBlock.finallyBody) {
+      this.emit(indent);
+      this.emit('finally:');
+      this.emitNewline();
+
+      // Emit finally body with indentation
+      for (const stmt of tryBlock.finallyBody) {
+        this.emit(indent);
+        this.emit(this.options.indent);
+        this.compileStatementInline(stmt);
+      }
+    }
+  }
+
+  /**
+   * Compile a throw statement (Tier 11)
+   *
+   * Syntax:
+   *   throw              # Rethrow current error
+   *   throw "message"    # Throw with custom message
+   */
+  private compileThrowStatement(throwStmt: ThrowStatementNode, indentLevel: number = 0): void {
+    // Add source mapping
+    this.addSourceMapping(throwStmt.span.start.line, throwStmt.span.start.column);
+
+    const indent = this.options.indent.repeat(indentLevel);
+
+    this.emit(indent);
+    this.emit('throw');
+
+    // Emit message if present
+    if (throwStmt.message) {
+      this.emit(' "');
+      this.emit(this.escapeString(throwStmt.message.value));
+      this.emit('"');
+    }
+
+    this.emitNewline();
+  }
+
+  /**
    * Compile a discretion expression (**...**) or (***...***)
    */
   private compileDiscretion(discretion: DiscretionNode): void {
@@ -810,6 +908,12 @@ export class Compiler {
       case 'LoopBlock':
         this.compileLoopBlock(stmt, 0);
         break;
+      case 'TryBlock':
+        this.compileTryBlock(stmt, 0);
+        break;
+      case 'ThrowStatement':
+        this.compileThrowStatement(stmt);
+        break;
       case 'ArrowExpression':
         this.compileArrowExpression(stmt, 0);
         break;
@@ -851,6 +955,11 @@ export class Compiler {
         this.emit('"');
         this.emit(this.escapeString(str.value));
         this.emit('"');
+        break;
+      }
+      case 'NumberLiteral': {
+        const num = expr as NumberLiteralNode;
+        this.emit(String(num.value));
         break;
       }
       case 'Identifier': {

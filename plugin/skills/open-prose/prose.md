@@ -19,10 +19,11 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. Thi
 11. [Fixed Loops](#fixed-loops)
 12. [Unbounded Loops](#unbounded-loops)
 13. [Pipeline Operations](#pipeline-operations)
-14. [Execution Model](#execution-model)
-15. [Validation Rules](#validation-rules)
-16. [Examples](#examples)
-17. [Future Features](#future-features)
+14. [Error Handling](#error-handling)
+15. [Execution Model](#execution-model)
+16. [Validation Rules](#validation-rules)
+17. [Examples](#examples)
+18. [Future Features](#future-features)
 
 ---
 
@@ -77,6 +78,12 @@ The following features are implemented:
 | Reduce pipeline | Implemented | `items \| reduce(acc, item):` accumulate |
 | Parallel map | Implemented | `items \| pmap:` concurrent transform |
 | Pipeline chaining | Implemented | `\| filter: ... \| map: ...` |
+| Try/catch blocks | Implemented | `try:` with `catch:` for error handling |
+| Try/catch/finally | Implemented | `finally:` for cleanup |
+| Error variable | Implemented | `catch as err:` access error context |
+| Throw statement | Implemented | `throw` or `throw "message"` |
+| Retry property | Implemented | `retry: 3` automatic retry on failure |
+| Backoff strategy | Implemented | `backoff: "exponential"` delay between retries |
 
 ---
 
@@ -1629,6 +1636,213 @@ session "use outer"
 | Invalid pipe operator | Error | Expected pipe operator (map, filter, reduce, pmap) |
 | Reduce without variables | Error | Expected accumulator and item variables |
 | Pipeline variable shadows outer | Warning | Implicit/explicit variable shadows outer variable |
+
+---
+
+## Error Handling
+
+OpenProse provides structured error handling with try/catch/finally blocks, throw statements, and retry mechanisms for resilient workflows.
+
+### Try/Catch Blocks
+
+The `try:` block wraps operations that might fail. The `catch:` block handles errors.
+
+```prose
+try:
+  session "Attempt risky operation"
+catch:
+  session "Handle the error gracefully"
+```
+
+#### Error Variable Access
+
+Use `catch as err:` to capture error context for the error handler:
+
+```prose
+try:
+  session "Call external API"
+catch as err:
+  session "Log and handle the error"
+    context: err
+```
+
+The error variable (`err`) contains contextual information about what went wrong and is only accessible within the catch block.
+
+### Try/Catch/Finally
+
+The `finally:` block always executes, whether the try block succeeds or fails:
+
+```prose
+try:
+  session "Acquire and use resource"
+catch:
+  session "Handle any errors"
+finally:
+  session "Always clean up resource"
+```
+
+#### Execution Order
+
+1. **Try succeeds**: try body → finally body
+2. **Try fails**: try body (until failure) → catch body → finally body
+
+### Try/Finally (No Catch)
+
+For cleanup without error handling, use try/finally:
+
+```prose
+try:
+  session "Open connection and do work"
+finally:
+  session "Close connection"
+```
+
+### Throw Statement
+
+The `throw` statement raises or re-raises errors.
+
+#### Rethrow
+
+Inside a catch block, `throw` without arguments re-raises the caught error to outer handlers:
+
+```prose
+try:
+  try:
+    session "Inner operation"
+  catch:
+    session "Partial handling"
+    throw  # Re-raise to outer handler
+catch:
+  session "Handle re-raised error"
+```
+
+#### Throw with Message
+
+Throw a new error with a custom message:
+
+```prose
+session "Check preconditions"
+throw "Precondition not met"
+```
+
+### Nested Error Handling
+
+Try blocks can be nested. Inner catch blocks don't trigger outer handlers unless they rethrow:
+
+```prose
+try:
+  session "Outer operation"
+  try:
+    session "Inner risky operation"
+  catch:
+    session "Handle inner error"  # Outer catch won't run
+  session "Continue outer operation"
+catch:
+  session "Handle outer error only"
+```
+
+### Error Handling in Parallel
+
+Each parallel branch can have its own error handling:
+
+```prose
+parallel:
+  try:
+    session "Branch A might fail"
+  catch:
+    session "Recover branch A"
+  try:
+    session "Branch B might fail"
+  catch:
+    session "Recover branch B"
+
+session "Continue with recovered results"
+```
+
+This differs from the `on-fail:` policy which controls behavior when unhandled errors occur.
+
+### Retry Property
+
+The `retry:` property makes a session automatically retry on failure:
+
+```prose
+session "Call flaky API"
+  retry: 3
+```
+
+#### Retry with Backoff
+
+Add `backoff:` to control delay between retries:
+
+```prose
+session "Rate-limited API"
+  retry: 5
+  backoff: "exponential"
+```
+
+**Backoff Strategies:**
+
+| Strategy | Behavior |
+|----------|----------|
+| `"none"` | Immediate retry (default) |
+| `"linear"` | Fixed delay between retries |
+| `"exponential"` | Doubling delay (1s, 2s, 4s, 8s...) |
+
+#### Retry with Context
+
+Retry works with other session properties:
+
+```prose
+let data = session "Get input"
+session "Process data"
+  context: data
+  retry: 3
+  backoff: "linear"
+```
+
+### Combining Patterns
+
+Retry and try/catch work together for maximum resilience:
+
+```prose
+try:
+  session "Call external service"
+    retry: 3
+    backoff: "exponential"
+catch:
+  session "All retries failed, use fallback"
+```
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Try without catch or finally | Error | Try block must have at least "catch:" or "finally:" |
+| Error variable shadows outer | Warning | Error variable shadows outer variable |
+| Empty throw message | Warning | Throw message is empty |
+| Non-positive retry count | Error | Retry count must be positive |
+| Non-integer retry count | Error | Retry count must be an integer |
+| High retry count (>10) | Warning | Retry count is unusually high |
+| Invalid backoff strategy | Error | Must be "none", "linear", or "exponential" |
+| Retry on agent definition | Warning | Retry property is only valid in session statements |
+
+### Syntax Reference
+
+```
+try_block ::= "try" ":" NEWLINE INDENT statement+ DEDENT
+              [catch_block]
+              [finally_block]
+
+catch_block ::= "catch" ["as" identifier] ":" NEWLINE INDENT statement+ DEDENT
+
+finally_block ::= "finally" ":" NEWLINE INDENT statement+ DEDENT
+
+throw_statement ::= "throw" [string_literal]
+
+retry_property ::= "retry" ":" number_literal
+
+backoff_property ::= "backoff" ":" string_literal
+```
 
 ---
 

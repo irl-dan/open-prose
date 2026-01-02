@@ -1,0 +1,14 @@
+# Tier 11: Try in Parallel
+# Tests: error handling inside parallel branches
+
+parallel:
+  try:
+    session "Branch A might fail. Describe the risky operation."
+  catch:
+    session "Recover from branch A failure with a fallback."
+  try:
+    session "Branch B might also fail. Describe another risky operation."
+  catch:
+    session "Recover from branch B failure with a fallback."
+
+session "Combine and present results from both branches after recovery."

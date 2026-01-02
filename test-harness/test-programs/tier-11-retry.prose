@@ -1,0 +1,8 @@
+# Tier 11: Session Retry
+# Tests: retry property with backoff
+
+session "Call an external API that might be flaky or rate-limited"
+  retry: 3
+  backoff: "exponential"
+
+session "Process the API response after successful call"

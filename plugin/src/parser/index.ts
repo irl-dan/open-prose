@@ -64,6 +64,7 @@ export type {
   RepeatBlockNode,
   ForEachBlockNode,
   TryBlockNode,
+  ThrowStatementNode,
   LetBindingNode,
   ConstBindingNode,
   AssignmentNode,

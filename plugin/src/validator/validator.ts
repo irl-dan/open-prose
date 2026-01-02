@@ -33,6 +33,8 @@ import {
   LoopBlockNode,
   RepeatBlockNode,
   ForEachBlockNode,
+  TryBlockNode,
+  ThrowStatementNode,
   PipeExpressionNode,
   PipeOperationNode,
   walkAST,
@@ -234,6 +236,12 @@ export class Validator {
         break;
       case 'LoopBlock':
         this.validateLoopBlock(statement);
+        break;
+      case 'TryBlock':
+        this.validateTryBlock(statement);
+        break;
+      case 'ThrowStatement':
+        this.validateThrowStatement(statement);
         break;
       case 'ArrowExpression':
         this.validateArrowExpression(statement);
@@ -612,6 +620,76 @@ export class Validator {
   }
 
   /**
+   * Validate a try/catch/finally block (Tier 11)
+   */
+  private validateTryBlock(tryBlock: TryBlockNode): void {
+    // Must have at least catch or finally
+    if (!tryBlock.catchBody && !tryBlock.finallyBody) {
+      this.addError(
+        'Try block must have at least "catch:" or "finally:"',
+        tryBlock.span
+      );
+    }
+
+    // Validate try body
+    for (const stmt of tryBlock.tryBody) {
+      this.validateStatement(stmt);
+    }
+
+    // Validate catch body if present
+    if (tryBlock.catchBody) {
+      // If there's an error variable, temporarily add it to scope
+      const savedVariables = new Map(this.definedVariables);
+
+      if (tryBlock.errorVar) {
+        const errorName = tryBlock.errorVar.name;
+        // Check for shadowing
+        if (this.definedVariables.has(errorName)) {
+          this.addWarning(
+            `Error variable "${errorName}" shadows outer variable`,
+            tryBlock.errorVar.span
+          );
+        }
+        this.definedVariables.set(errorName, {
+          name: errorName,
+          isConst: true,  // Error variables are implicitly const
+          span: tryBlock.errorVar.span,
+        });
+      }
+
+      for (const stmt of tryBlock.catchBody) {
+        this.validateStatement(stmt);
+      }
+
+      // Restore previous scope
+      this.definedVariables = savedVariables;
+    }
+
+    // Validate finally body if present
+    if (tryBlock.finallyBody) {
+      for (const stmt of tryBlock.finallyBody) {
+        this.validateStatement(stmt);
+      }
+    }
+  }
+
+  /**
+   * Validate a throw statement (Tier 11)
+   */
+  private validateThrowStatement(throwStmt: ThrowStatementNode): void {
+    // Validate message if present
+    if (throwStmt.message) {
+      if (!throwStmt.message.value.trim()) {
+        this.addWarning(
+          'Throw message is empty',
+          throwStmt.message.span
+        );
+      }
+    }
+    // Note: throw without message is valid (rethrow)
+  }
+
+  /**
    * Validate a pipe expression (items | map: ... | filter: ...)
    */
   private validatePipeExpression(pipe: PipeExpressionNode): void {
@@ -732,6 +810,8 @@ export class Validator {
       this.validateSessionStatement(expr as SessionStatementNode);
     } else if (expr.type === 'DoBlock') {
       this.validateDoBlock(expr as DoBlockNode);
+    } else if (expr.type === 'TryBlock') {
+      this.validateTryBlock(expr as TryBlockNode);
     } else if (expr.type === 'ArrowExpression') {
       this.validateArrowExpression(expr as ArrowExpressionNode);
     }
@@ -792,6 +872,8 @@ export class Validator {
       this.validateForEachBlock(expr as ForEachBlockNode);
     } else if (expr.type === 'LoopBlock') {
       this.validateLoopBlock(expr as LoopBlockNode);
+    } else if (expr.type === 'TryBlock') {
+      this.validateTryBlock(expr as TryBlockNode);
     } else if (expr.type === 'ArrowExpression') {
       this.validateArrowExpression(expr as ArrowExpressionNode);
     } else if (expr.type === 'PipeExpression') {
@@ -887,6 +969,20 @@ export class Validator {
           this.addWarning('Context property is only valid in session statements', prop.name.span);
         } else {
           this.validateContextProperty(prop);
+        }
+        break;
+      case 'retry':
+        if (context !== 'session') {
+          this.addWarning('Retry property is only valid in session statements', prop.name.span);
+        } else {
+          this.validateRetryProperty(prop);
+        }
+        break;
+      case 'backoff':
+        if (context !== 'session') {
+          this.addWarning('Backoff property is only valid in session statements', prop.name.span);
+        } else {
+          this.validateBackoffProperty(prop);
         }
         break;
       default:
@@ -1013,6 +1109,63 @@ export class Validator {
       }
     } else {
       this.addError('Context must be a variable reference, an array of variable references, or an object { a, b, c }', value.span);
+    }
+  }
+
+  /**
+   * Validate retry property (Tier 11)
+   * retry: 3
+   */
+  private validateRetryProperty(prop: PropertyNode): void {
+    if (prop.value.type !== 'NumberLiteral') {
+      this.addError('Retry must be a number', prop.value.span);
+      return;
+    }
+
+    const retryValue = (prop.value as NumberLiteralNode).value;
+
+    // Must be positive integer
+    if (retryValue <= 0) {
+      this.addError(
+        `Retry count must be positive, got ${retryValue}`,
+        prop.value.span
+      );
+    }
+
+    if (!Number.isInteger(retryValue)) {
+      this.addError(
+        `Retry count must be an integer, got ${retryValue}`,
+        prop.value.span
+      );
+    }
+
+    // Warn if retry count seems excessive
+    if (retryValue > 10) {
+      this.addWarning(
+        `Retry count ${retryValue} is unusually high. Consider a lower value.`,
+        prop.value.span
+      );
+    }
+  }
+
+  /**
+   * Validate backoff property (Tier 11)
+   * backoff: "none" | "linear" | "exponential"
+   */
+  private validateBackoffProperty(prop: PropertyNode): void {
+    if (prop.value.type !== 'StringLiteral') {
+      this.addError('Backoff must be a string ("none", "linear", or "exponential")', prop.value.span);
+      return;
+    }
+
+    const backoffValue = (prop.value as StringLiteralNode).value;
+    const validBackoffStrategies = ['none', 'linear', 'exponential'];
+
+    if (!validBackoffStrategies.includes(backoffValue)) {
+      this.addError(
+        `Invalid backoff strategy: "${backoffValue}". Must be one of: ${validBackoffStrategies.join(', ')}`,
+        prop.value.span
+      );
     }
   }
 

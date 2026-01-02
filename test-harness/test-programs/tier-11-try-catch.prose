@@ -1,0 +1,9 @@
+# Tier 11: Try/Catch Blocks
+# Tests: basic try/catch error handling
+
+try:
+  session "Attempt a task that might fail. Describe what you're trying to do."
+catch:
+  session "Explain what went wrong and how to recover from the error."
+
+session "Continue with the rest of the program after error handling."
