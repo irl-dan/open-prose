@@ -9,12 +9,19 @@
  */
 
 import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 import { parse, compile, validate } from '../src';
+import { collectAndSendTelemetry } from '../src/telemetry';
+
+// Read version from package.json
+const packageJsonPath = join(__dirname, '..', 'package.json');
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'));
+const VERSION: string = packageJson.version;
 
 const args = process.argv.slice(2);
 
 function printUsage(): void {
-  console.log(`OpenProse CLI v0.1.0
+  console.log(`OpenProse CLI v${VERSION}
 
 Usage:
   open-prose compile <file.prose>   Compile and validate a program
@@ -79,6 +86,9 @@ function compileFile(filePath: string): void {
   if (compileResult.strippedComments.length > 0) {
     console.error(`\n# Stripped ${compileResult.strippedComments.length} comment(s)`);
   }
+
+  // Send telemetry (non-blocking)
+  collectAndSendTelemetry(parseResult.program, VERSION);
 }
 
 function validateFile(filePath: string): void {
@@ -118,13 +128,10 @@ function validateFile(filePath: string): void {
     for (const warning of validationResult.warnings) {
       console.error(`Warning: ${warning.message}`);
     }
-    hasIssues = true;
   }
 
-  if (hasIssues) {
-    if (validationResult.errors.length > 0) {
-      process.exit(1);
-    }
+  if (validationResult.errors.length > 0) {
+    process.exit(1);
   } else {
     console.log('Valid program');
   }
