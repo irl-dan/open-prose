@@ -1,78 +1,11 @@
 # OpenProse
 
-A domain-specific language for orchestrating AI agent sessions.
+**Declarative agents. Intelligent runtime.**
 
-## What is OpenProse?
-
-OpenProse lets you script multi-step AI workflows. Instead of manually prompting an agent multiple times, you write a `.prose` file that defines each step, and OpenProse executes them in sequence.
+An open standard for AI orchestration—declare your agent architecture, let an intelligent interpreter wire it up.
 
 ```prose
-# Code review workflow
-session "Read the files in src/ and provide an overview of the codebase"
-session "Review the code for security vulnerabilities"
-session "Review the code for performance issues"
-session "Create a unified report with prioritized recommendations"
-```
-
-Each `session` spawns a subagent that completes its task before the next session starts.
-
-## Try It Now (Claude Code Plugin)
-
-OpenProse is available as a Claude Code plugin:
-
-```bash
-/plugin marketplace add irl-dan/open-prose
-/plugin install open-prose
-```
-
-After installation, you can:
-
-```
-# Ask Claude to run an example
-"Run the code review example from OpenProse"
-
-# Or run your own .prose file
-"Execute my-workflow.prose"
-
-# Or ask Claude to write one for you
-"Write me an OpenProse workflow for debugging a bug"
-```
-
-The plugin includes 8 ready-to-use examples for common workflows like code review, debugging, refactoring, and content creation.
-
-## Status: Early Development
-
-The language foundation is working and usable via the Claude Code plugin. More features are being added incrementally.
-
-### Currently Implemented
-
-| Feature | Syntax | Description |
-|---------|--------|-------------|
-| Comments | `# comment` | Standalone and inline comments |
-| Strings | `"text"` | Single-line with escapes (`\n`, `\t`, `\"`, `\\`) |
-| Sessions | `session "prompt"` | Spawn a subagent with a prompt |
-
-### Planned Features
-
-The full language will include:
-
-- Agent definitions (`agent name:` with model/skills configuration)
-- Variables and context passing (`let result = session "..."`)
-- Parallel execution (`parallel:` blocks)
-- Loops (`repeat`, `for`, `loop until **condition**`)
-- Error handling (`try`/`catch`, `retry`)
-- And more...
-
-See `BUILD_PLAN.md` for the complete roadmap and `specification/` for language design documents.
-
-## Vision
-
-OpenProse aims to provide a common, self-evident syntax for orchestrating AI agents across different platforms (Claude Code, OpenCode, Codex, Amp, etc.).
-
-Example of the planned full syntax:
-
-```prose
-# Research and write an article
+# Research and write workflow
 agent researcher:
   model: sonnet
   skills: ["web-search"]
@@ -80,92 +13,183 @@ agent researcher:
 agent writer:
   model: opus
 
-session research: researcher
-  prompt: "Research quantum computing developments"
+parallel:
+  research = session: researcher
+    prompt: "Research quantum computing breakthroughs"
+  competitive = session: researcher
+    prompt: "Analyze competitor landscape"
 
--> session article: writer
-  prompt: "Write a blog post about quantum computing"
+loop until **the draft meets publication standards** (max: 3):
+  session: writer
+    prompt: "Write and refine the article"
+    context: { research, competitive }
 ```
+
+## What Makes OpenProse Different?
+
+There are many agent orchestration frameworks. Here's why OpenProse is novel:
+
+### 1. Intelligent Inversion of Control
+
+Traditional orchestration frameworks require you to write explicit coordination code. OpenProse inverts this—you declare agent primitives, and an AI session (the "Orchestrator") wires them up and executes them.
+
+The Orchestrator isn't just a runtime. It's an intelligent IoC container that understands context, not just configuration.
+
+### 2. The Fourth Wall (`**...**`)
+
+When you need AI judgment instead of strict execution, break out of structure:
+
+```prose
+loop until **the code is production ready**:
+  session "Review and improve"
+```
+
+The `**...**` syntax lets you speak directly to the interpreter. The Orchestrator evaluates this semantically—it decides what "production ready" means based on context.
+
+### 3. Open Standard, Zero Lock-in
+
+OpenProse is a skill you import into Claude Code, OpenCode, Codex, Amp, or any compatible AI assistant. It's not a library you're locked into—it's a language specification.
+
+Switch platforms anytime. Your `.prose` files work everywhere.
+
+### 4. Structure + Flexibility
+
+**Why not just plain English?** You can—that's what `**...**` is for. But complex workflows need unambiguous structure for control flow. The AI shouldn't have to guess whether you want sequential or parallel execution.
+
+**Why not rigid frameworks?** They're inflexible. OpenProse gives you structure where it matters (control flow, agent definitions) and natural language where you want flexibility (conditions, context passing).
+
+## Install (Claude Code)
+
+```bash
+/plugin marketplace add irl-dan/open-prose
+/plugin install open-prose
+```
+
+Then:
+
+```
+"Run the code review example from OpenProse"
+"Execute my-workflow.prose"
+"Write me an OpenProse workflow for debugging"
+```
+
+The plugin includes ready-to-use examples for code review, debugging, refactoring, and content creation.
+
+## Language Features
+
+| Feature | Status | Example |
+|---------|--------|---------|
+| Agents | ✅ | `agent researcher: model: sonnet` |
+| Sessions | ✅ | `session "prompt"` or `session: agent` |
+| Parallel | ✅ | `parallel:` blocks with join strategies |
+| Variables | ✅ | `let x = session "..."` |
+| Context | ✅ | `context: [a, b]` or `context: { a, b }` |
+| Fixed Loops | ✅ | `repeat 3:` and `for item in items:` |
+| Unbounded Loops | ✅ | `loop until **condition**:` |
+| Imports | ✅ | `import "skill" from "github:user/repo"` |
+| Permissions | ✅ | `permissions: bash: deny` |
+| Error Handling | 🔜 | `try`/`catch`, `retry` |
+| Pipelines | 🔜 | `items \| map: session "..."` |
+
+See the [Language Reference](plugin/skills/open-prose/prose.md) for complete documentation.
+
+## How It Works
+
+### Two-Phase Execution
+
+**Phase 1: Compile (Static)**
+- Parse the `.prose` file
+- Validate agent/skill references
+- Expand syntax sugar
+- Output canonical program
+
+**Phase 2: Run (Intelligent)**
+- Orchestrator receives the compiled program
+- Executes using the most capable model (Opus)
+- Follows control flow strictly
+- Handles context passing intelligently
+- Evaluates `**...**` conditions semantically
+
+### The Orchestrator
+
+The Orchestrator is an AI session that acts as an intelligent IoC container:
+
+| Aspect | Behavior |
+|--------|----------|
+| Execution order | **Strict** — follows program exactly |
+| Session creation | **Strict** — creates what program specifies |
+| Parallel coordination | **Strict** — executes as specified |
+| Context passing | **Intelligent** — summarizes/transforms as needed |
+| Condition evaluation | **Intelligent** — interprets `**...**` semantically |
+| Completion detection | **Intelligent** — determines when "done" |
 
 ## Project Structure
 
 ```
 open-prose/
-├── .claude-plugin/           # Plugin marketplace metadata
-├── plugin/                   # THE PLUGIN (Claude Code skill)
-│   ├── bin/                  # CLI (open-prose.ts)
+├── plugin/                   # The Claude Code plugin
 │   ├── src/
 │   │   ├── parser/           # Lexer, parser, AST
 │   │   ├── validator/        # Semantic validation
 │   │   ├── compiler/         # Compiles to canonical form
 │   │   └── lsp/              # Language Server Protocol
-│   ├── skills/open-prose/    # SKILL.md + prose.md (DSL reference)
-│   ├── examples/             # 8 ready-to-use workflow examples
-│   └── package.json          # Dependencies
+│   ├── skills/open-prose/    # Interpreter docs (prose.md)
+│   └── examples/             # Ready-to-use workflows
 ├── test-harness/             # LLM-as-judge E2E testing
-├── specification/            # Language specification documents
-├── guidance/                 # Design research and decisions
-├── landing/                  # Website
-├── infra/                    # Terraform (AWS deployment)
+├── specification/            # Language design documents
+├── landing/                  # Website (prose.md)
 └── BUILD_PLAN.md             # Development roadmap
 ```
 
 ## Development
 
-### Setup
-
 ```bash
 git clone https://github.com/irl-dan/open-prose.git
 cd open-prose/plugin
 npm install
-```
-
-### Commands
-
-```bash
-npm test          # Run all 177 tests
-npm run test:watch # Watch mode
+npm test          # Run tests
 npm run lint      # Type check
-npm run build     # Compile TypeScript
 ```
 
-### Running the CLI
+### CLI
 
 ```bash
-# Validate a .prose file
-bun run bin/open-prose.ts validate path/to/program.prose
-
-# Compile to canonical form
-bun run bin/open-prose.ts compile path/to/program.prose
+bun run bin/open-prose.ts validate program.prose
+bun run bin/open-prose.ts compile program.prose
 ```
 
-**Requirements**: Node.js 18+, Bun (for CLI)
+### Contributing
 
-## Contributing
+See `BUILD_PLAN.md` for the roadmap. Each feature follows:
 
-See `BUILD_PLAN.md` for the development roadmap. The iteration loop for adding new features:
-
-1. **Parser** - Grammar rules, AST nodes, unit tests
-2. **Validator** - Semantic validation, error messages
-3. **Compiler** - Expand to canonical form
-4. **Documentation** - Update `prose.md`
-5. **LSP** - Syntax highlighting
-6. **Examples** - Add to `plugin/examples/`
-7. **E2E Test** - LLM-as-judge validation
+1. Parser → Validator → Compiler → Docs → LSP → Examples → E2E Test
 
 ### LLM-as-Judge Testing
 
-The test harness runs `.prose` programs via Claude Code and uses an LLM to evaluate execution:
-
 ```bash
-cd test-harness
-npm install
-npx ts-node index.ts --list        # List available tests
-npx ts-node index.ts tier-00-comments  # Run specific test
-npx ts-node index.ts --all         # Run all tests
+cd test-harness && npm install
+npx ts-node index.ts --list
+npx ts-node index.ts --all
 ```
 
-Passing threshold: Average score >= 4.0/5.0 with no criterion below 3.
+Passing: Average ≥ 4.0/5.0, no criterion below 3.
+
+## FAQ
+
+**Why not LangChain/CrewAI/AutoGen?**
+Those are libraries locked to specific runtimes. OpenProse is a language spec that runs in any AI assistant.
+
+**Why not just plain English?**
+You can use `**...**` for that. But complex workflows need unambiguous structure for control flow.
+
+**What's "intelligent IoC"?**
+Traditional IoC wires dependencies from config. OpenProse's container is an AI that wires agent sessions using understanding.
+
+## Links
+
+- **Website**: [prose.md](https://www.prose.md)
+- **Language Spec**: [prose.md](plugin/skills/open-prose/prose.md)
+- **Examples**: [plugin/examples/](plugin/examples/)
 
 ## License
 
