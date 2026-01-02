@@ -22,6 +22,9 @@ import {
   ArrayExpressionNode,
   ObjectExpressionNode,
   ExpressionNode,
+  LetBindingNode,
+  ConstBindingNode,
+  AssignmentNode,
 } from '../parser';
 import { SourceSpan } from '../parser/tokens';
 
@@ -121,6 +124,15 @@ export class Compiler {
       case 'AgentDefinition':
         this.compileAgentDefinition(statement);
         break;
+      case 'LetBinding':
+        this.compileLetBinding(statement);
+        break;
+      case 'ConstBinding':
+        this.compileConstBinding(statement);
+        break;
+      case 'Assignment':
+        this.compileAssignment(statement);
+        break;
       // Other statement types will be added in later tiers
     }
   }
@@ -139,6 +151,110 @@ export class Compiler {
     this.emit(this.escapeString(statement.source.value));
     this.emit('"');
     this.emitNewline();
+  }
+
+  /**
+   * Compile a let binding
+   * Syntax: let name = expression
+   */
+  private compileLetBinding(binding: LetBindingNode): void {
+    // Add source mapping
+    this.addSourceMapping(binding.span.start.line, binding.span.start.column);
+
+    // Emit: let name = ...
+    this.emit('let ');
+    this.emit(binding.name.name);
+    this.emit(' = ');
+
+    // Compile the value expression (typically a session)
+    this.compileBindingValue(binding.value);
+  }
+
+  /**
+   * Compile a const binding
+   * Syntax: const name = expression
+   */
+  private compileConstBinding(binding: ConstBindingNode): void {
+    // Add source mapping
+    this.addSourceMapping(binding.span.start.line, binding.span.start.column);
+
+    // Emit: const name = ...
+    this.emit('const ');
+    this.emit(binding.name.name);
+    this.emit(' = ');
+
+    // Compile the value expression (typically a session)
+    this.compileBindingValue(binding.value);
+  }
+
+  /**
+   * Compile an assignment
+   * Syntax: name = expression
+   */
+  private compileAssignment(assignment: AssignmentNode): void {
+    // Add source mapping
+    this.addSourceMapping(assignment.span.start.line, assignment.span.start.column);
+
+    // Emit: name = ...
+    this.emit(assignment.name.name);
+    this.emit(' = ');
+
+    // Compile the value expression
+    this.compileBindingValue(assignment.value);
+  }
+
+  /**
+   * Compile a value expression in a binding (let/const/assignment)
+   */
+  private compileBindingValue(value: ExpressionNode): void {
+    if (value.type === 'SessionStatement') {
+      // Handle session as value - inline or with properties
+      const session = value as SessionStatementNode;
+
+      if (session.prompt && !session.agent && session.properties.length === 0) {
+        // Simple session with inline prompt
+        this.emit('session "');
+        this.emit(this.escapeString(session.prompt.value));
+        this.emit('"');
+        this.emitNewline();
+      } else if (session.agent) {
+        // Session with agent
+        this.emit('session');
+        if (session.name) {
+          this.emit(' ');
+          this.emit(session.name.name);
+        }
+        this.emit(': ');
+        this.emit(session.agent.name);
+        this.emitNewline();
+
+        // Emit properties
+        for (const prop of session.properties) {
+          this.compileProperty(prop);
+        }
+      } else {
+        // Just emit newline for malformed sessions
+        this.emitNewline();
+      }
+    } else if (value.type === 'Identifier') {
+      // Variable reference
+      const id = value as IdentifierNode;
+      this.emit(id.name);
+      this.emitNewline();
+    } else if (value.type === 'StringLiteral') {
+      // String literal
+      const str = value as StringLiteralNode;
+      this.emit('"');
+      this.emit(this.escapeString(str.value));
+      this.emit('"');
+      this.emitNewline();
+    } else if (value.type === 'ArrayExpression') {
+      // Array
+      this.compileArrayExpression(value as ArrayExpressionNode);
+      this.emitNewline();
+    } else {
+      this.emitNewline();
+    }
   }
 
   /**

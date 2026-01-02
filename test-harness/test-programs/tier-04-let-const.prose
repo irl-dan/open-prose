@@ -1,0 +1,20 @@
+# Tier 4.1-4.2: Let and Const Bindings
+# Tests variable bindings with let (mutable) and const (immutable)
+
+agent researcher:
+  model: sonnet
+  prompt: "You are a research assistant"
+
+# Test let binding with simple session
+let simple-result = session "Say hello and confirm you are a test assistant"
+
+# Test const binding with agent session
+const research = session: researcher
+  prompt: "Briefly explain what a let binding is in programming"
+
+# Test let reassignment (this should work)
+let draft = session "Write a one-sentence draft about variables"
+
+# Reassign the let variable
+draft = session "Improve this draft to two sentences"
+  context: draft

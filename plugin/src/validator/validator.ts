@@ -20,6 +20,10 @@ import {
   IdentifierNode,
   ArrayExpressionNode,
   ObjectExpressionNode,
+  LetBindingNode,
+  ConstBindingNode,
+  AssignmentNode,
+  ExpressionNode,
   walkAST,
   ASTVisitor,
 } from '../parser';
@@ -40,11 +44,19 @@ export interface ValidationResult {
 /** Valid model values */
 const VALID_MODELS = ['sonnet', 'opus', 'haiku'];
 
+/** Variable binding info */
+interface VariableBinding {
+  name: string;
+  isConst: boolean;
+  span: SourceSpan;
+}
+
 export class Validator {
   private errors: ValidationError[] = [];
   private warnings: ValidationError[] = [];
   private definedAgents: Map<string, AgentDefinitionNode> = new Map();
   private importedSkills: Map<string, ImportStatementNode> = new Map();
+  private definedVariables: Map<string, VariableBinding> = new Map();
 
   constructor(private program: ProgramNode) {}
 
@@ -56,13 +68,18 @@ export class Validator {
     this.warnings = [];
     this.definedAgents = new Map();
     this.importedSkills = new Map();
+    this.definedVariables = new Map();
 
-    // First pass: collect imports and agent definitions
+    // First pass: collect imports, agent definitions, and variable bindings
     for (const statement of this.program.statements) {
       if (statement.type === 'ImportStatement') {
         this.collectImport(statement);
       } else if (statement.type === 'AgentDefinition') {
         this.collectAgentDefinition(statement);
+      } else if (statement.type === 'LetBinding') {
+        this.collectLetBinding(statement);
+      } else if (statement.type === 'ConstBinding') {
+        this.collectConstBinding(statement);
       }
     }
 
@@ -110,6 +127,44 @@ export class Validator {
   }
 
   /**
+   * Collect let binding (first pass)
+   */
+  private collectLetBinding(binding: LetBindingNode): void {
+    const name = binding.name.name;
+
+    if (this.definedVariables.has(name)) {
+      this.addError(`Duplicate variable definition: "${name}"`, binding.name.span);
+    } else if (this.definedAgents.has(name)) {
+      this.addError(`Variable "${name}" conflicts with agent name`, binding.name.span);
+    } else {
+      this.definedVariables.set(name, {
+        name,
+        isConst: false,
+        span: binding.name.span,
+      });
+    }
+  }
+
+  /**
+   * Collect const binding (first pass)
+   */
+  private collectConstBinding(binding: ConstBindingNode): void {
+    const name = binding.name.name;
+
+    if (this.definedVariables.has(name)) {
+      this.addError(`Duplicate variable definition: "${name}"`, binding.name.span);
+    } else if (this.definedAgents.has(name)) {
+      this.addError(`Variable "${name}" conflicts with agent name`, binding.name.span);
+    } else {
+      this.definedVariables.set(name, {
+        name,
+        isConst: true,
+        span: binding.name.span,
+      });
+    }
+  }
+
+  /**
    * Validate a statement
    */
   private validateStatement(statement: StatementNode): void {
@@ -125,6 +180,15 @@ export class Validator {
         break;
       case 'AgentDefinition':
         this.validateAgentDefinition(statement);
+        break;
+      case 'LetBinding':
+        this.validateLetBinding(statement);
+        break;
+      case 'ConstBinding':
+        this.validateConstBinding(statement);
+        break;
+      case 'Assignment':
+        this.validateAssignment(statement);
         break;
       // Other statement types will be added in later tiers
     }
@@ -213,6 +277,61 @@ export class Validator {
   }
 
   /**
+   * Validate a let binding
+   */
+  private validateLetBinding(binding: LetBindingNode): void {
+    // Validate the value expression
+    this.validateBindingExpression(binding.value);
+  }
+
+  /**
+   * Validate a const binding
+   */
+  private validateConstBinding(binding: ConstBindingNode): void {
+    // Validate the value expression
+    this.validateBindingExpression(binding.value);
+  }
+
+  /**
+   * Validate an assignment statement
+   */
+  private validateAssignment(assignment: AssignmentNode): void {
+    const name = assignment.name.name;
+
+    // Check if the variable exists
+    if (!this.definedVariables.has(name)) {
+      this.addError(`Undefined variable: "${name}"`, assignment.name.span);
+      return;
+    }
+
+    // Check if trying to assign to a const
+    const binding = this.definedVariables.get(name)!;
+    if (binding.isConst) {
+      this.addError(`Cannot reassign const variable: "${name}"`, assignment.name.span);
+      return;
+    }
+
+    // Validate the value expression
+    this.validateBindingExpression(assignment.value);
+  }
+
+  /**
+   * Validate an expression used in a binding (let/const/assignment)
+   */
+  private validateBindingExpression(expr: ExpressionNode): void {
+    if (expr.type === 'SessionStatement') {
+      this.validateSessionStatement(expr as SessionStatementNode);
+    } else if (expr.type === 'Identifier') {
+      // Variable reference - check if it exists
+      const name = (expr as IdentifierNode).name;
+      if (!this.definedVariables.has(name) && !this.definedAgents.has(name)) {
+        this.addError(`Undefined variable: "${name}"`, expr.span);
+      }
+    }
+    // Other expression types (strings, arrays) are generally valid
+  }
+
+  /**
    * Validate a session statement
    */
   private validateSessionStatement(statement: SessionStatementNode): void {
@@ -286,6 +405,13 @@ export class Validator {
           this.addWarning('Permissions property is only valid in agent definitions', prop.name.span);
         } else {
           this.validatePermissionsProperty(prop);
+        }
+        break;
+      case 'context':
+        if (context !== 'session') {
+          this.addWarning('Context property is only valid in session statements', prop.name.span);
+        } else {
+          this.validateContextProperty(prop);
         }
         break;
       default:
@@ -367,6 +493,40 @@ export class Validator {
       } else {
         this.addError('Permission value must be an array of patterns or an identifier', permProp.value.span);
       }
+    }
+  }
+
+  /**
+   * Validate context property
+   * Valid forms:
+   * - context: varname (single variable reference)
+   * - context: [var1, var2, ...] (array of variable references)
+   * - context: [] (empty context - start fresh)
+   */
+  private validateContextProperty(prop: PropertyNode): void {
+    const value = prop.value;
+
+    if (value.type === 'Identifier') {
+      // Single variable reference
+      const name = (value as IdentifierNode).name;
+      if (!this.definedVariables.has(name)) {
+        this.addError(`Undefined variable in context: "${name}"`, value.span);
+      }
+    } else if (value.type === 'ArrayExpression') {
+      // Array of variable references (can be empty)
+      const arrayValue = value as ArrayExpressionNode;
+      for (const element of arrayValue.elements) {
+        if (element.type !== 'Identifier') {
+          this.addError('Context array elements must be variable references', element.span);
+          continue;
+        }
+        const name = (element as IdentifierNode).name;
+        if (!this.definedVariables.has(name)) {
+          this.addError(`Undefined variable in context: "${name}"`, element.span);
+        }
+      }
+    } else {
+      this.addError('Context must be a variable reference or an array of variable references', value.span);
     }
   }
 

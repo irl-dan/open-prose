@@ -13,10 +13,11 @@ OpenProse is a domain-specific language for orchestrating AI agent sessions. Thi
 5. [Import Statements](#import-statements)
 6. [Agent Definitions](#agent-definitions)
 7. [Session Statement](#session-statement)
-8. [Execution Model](#execution-model)
-9. [Validation Rules](#validation-rules)
-10. [Examples](#examples)
-11. [Future Features](#future-features)
+8. [Variables & Context](#variables--context)
+9. [Execution Model](#execution-model)
+10. [Validation Rules](#validation-rules)
+11. [Examples](#examples)
+12. [Future Features](#future-features)
 
 ---
 
@@ -45,6 +46,10 @@ The following features are implemented:
 | Import statements | Implemented | `import "skill" from "source"` |
 | Agent skills | Implemented | `skills: ["skill1", "skill2"]` |
 | Agent permissions | Implemented | `permissions:` block with rules |
+| Let binding | Implemented | `let name = session "..."` |
+| Const binding | Implemented | `const name = session "..."` |
+| Variable reassignment | Implemented | `name = session "..."` (for let only) |
+| Context property | Implemented | `context: var` or `context: [a, b, c]` |
 
 ---
 
@@ -515,6 +520,112 @@ session: researcher
 
 ---
 
+## Variables & Context
+
+Variables allow you to capture the results of sessions and pass them as context to subsequent sessions.
+
+### Let Binding
+
+The `let` keyword creates a mutable variable bound to a session result:
+
+```prose
+let research = session "Research the topic thoroughly"
+
+# research now holds the output of that session
+```
+
+Variables can be reassigned:
+
+```prose
+let draft = session "Write initial draft"
+
+# Revise the draft
+draft = session "Improve the draft"
+  context: draft
+```
+
+### Const Binding
+
+The `const` keyword creates an immutable variable:
+
+```prose
+const config = session "Get configuration settings"
+
+# This would be an error:
+# config = session "Try to change"
+```
+
+### Context Property
+
+The `context` property passes previous session outputs to a new session:
+
+#### Single Context
+
+```prose
+let research = session "Research quantum computing"
+
+session "Write summary"
+  context: research
+```
+
+#### Multiple Contexts
+
+```prose
+let research = session "Research the topic"
+let analysis = session "Analyze the findings"
+
+session "Write final report"
+  context: [research, analysis]
+```
+
+#### Empty Context (Fresh Start)
+
+Use an empty array to start a session without inherited context:
+
+```prose
+session "Independent task"
+  context: []
+```
+
+### Complete Example
+
+```prose
+agent researcher:
+  model: sonnet
+  prompt: "You are a research assistant"
+
+agent writer:
+  model: opus
+  prompt: "You are a technical writer"
+
+# Gather research
+let research = session: researcher
+  prompt: "Research quantum computing developments"
+
+# Analyze findings
+let analysis = session: researcher
+  prompt: "Analyze the key findings"
+  context: research
+
+# Write the final report using both contexts
+const report = session: writer
+  prompt: "Write a comprehensive report"
+  context: [research, analysis]
+```
+
+### Validation Rules
+
+| Check | Severity | Message |
+|-------|----------|---------|
+| Duplicate variable name | Error | Variable already defined |
+| Const reassignment | Error | Cannot reassign const variable |
+| Undefined variable reference | Error | Undefined variable |
+| Variable conflicts with agent | Error | Variable name conflicts with agent name |
+| Undefined context variable | Error | Undefined variable in context |
+| Non-identifier in context array | Error | Context array elements must be variable references |
+
+---
+
 ## Execution Model
 
 OpenProse uses a two-phase execution model.
@@ -742,10 +853,6 @@ session: writer
 
 The following features are specified but not yet implemented:
 
-### Tier 4: Variables & Context
-- `let` and `const` bindings
-- Explicit context passing
-
 ### Tier 5: Composition
 - `do:` sequential blocks
 - `->` inline sequences
@@ -781,11 +888,16 @@ The following features are specified but not yet implemented:
 
 ```
 program     → statement* EOF
-statement   → agentDef | session | comment
+statement   → agentDef | session | letBinding | constBinding | assignment | comment
 agentDef    → "agent" IDENTIFIER ":" NEWLINE INDENT property* DEDENT
 session     → "session" ( string | ":" IDENTIFIER | IDENTIFIER ":" IDENTIFIER )
               ( NEWLINE INDENT property* DEDENT )?
-property    → ( "model" | "prompt" | IDENTIFIER ) ":" ( IDENTIFIER | string )
+letBinding  → "let" IDENTIFIER "=" expression
+constBinding → "const" IDENTIFIER "=" expression
+assignment  → IDENTIFIER "=" expression
+expression  → session | string | IDENTIFIER | array
+property    → ( "model" | "prompt" | "context" | IDENTIFIER ) ":" ( IDENTIFIER | string | array )
+array       → "[" ( expression ( "," expression )* )? "]"
 comment     → "#" text NEWLINE
 string      → '"' character* '"'
 character   → escape | non-quote

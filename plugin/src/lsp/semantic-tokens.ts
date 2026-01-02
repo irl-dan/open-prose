@@ -226,6 +226,7 @@ export class SemanticTokensProvider {
       case TokenType.PMAP:
       case TokenType.SKILLS:
       case TokenType.PERMISSIONS:
+      case TokenType.CONTEXT:
         return SemanticTokenType.Keyword;
 
       // Operators

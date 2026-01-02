@@ -1,0 +1,29 @@
+# Tier 4.3-4.5: Context Property
+# Tests passing context between sessions using variables
+
+agent researcher:
+  model: sonnet
+  prompt: "You are a research assistant who provides concise answers"
+
+agent writer:
+  model: sonnet
+  prompt: "You are a technical writer who creates clear summaries"
+
+# Step 1: Gather initial research
+let research = session: researcher
+  prompt: "What are the three primary colors in light? Answer in one sentence."
+
+# Step 2: Use single context
+let analysis = session: researcher
+  prompt: "Based on the context, what happens when you mix red and blue light? Answer briefly."
+  context: research
+
+# Step 3: Use multiple contexts
+session: writer
+  prompt: "Summarize both the research and analysis in a single paragraph"
+  context: [research, analysis]
+
+# Step 4: Use empty context (fresh start)
+session: researcher
+  prompt: "Without any prior context, what is the capital of France? Answer in one word."
+  context: []

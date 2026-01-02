@@ -27,6 +27,9 @@ import {
   ExpressionNode,
   EscapeSequence,
   ArrayExpressionNode,
+  LetBindingNode,
+  ConstBindingNode,
+  AssignmentNode,
   createProgramNode,
   createCommentNode,
 } from './ast';
@@ -142,6 +145,24 @@ export class Parser {
       return this.parseSessionStatement();
     }
 
+    // Handle let binding
+    if (this.check(TokenType.LET)) {
+      return this.parseLetBinding();
+    }
+
+    // Handle const binding
+    if (this.check(TokenType.CONST)) {
+      return this.parseConstBinding();
+    }
+
+    // Handle potential assignment (identifier followed by =)
+    if (this.check(TokenType.IDENTIFIER)) {
+      // Look ahead for assignment
+      if (this.peekNext().type === TokenType.EQUALS) {
+        return this.parseAssignment();
+      }
+    }
+
     // Skip unknown tokens for now (will be expanded in later tiers)
     if (!this.isAtEnd() && !this.check(TokenType.NEWLINE) && !this.check(TokenType.DEDENT)) {
       this.advance();
@@ -217,6 +238,144 @@ export class Parser {
       skillName,
       source,
       span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a let binding
+   * Syntax: let name = expression
+   */
+  private parseLetBinding(): LetBindingNode {
+    const letToken = this.advance(); // consume 'let'
+    const start = letToken.span.start;
+
+    // Expect identifier (variable name)
+    let name: IdentifierNode;
+    if (this.check(TokenType.IDENTIFIER)) {
+      name = this.parseIdentifier();
+    } else {
+      this.addError('Expected variable name after "let"');
+      name = {
+        type: 'Identifier',
+        name: '',
+        span: this.peek().span,
+      };
+    }
+
+    // Expect equals sign
+    if (!this.match(TokenType.EQUALS)) {
+      this.addError('Expected "=" after variable name in let binding');
+    }
+
+    // Parse the value expression (typically a session)
+    const value = this.parseBindingExpression();
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'LetBinding',
+      name,
+      value,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse a const binding
+   * Syntax: const name = expression
+   */
+  private parseConstBinding(): ConstBindingNode {
+    const constToken = this.advance(); // consume 'const'
+    const start = constToken.span.start;
+
+    // Expect identifier (variable name)
+    let name: IdentifierNode;
+    if (this.check(TokenType.IDENTIFIER)) {
+      name = this.parseIdentifier();
+    } else {
+      this.addError('Expected variable name after "const"');
+      name = {
+        type: 'Identifier',
+        name: '',
+        span: this.peek().span,
+      };
+    }
+
+    // Expect equals sign
+    if (!this.match(TokenType.EQUALS)) {
+      this.addError('Expected "=" after variable name in const binding');
+    }
+
+    // Parse the value expression (typically a session)
+    const value = this.parseBindingExpression();
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'ConstBinding',
+      name,
+      value,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse an assignment
+   * Syntax: name = expression
+   */
+  private parseAssignment(): AssignmentNode {
+    const start = this.peek().span.start;
+
+    // Parse the variable name
+    const name = this.parseIdentifier();
+
+    // Consume the equals sign
+    this.advance(); // consume '='
+
+    // Parse the value expression
+    const value = this.parseBindingExpression();
+
+    const end = this.previous().span.end;
+
+    return {
+      type: 'Assignment',
+      name,
+      value,
+      span: { start, end },
+    };
+  }
+
+  /**
+   * Parse an expression that can be assigned to a variable
+   * This handles session statements and other expressions
+   */
+  private parseBindingExpression(): ExpressionNode {
+    // If it's a session keyword, parse it as a session
+    if (this.check(TokenType.SESSION)) {
+      return this.parseSessionStatement();
+    }
+
+    // If it's a string literal
+    if (this.check(TokenType.STRING)) {
+      return this.parseStringLiteral();
+    }
+
+    // If it's an identifier (variable reference)
+    if (this.check(TokenType.IDENTIFIER)) {
+      return this.parseIdentifier();
+    }
+
+    // If it's an array
+    if (this.check(TokenType.LBRACKET)) {
+      return this.parseArrayExpression();
+    }
+
+    // Error case
+    this.addError('Expected expression (session, string, identifier, or array)');
+    return {
+      type: 'Identifier',
+      name: '',
+      span: this.peek().span,
     };
   }
 
@@ -315,11 +474,11 @@ export class Parser {
   private parseProperty(): PropertyNode | null {
     const start = this.peek().span.start;
 
-    // Property name can be model, prompt, skills, permissions, or any identifier
+    // Property name can be model, prompt, skills, permissions, context, or any identifier
     let propName: IdentifierNode;
     if (this.check(TokenType.MODEL) || this.check(TokenType.PROMPT) ||
         this.check(TokenType.SKILLS) || this.check(TokenType.PERMISSIONS) ||
-        this.check(TokenType.IDENTIFIER)) {
+        this.check(TokenType.CONTEXT) || this.check(TokenType.IDENTIFIER)) {
       propName = this.parsePropertyName();
     } else {
       // Skip unknown tokens

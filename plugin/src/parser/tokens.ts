@@ -43,6 +43,7 @@ export enum TokenType {
   PMAP = 'PMAP',
   SKILLS = 'SKILLS',
   PERMISSIONS = 'PERMISSIONS',
+  CONTEXT = 'CONTEXT',
 
   // Operators
   ARROW = 'ARROW',          // ->
@@ -153,6 +154,7 @@ export const KEYWORDS: Record<string, TokenType> = {
   'pmap': TokenType.PMAP,
   'skills': TokenType.SKILLS,
   'permissions': TokenType.PERMISSIONS,
+  'context': TokenType.CONTEXT,
 };
 
 /**
