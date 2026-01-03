@@ -3,19 +3,31 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "OpenProse - A new kind of language for a new kind of computer",
-  description: "A programming language for AI agent sessions. Intelligent IoC—declare agents and control flow, let the session wire them up.",
-  keywords: ["AI agents", "programming language", "LLM", "Claude Code", "OpenProse", "intelligent IoC", "agent sessions"],
+  description: "An AI session is a Turing-complete computer. OpenProse is a programming language for it. Structure English into unambiguous control flow—the session is the runtime.",
+  keywords: ["AI agents", "programming language", "LLM", "Claude Code", "OpenProse", "intelligent IoC", "agent orchestration", "multi-agent workflows"],
   authors: [{ name: "OpenProse" }],
+  metadataBase: new URL("https://prose.md"),
   openGraph: {
-    title: "OpenProse - A new kind of language for a new kind of computer",
-    description: "A programming language for AI agent sessions. Intelligent IoC—declare agents and control flow, let the session wire them up.",
+    title: "OpenProse",
+    description: "An AI session is a Turing-complete computer. OpenProse is a programming language for it.",
     type: "website",
     url: "https://prose.md",
+    siteName: "OpenProse",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "OpenProse - A new kind of language for a new kind of computer",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "OpenProse - A new kind of language for a new kind of computer",
-    description: "A programming language for AI agent sessions.",
+    title: "OpenProse",
+    description: "An AI session is a Turing-complete computer. OpenProse is a programming language for it.",
+    creator: "@openprose",
+    images: ["/og-image.png"],
   },
 };
 
