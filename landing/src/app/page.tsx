@@ -1220,6 +1220,7 @@ export default function Home() {
       <Navigation />
       <main>
         <HeroSection />
+        <GettingStartedSection />
         <ConceptSection />
         <ProseCompleteSection onOpenFunding={() => {
           setFundingModalTitle("Fund the benchmarker");
@@ -1229,7 +1230,6 @@ export default function Home() {
           setFundingModalTitle("Fund the creator");
           setFundingModalOpen(true);
         }} />
-        <GettingStartedSection />
         <BetaLegalSection />
         {/* Temporarily hidden: <SupportSection onOpenContact={() => setContactModalOpen(true)} /> */}
       </main>
