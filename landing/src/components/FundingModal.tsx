@@ -121,7 +121,7 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
           {/* Appeal */}
           <div className="funding-appeal">
             <p>
-              I&apos;m building OpenProse independently—no VC funds, no big lab backing.
+              To date, I&apos;ve built OpenProse independently—no VC funds, no big lab backing.
               I&apos;m a father of four kids under five, working on this because it&apos;s fun.
             </p>
             <p>
