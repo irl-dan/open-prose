@@ -634,7 +634,16 @@ function GettingStartedSection() {
 
           <div>
             <p className="text-sm font-mono text-[var(--ink-light)] mb-2">
-              2. Boot OpenProse
+              2. Restart Claude Code
+            </p>
+            <p className="text-sm text-[var(--ink-medium)] mb-4">
+              Skills load at startup. Quit and reopen Claude Code.
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm font-mono text-[var(--ink-light)] mb-2">
+              3. Boot OpenProse
             </p>
             <CodeBlock className="text-sm">
               openprose boot
