@@ -1,0 +1,71 @@
+{
+  "name": "open-prose",
+  "displayName": "OpenProse",
+  "description": "Language support for OpenProse (.prose files) - a DSL for AI agent orchestration",
+  "version": "0.1.0",
+  "publisher": "openprose",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "openprose",
+    "prose",
+    "ai",
+    "agents",
+    "orchestration",
+    "dsl"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/open-prose"
+  },
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "activationEvents": [
+    "onLanguage:prose"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "prose",
+        "aliases": [
+          "OpenProse",
+          "prose"
+        ],
+        "extensions": [
+          ".prose"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "prose",
+        "scopeName": "source.prose",
+        "path": "./syntaxes/prose.tmLanguage.json"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "bun run esbuild-base --minify",
+    "esbuild-base": "esbuild ./src/extension.ts --bundle --outfile=out/extension.js --external:vscode --format=cjs --platform=node",
+    "compile": "bun run esbuild-base --sourcemap",
+    "watch": "bun run esbuild-base --sourcemap --watch",
+    "package": "vsce package",
+    "lint": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.22.0",
+    "esbuild": "^0.19.0",
+    "typescript": "^5.3.0"
+  }
+}
