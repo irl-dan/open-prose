@@ -85,11 +85,22 @@ function HeroSection() {
         </div>
 
         {/* Subtitle */}
-        <div className="mb-12 opacity-0 animate-fade-in-up animation-delay-300">
+        <div className="mb-8 opacity-0 animate-fade-in-up animation-delay-300">
           <p className="text-lg md:text-xl text-[var(--ink-medium)] max-w-2xl">
             A long-running AI session is a Turing-complete computer. OpenProse
             is a programming language for it.
           </p>
+        </div>
+
+        {/* Beta warning */}
+        <div className="mb-12 opacity-0 animate-fade-in-up animation-delay-350">
+          <a
+            href="#beta"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--semantic-gold-bg)] text-[var(--semantic-gold)] rounded-full text-sm font-medium hover:bg-[var(--semantic-gold)] hover:text-white transition-colors"
+          >
+            <span>⚠️</span>
+            <span>Beta Software — Read before using</span>
+          </a>
         </div>
 
         {/* Hero code example */}
@@ -619,7 +630,7 @@ function GettingStartedSection() {
           <code className="inline-code">.prose</code> workflows immediately.
         </p>
 
-        <div className="space-y-6 mb-12">
+        <div className="space-y-6 mb-8">
           <div>
             <p className="text-sm font-mono text-[var(--ink-light)] mb-2">
               1. Install the plugin
@@ -639,6 +650,28 @@ function GettingStartedSection() {
             </CodeBlock>
           </div>
         </div>
+
+        <p className="text-sm text-[var(--ink-light)] mb-12">
+          By installing, you agree to the{" "}
+          <a
+            href="https://github.com/openprose/prose/blob/main/PRIVACY.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-[var(--ink-dark)]"
+          >
+            Privacy Policy
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://github.com/openprose/prose/blob/main/TERMS.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:text-[var(--ink-dark)]"
+          >
+            Terms of Service
+          </a>
+          .
+        </p>
 
         <div className="flex flex-col sm:flex-row gap-4">
           <a
@@ -859,6 +892,89 @@ function SupportSection({ onOpenContact }: { onOpenContact: () => void }) {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================
+// BETA & LEGAL SECTION
+// ============================================
+
+function BetaLegalSection() {
+  return (
+    <section id="beta" className="px-6 py-24 bg-[var(--paper-warm)]">
+      <div className="max-w-3xl mx-auto">
+        <div className="flex items-center gap-3 mb-6">
+          <span className="px-3 py-1 bg-[var(--semantic-gold-bg)] text-[var(--semantic-gold)] text-sm font-mono font-medium rounded-full">
+            BETA
+          </span>
+          <h2 className="text-2xl md:text-3xl font-light tracking-tight">
+            Important Information
+          </h2>
+        </div>
+
+        <div className="space-y-6 mb-12">
+          <div className="bg-[var(--paper-cream)] p-6 rounded-lg border border-[var(--paper-aged)]">
+            <h3 className="font-medium text-[var(--ink-dark)] mb-3">Beta Status</h3>
+            <ul className="space-y-2 text-[var(--ink-medium)]">
+              <li className="flex items-start gap-2">
+                <span className="text-[var(--semantic-gold)]">•</span>
+                <span><strong>Telemetry is on by default</strong> — We collect anonymous usage data to improve the project. See our Privacy Policy for details and how to opt out.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[var(--semantic-gold)]">•</span>
+                <span><strong>Expect bugs</strong> — The software may behave unexpectedly. Please report issues on GitHub.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[var(--semantic-gold)]">•</span>
+                <span><strong>Not for production</strong> — Do not use OpenProse for critical or production workflows yet.</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[var(--semantic-gold)]">•</span>
+                <span><strong>We want feedback</strong> — Your input shapes the project. Open issues, suggest features, report problems.</span>
+              </li>
+            </ul>
+          </div>
+
+          <div className="bg-[var(--paper-cream)] p-6 rounded-lg border border-[var(--paper-aged)]">
+            <h3 className="font-medium text-[var(--ink-dark)] mb-3">Your Responsibility</h3>
+            <p className="text-[var(--ink-medium)]">
+              You are responsible for all actions performed by AI agents you spawn through OpenProse.
+              Review your <code className="inline-code">.prose</code> programs before execution and verify all outputs.
+            </p>
+          </div>
+        </div>
+
+        <div className="border-t border-[var(--paper-aged)] pt-8">
+          <h3 className="font-medium text-[var(--ink-dark)] mb-4">Legal</h3>
+          <div className="flex flex-wrap gap-6 text-sm">
+            <a
+              href="https://github.com/openprose/prose/blob/main/LICENSE"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--ink-medium)] hover:text-[var(--ink-dark)] underline underline-offset-2"
+            >
+              MIT License
+            </a>
+            <a
+              href="https://github.com/openprose/prose/blob/main/PRIVACY.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--ink-medium)] hover:text-[var(--ink-dark)] underline underline-offset-2"
+            >
+              Privacy Policy
+            </a>
+            <a
+              href="https://github.com/openprose/prose/blob/main/TERMS.md"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--ink-medium)] hover:text-[var(--ink-dark)] underline underline-offset-2"
+            >
+              Terms of Service
+            </a>
           </div>
         </div>
       </div>
@@ -1100,6 +1216,7 @@ export default function Home() {
           setFundingModalOpen(true);
         }} />
         <GettingStartedSection />
+        <BetaLegalSection />
         {/* Temporarily hidden: <SupportSection onOpenContact={() => setContactModalOpen(true)} /> */}
       </main>
       <Footer />
