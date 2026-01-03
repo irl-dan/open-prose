@@ -902,7 +902,7 @@ function Footer() {
             GitHub
           </a>
           <a
-            href="https://github.com/openprose/prose/blob/main/plugin/skills/open-prose/prose.md"
+            href="https://github.com/openprose/prose/blob/main/skills/open-prose/docs.md"
             target="_blank"
             rel="noopener noreferrer"
             className="prose-link"

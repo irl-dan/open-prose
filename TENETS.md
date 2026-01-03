@@ -27,12 +27,12 @@ The OpenProse skill ships as three distinct files, each with a clear responsibil
 |------|------|----------|
 | **SKILL.md** | Distribution wrapper | Activation triggers, onboarding flow, telemetry opt-in, plugin-specific behavior, analytics integration |
 | **interpreter.md** | Execution semantics | How to run programs, spawn sessions, manage state, handle errors, coordinate parallel execution |
-| **prose.md** | Language specification | Syntax grammar, validation rules, error codes, compilation to canonical form, edge case behavior |
+| **docs.md** | Language specification | Syntax grammar, validation rules, error codes, compilation to canonical form, edge case behavior |
 
 ### Design Rationale
 
-1. **SKILL.md is the plugin boundary.** It handles everything specific to the distribution context (Claude Code plugin, IDE integration, telemetry). A different host could use interpreter.md and prose.md with a different wrapper.
+1. **SKILL.md is the plugin boundary.** It handles everything specific to the distribution context (Claude Code plugin, IDE integration, telemetry). A different host could use interpreter.md and docs.md with a different wrapper.
 
 2. **interpreter.md is minimal and always in context.** An agent with only this file should successfully execute valid programs. It contains execution semantics but not validation edge cases.
 
-3. **prose.md is the source of truth.** It's read when compiling, validating, or resolving ambiguous syntax. The intelligent OpenProse VM uses it as a semantic compiler—the spec IS the compiler.
+3. **docs.md is the source of truth.** It's read when compiling, validating, or resolving ambiguous syntax. The intelligent OpenProse VM uses it as a semantic compiler—the spec IS the compiler.
