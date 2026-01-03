@@ -334,9 +334,9 @@ function ProseCompleteSection({
 }) {
   const systems = [
     { name: "Claude Code with Opus 4.5", status: "tested", tier: 1 },
-    { name: "Claude Code with Sonnet 4.5", status: "tested", tier: 2 },
-    { name: "Claude Code with Opus 4", status: "tested", tier: 3 },
-    { name: "Claude Code with Sonnet 4", status: "tested", tier: 4 },
+    { name: "Claude Code with Sonnet 4.5", status: "untested", tier: 2 },
+    { name: "Claude Code with Opus 4", status: "untested", tier: 3 },
+    { name: "Claude Code with Sonnet 4", status: "untested", tier: 4 },
     { name: "Codex", status: "untested", tier: null },
     { name: "OpenCode with Opus 4.5", status: "untested", tier: null },
   ];
