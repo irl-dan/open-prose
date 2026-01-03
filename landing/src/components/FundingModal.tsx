@@ -113,8 +113,8 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
               Fund the benchmarker
             </h2>
             <p className="funding-modal-subtitle">
-              Your support keeps OpenProse LLC running—enabling my time on benchmarks,
-              tooling, and everything that makes this project possible.
+              Your support funds the creatine and caffeine budget—and maybe
+              some extra hours on benchmarks, tooling, and documentation.
             </p>
           </div>
 
@@ -122,8 +122,7 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
           <div className="funding-appeal">
             <p>
               I&apos;m building OpenProse independently—no VC funds, no big lab backing.
-              I&apos;m a father of four kids under five, working on this because the idea
-              is worth exploring.
+              I&apos;m a father of four kids under five, working on this because it&apos;s fun.
             </p>
             <p>
               Every contribution helps me keep the lights on and dedicate more time
@@ -180,6 +179,25 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
                 <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </a>
+          </div>
+
+          {/* Fine print */}
+          <div className="funding-fine-print">
+            <p>
+              Voluntary contribution. No expectation of control, influence, or
+              future maintenance.
+            </p>
+            <p className="patron-note">
+              Patrons, DM me on{" "}
+              <a
+                href="https://twitter.com/irl_dan"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                twitter
+              </a>{" "}
+              so I can say thanks.
+            </p>
           </div>
         </div>
       </div>
@@ -460,6 +478,34 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
         }
 
         .funding-custom a:hover {
+          color: var(--ink-dark);
+        }
+
+        /* Fine print */
+        .funding-fine-print {
+          padding: 0 2rem 1.5rem;
+          text-align: center;
+        }
+
+        .funding-fine-print p {
+          font-size: 0.7rem;
+          color: var(--ink-light);
+          margin: 0 0 0.5rem;
+          line-height: 1.4;
+        }
+
+        .funding-fine-print .patron-note {
+          margin-top: 0.75rem;
+          font-style: italic;
+        }
+
+        .funding-fine-print a {
+          color: var(--ink-medium);
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+
+        .funding-fine-print a:hover {
           color: var(--ink-dark);
         }
       `}</style>
