@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import analytics from "@/lib/analytics";
 import ContactModal from "@/components/ContactModal";
+import FundingModal from "@/components/FundingModal";
 
 // ============================================
 // COMPONENTS
@@ -315,6 +316,162 @@ function ConceptSection() {
                 <span className="token-string">&quot;Get feedback&quot;</span>
               </CodeBlock>
             </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// ============================================
+// PROSE COMPLETE SECTION
+// ============================================
+
+function ProseCompleteSection({
+  onOpenFunding,
+}: {
+  onOpenFunding: () => void;
+}) {
+  const systems = [
+    { name: "Claude Code with Opus 4.5", status: "tested", tier: 1 },
+    { name: "Claude Code with Sonnet 4.5", status: "tested", tier: 2 },
+    { name: "Claude Code with Opus 4", status: "tested", tier: 3 },
+    { name: "Claude Code with Sonnet 4", status: "tested", tier: 4 },
+    { name: "Codex", status: "untested", tier: null },
+    { name: "OpenCode with Opus 4.5", status: "untested", tier: null },
+  ];
+
+  return (
+    <section id="prose-complete" className="px-6 py-24">
+      <div className="max-w-4xl mx-auto">
+        {/* Definition block - academic style */}
+        <div className="mb-16">
+          <div className="flex items-baseline gap-3 mb-4">
+            <span className="text-xs font-mono uppercase tracking-widest text-[var(--semantic-gold)]">
+              Definition
+            </span>
+            <div className="flex-1 h-px bg-[var(--paper-aged)]" />
+          </div>
+
+          <h2
+            className="text-3xl md:text-4xl font-light mb-6 tracking-tight"
+            style={{ fontFamily: "var(--font-prose)" }}
+          >
+            Prose Complete
+          </h2>
+
+          <blockquote className="border-l-2 border-[var(--semantic-gold)] pl-6 py-2 my-8">
+            <p className="text-xl md:text-2xl font-light text-[var(--ink-dark)] leading-relaxed italic">
+              A System is <span className="not-italic font-medium">Prose Complete</span> if
+              it can run a <code className="inline-code text-base">.prose</code> program
+              of arbitrary complexity.
+            </p>
+          </blockquote>
+
+          <p className="text-[var(--ink-medium)] text-lg max-w-2xl">
+            Not all systems are Prose Complete. The capability depends on the
+            underlying model&apos;s ability to maintain context, follow complex
+            control flow, and coordinate multiple agent sessions.
+          </p>
+        </div>
+
+        {/* Systems ranking */}
+        <div className="mb-12">
+          <h3 className="text-sm font-mono uppercase tracking-widest text-[var(--ink-light)] mb-6">
+            Systems approaching Prose Completeness
+          </h3>
+
+          <div className="space-y-3">
+            {systems.map((system, index) => (
+              <div
+                key={system.name}
+                className={`
+                  flex items-center gap-4 p-4 rounded-lg transition-all
+                  ${
+                    system.status === "tested"
+                      ? "bg-[var(--paper-cream)] border border-[var(--paper-aged)]"
+                      : "bg-transparent border border-dashed border-[var(--paper-aged)]"
+                  }
+                `}
+              >
+                {/* Rank indicator */}
+                <div
+                  className={`
+                    w-8 h-8 rounded-full flex items-center justify-center text-sm font-mono
+                    ${
+                      system.tier === 1
+                        ? "bg-[var(--semantic-gold)] text-white"
+                        : system.tier
+                          ? "bg-[var(--paper-warm)] text-[var(--ink-medium)] border border-[var(--paper-aged)]"
+                          : "bg-transparent text-[var(--ink-light)]"
+                    }
+                  `}
+                >
+                  {system.tier || "?"}
+                </div>
+
+                {/* System name */}
+                <span
+                  className={`
+                    flex-1 font-medium
+                    ${system.status === "tested" ? "text-[var(--ink-dark)]" : "text-[var(--ink-light)]"}
+                  `}
+                >
+                  {system.name}
+                </span>
+
+                {/* Status badge */}
+                <span
+                  className={`
+                    text-xs font-mono uppercase tracking-wider px-2 py-1 rounded
+                    ${
+                      system.status === "tested"
+                        ? "bg-[var(--semantic-gold-bg)] text-[var(--semantic-gold)]"
+                        : "bg-[var(--paper-warm)] text-[var(--ink-light)]"
+                    }
+                  `}
+                >
+                  {system.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Funding CTA */}
+        <div className="border-t border-[var(--paper-aged)] pt-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <p className="text-[var(--ink-medium)] text-base">
+              <span className="italic">Benchmarks still underway.</span>{" "}
+              <span className="text-[var(--ink-light)]">
+                Rigorous testing requires time and compute.
+              </span>
+            </p>
+            <button
+              onClick={() => {
+                analytics.track("cta_click", {
+                  button: "fund_benchmarks",
+                  section: "prose_complete",
+                });
+                onOpenFunding();
+              }}
+              className="btn-secondary whitespace-nowrap inline-flex items-center justify-center gap-2"
+            >
+              Fund the benchmarks
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M17 8l4 4m0 0l-4 4m4-4H3"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -891,6 +1048,7 @@ function Navigation() {
 
 export default function Home() {
   const [contactModalOpen, setContactModalOpen] = useState(false);
+  const [fundingModalOpen, setFundingModalOpen] = useState(false);
 
   // Initialize analytics on mount
   useEffect(() => {
@@ -903,6 +1061,7 @@ export default function Home() {
       <main>
         <HeroSection />
         <ConceptSection />
+        <ProseCompleteSection onOpenFunding={() => setFundingModalOpen(true)} />
         <FAQSection />
         <GettingStartedSection />
         {/* Temporarily hidden: <SupportSection onOpenContact={() => setContactModalOpen(true)} /> */}
@@ -911,6 +1070,10 @@ export default function Home() {
       <ContactModal
         isOpen={contactModalOpen}
         onClose={() => setContactModalOpen(false)}
+      />
+      <FundingModal
+        isOpen={fundingModalOpen}
+        onClose={() => setFundingModalOpen(false)}
       />
     </>
   );
