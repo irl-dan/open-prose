@@ -383,16 +383,7 @@ function ProseCompleteSection({
 
           <p className="text-[var(--ink-medium)] text-lg max-w-2xl">
             Not all systems are Prose Complete. It&apos;s not just the model—it&apos;s
-            the model plus the{" "}
-            <a
-              href="https://x.com/irl_dan/status/1950204749761880570"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[var(--ink-dark)] underline underline-offset-2 hover:text-[var(--semantic-gold)]"
-            >
-              harness
-            </a>
-            . Together, they need to maintain context, follow complex control
+            the model plus the harness. Together, they need to maintain context, follow complex control
             flow, and coordinate agent sessions.
           </p>
         </div>
@@ -637,7 +628,7 @@ function GettingStartedSection() {
             </p>
             <CodeBlock className="text-sm">
               /plugin marketplace add git@github.com:openprose/prose.git{"\n"}
-              /plugin install prose@open-prose
+              /plugin install open-prose@open-prose
             </CodeBlock>
           </div>
 
