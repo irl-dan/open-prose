@@ -1,0 +1,53 @@
+{
+  "name": "@openprose/core",
+  "version": "0.1.0",
+  "description": "OpenProse language implementation - parser, validator, compiler, and LSP",
+  "type": "commonjs",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "bin": {
+    "openprose": "bin/open-prose.ts"
+  },
+  "files": [
+    "dist",
+    "bin",
+    "src"
+  ],
+  "scripts": {
+    "compile": "bun run bin/open-prose.ts compile",
+    "validate": "bun run bin/open-prose.ts validate",
+    "build": "tsc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/irl-dan/open-prose.git",
+    "directory": "packages/core"
+  },
+  "keywords": [
+    "openprose",
+    "ai",
+    "agents",
+    "orchestration",
+    "dsl",
+    "parser",
+    "compiler",
+    "lsp"
+  ],
+  "author": "OpenProse",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "bun": ">=1.0.0"
+  }
+}

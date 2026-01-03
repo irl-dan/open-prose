@@ -1,7 +1,9 @@
 # NPM Package Restructure Plan
 
 **Date:** 2025-01-02
-**Status:** Proposed (not yet implemented)
+**Status:** ~~Proposed~~ **DEPRECATED** — See [ELEGANT_SIMPLIFICATION.md](/ELEGANT_SIMPLIFICATION.md)
+
+> **Note:** This plan has been superseded by the Elegant Simplification plan. The core insight is that the plugin no longer needs to bundle the TypeScript implementation—the intelligent orchestrator can validate and interpret `.prose` files semantically. The npm package restructure is still relevant for dev tools (LSP, Web IDE, API) but is no longer a dependency of the plugin itself.
 
 ## Summary
 
