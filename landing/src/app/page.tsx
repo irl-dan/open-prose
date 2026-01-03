@@ -628,7 +628,7 @@ function GettingStartedSection() {
             </p>
             <CodeBlock className="text-sm">
               /plugin marketplace add git@github.com:openprose/prose.git{"\n"}
-              /plugin install open-prose@open-prose
+              /plugin install open-prose@prose
             </CodeBlock>
           </div>
 
