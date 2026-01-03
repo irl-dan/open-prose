@@ -153,18 +153,20 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
                 <span className="tier-button">Select</span>
               </a>
             ))}
-            <p className="tier-dm-note">
-              DM me on{" "}
-              <a
-                href="https://x.com/irl_dan"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                twitter
-              </a>{" "}
-              with your tier so I can say thanks
-            </p>
           </div>
+
+          {/* DM note */}
+          <p className="tier-dm-note">
+            DM me on{" "}
+            <a
+              href="https://x.com/irl_dan"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              twitter
+            </a>{" "}
+            so I can say thanks (include your tier and payment time)
+          </p>
 
           {/* Custom amount link */}
           <div className="funding-custom">
@@ -462,12 +464,12 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
 
         /* DM note below tiers */
         .tier-dm-note {
-          grid-column: 1 / -1;
           font-size: 0.75rem;
           color: var(--ink-light);
           font-style: italic;
           text-align: center;
-          margin: 0.5rem 0 0;
+          margin: 0;
+          padding: 0.75rem 2rem 0;
         }
 
         .tier-dm-note a {
