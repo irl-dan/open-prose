@@ -143,13 +143,29 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
                     source: "funding_modal",
                   })
                 }
-                className={`funding-tier ${tier.highlighted ? "highlighted" : ""}`}
+                className={`funding-tier ${tier.highlighted ? "highlighted" : ""} ${tier.name === "Patron" ? "patron" : ""}`}
               >
                 {tier.highlighted && (
                   <span className="tier-badge">POPULAR</span>
                 )}
                 <span className="tier-amount">{tier.amount}</span>
                 <span className="tier-name">{tier.name}</span>
+                {tier.name === "Patron" && (
+                  <span className="patron-note">
+                    DM me on{" "}
+                    <span
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window.open("https://twitter.com/irl_dan", "_blank");
+                      }}
+                      className="twitter-link"
+                    >
+                      twitter
+                    </span>{" "}
+                    so I can say thanks
+                  </span>
+                )}
                 <span className="tier-button">Select</span>
               </a>
             ))}
@@ -186,17 +202,6 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
             <p>
               Voluntary contribution. No expectation of control, influence, or
               future maintenance.
-            </p>
-            <p className="patron-note">
-              Patrons, DM me on{" "}
-              <a
-                href="https://twitter.com/irl_dan"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                twitter
-              </a>{" "}
-              so I can say thanks.
             </p>
           </div>
         </div>
@@ -460,6 +465,38 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
           }
         }
 
+        /* Patron tier note */
+        .funding-tier.patron {
+          padding-bottom: 1rem;
+        }
+
+        .funding-tier .patron-note {
+          font-size: 0.65rem;
+          color: var(--ink-light);
+          font-style: italic;
+          margin-top: 0.5rem;
+          line-height: 1.3;
+        }
+
+        .funding-tier .twitter-link {
+          color: var(--ink-medium);
+          text-decoration: underline;
+          text-underline-offset: 2px;
+          cursor: pointer;
+        }
+
+        .funding-tier .twitter-link:hover {
+          color: var(--ink-dark);
+        }
+
+        @media (max-width: 480px) {
+          .funding-tier .patron-note {
+            order: 4;
+            text-align: left;
+            margin-top: 0.25rem;
+          }
+        }
+
         /* Custom amount */
         .funding-custom {
           padding: 0 2rem 2rem;
@@ -490,23 +527,8 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
         .funding-fine-print p {
           font-size: 0.7rem;
           color: var(--ink-light);
-          margin: 0 0 0.5rem;
+          margin: 0;
           line-height: 1.4;
-        }
-
-        .funding-fine-print .patron-note {
-          margin-top: 0.75rem;
-          font-style: italic;
-        }
-
-        .funding-fine-print a {
-          color: var(--ink-medium);
-          text-decoration: underline;
-          text-underline-offset: 2px;
-        }
-
-        .funding-fine-print a:hover {
-          color: var(--ink-dark);
         }
       `}</style>
     </>
