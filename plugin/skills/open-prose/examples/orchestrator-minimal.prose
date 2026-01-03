@@ -1,0 +1,21 @@
+# Minimal Autonomous Orchestrator
+# Abridged version showing core loop structure
+
+agent orchestrator:
+  model: opus
+  prompt: """
+    You are the central orchestrator managing an autonomous system.
+    Monitor state, delegate to subagents, and make strategic decisions.
+  """
+
+loop:
+  session: orchestrator
+    prompt: "Assess system state and determine next action"
+
+  choice **the highest priority action**:
+    option "Process Task":
+      session: orchestrator
+        prompt: "Execute the next pending task"
+    option "Idle":
+      session: orchestrator
+        prompt: "No tasks pending - perform monitoring sweep"

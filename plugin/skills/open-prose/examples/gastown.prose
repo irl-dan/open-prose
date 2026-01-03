@@ -1,0 +1,515 @@
+# Gas Town - Agent Orchestration System
+# Inspired by Steve Yegge's Gas Town (steveyegge.substack.com)
+#
+# This is OpenProse's approximation of Gas Town's MEOW stack.
+# See LIMITATIONS section at bottom for what's missing.
+
+# ============================================================================
+# SKILLS (would be Beads, gt commands, tmux integration in real Gas Town)
+# ============================================================================
+
+import "issue-tracker" from "github:anthropic/skills"
+import "git-ops" from "github:anthropic/skills"
+import "code-review" from "github:anthropic/skills"
+import "notification" from "github:anthropic/skills"
+
+# ============================================================================
+# TOWN-LEVEL AGENTS (persistent identities in real Gas Town)
+# ============================================================================
+
+# The Mayor - your concierge and chief-of-staff
+agent mayor:
+  model: opus
+  prompt: """
+    You are the Mayor of Gas Town, the main agent the Overseer talks to.
+    Your responsibilities:
+    - Receive work requests from the Overseer (human)
+    - File issues and sling work to appropriate workers
+    - Kick off convoys (work orders)
+    - Receive notifications when convoys land
+    - Keep the Overseer informed of town status
+
+    GUPP: If there is work on your hook, YOU MUST RUN IT.
+    Physics over politeness. Check your hook on startup.
+  """
+  skills: ["issue-tracker", "notification"]
+  permissions:
+    read: ["**/*"]
+    write: ["logs/", "state/", ".gt/"]
+    bash: prompt
+
+# The Deacon - daemon beacon, runs town-level patrol
+agent deacon:
+  model: sonnet
+  prompt: """
+    You are the Deacon, the daemon beacon of Gas Town.
+    You run the town-level patrol in a loop:
+    1. Check on all workers' health
+    2. Propagate DYFJ (Do Your F***ing Job) signals downward
+    3. Run town-level plugins
+    4. Manage session handoffs and recycling
+    5. Delegate complex work to Dogs
+
+    GUPP: If there is work on your hook, YOU MUST RUN IT.
+    You are pinged every few minutes by Boot the Dog.
+  """
+  skills: ["notification"]
+  permissions:
+    read: ["**/*"]
+    bash: deny
+
+# Boot the Dog - special dog that checks on the Deacon
+agent boot:
+  model: haiku
+  prompt: """
+    You are Boot, a special Dog awakened every 5 minutes.
+    Your only job: check on the Deacon.
+    Decide if Deacon needs: heartbeat, nudge, restart, or to be left alone.
+    Then go back to sleep.
+  """
+
+# Dogs - the Deacon's personal crew for maintenance and handyman work
+agent dog:
+  model: sonnet
+  prompt: """
+    You are a Dog, part of the Deacon's personal crew.
+    You handle:
+    - Maintenance tasks (cleaning stale branches, etc.)
+    - Running plugins for the Deacon
+    - Long-running investigations
+    - Anything the Deacon delegates to avoid blocking patrol
+
+    GUPP: If there is work on your hook, YOU MUST RUN IT.
+  """
+  skills: ["git-ops"]
+  permissions:
+    read: ["**/*"]
+    write: ["logs/"]
+    bash: prompt
+
+# ============================================================================
+# RIG-LEVEL AGENTS (per-project workers)
+# ============================================================================
+
+# The Witness - watches over polecats, helps them get unstuck
+agent witness:
+  model: sonnet
+  prompt: """
+    You are the Witness, watching over the polecats and refinery.
+    Your patrol:
+    1. Check polecat wellbeing - are any stuck?
+    2. Check refinery status - is the merge queue moving?
+    3. Peek at the Deacon - not stuck?
+    4. Run rig-level plugins
+    5. Hustle polecats to submit MRs
+    6. Hustle refinery to process them
+
+    GUPP: If there is work on your hook, YOU MUST RUN IT.
+  """
+  skills: ["notification"]
+
+# The Refinery - manages the Merge Queue
+agent refinery:
+  model: sonnet
+  prompt: """
+    You are the Refinery, the engineer responsible for the Merge Queue.
+    Your patrol:
+    1. Preflight: clean up workspace
+    2. Process MQ until empty or need to recycle
+    3. Intelligently merge changes one at a time to main
+    4. Handle merge conflicts - rebase, reimagine if needed
+    5. Escalate if truly stuck
+    6. Postflight: prepare handoff
+
+    No work can be lost, though you may escalate.
+    GUPP: If there is work on your hook, YOU MUST RUN IT.
+  """
+  skills: ["git-ops", "code-review"]
+  permissions:
+    read: ["**/*"]
+    write: ["src/", "tests/"]
+    bash: prompt
+
+# Polecats - ephemeral workers that swarm work
+agent polecat:
+  model: sonnet
+  prompt: """
+    You are a Polecat, an ephemeral worker in the swarm.
+    You spin up on demand, work to produce a Merge Request, then hand off.
+    Your name is recycled but your work is tracked in convoys.
+
+    Workflow: receive work -> implement -> MR -> hand to Refinery -> die
+
+    GUPP: If there is work on your hook, YOU MUST RUN IT.
+  """
+  skills: ["git-ops", "code-review"]
+  permissions:
+    read: ["src/", "tests/"]
+    write: ["src/", "tests/"]
+    bash: prompt
+
+# Crew - long-lived workers for the Overseer
+agent crew:
+  model: opus
+  prompt: """
+    You are a Crew member, a long-lived coding agent working for the Overseer.
+    Unlike polecats, you have a persistent identity and name.
+    Great for design work with lots of back-and-forth.
+    You can sling work to polecats when needed.
+
+    GUPP: If there is work on your hook, YOU MUST RUN IT.
+  """
+  skills: ["git-ops", "code-review", "issue-tracker"]
+  permissions:
+    read: ["**/*"]
+    write: ["src/", "tests/", "docs/"]
+    bash: prompt
+
+# ============================================================================
+# MOLECULES (reusable workflows - would be Formulas in real Gas Town)
+# ============================================================================
+
+# Health check molecule
+block health-check:
+  parallel:
+    system = session: witness
+      prompt: "Check system resource utilization and worker health"
+    queue = session: witness
+      prompt: "Check merge queue depth and stuck items"
+    alerts = session: witness
+      prompt: "Check for unacknowledged alerts or stuck workers"
+
+  session: mayor
+    prompt: "Synthesize health status, determine if intervention needed"
+    context: { system, queue, alerts }
+
+# GUPP nudge - kick a worker into action
+block nudge(worker):
+  session: deacon
+    prompt: """
+      Nudge {worker} - send DYFJ signal.
+      If they have work on their hook, they must run it.
+      Physics over politeness.
+    """
+
+# Polecat swarm molecule
+block swarm(work, count):
+  parallel for i in count:
+    session: polecat
+      prompt: "Pick up work item from {work}, implement, submit MR"
+      context: work
+
+# Refinery patrol molecule
+block refinery-patrol:
+  # Preflight
+  session: refinery
+    prompt: "Preflight: clean workspace, check git status, prep for merges"
+
+  # Process merge queue until empty
+  loop until **merge queue is empty or context window filling** (max: 50):
+    session: refinery
+      prompt: """
+        Process next item in merge queue:
+        1. Fetch latest main
+        2. Attempt merge/rebase
+        3. If conflict, intelligently resolve or escalate
+        4. Run tests
+        5. If pass, merge to main
+        6. If fail, send back to polecat or escalate
+      """
+
+  # Postflight
+  session: refinery
+    prompt: "Postflight: summarize merges, prepare handoff notes for successor"
+
+# Witness patrol molecule
+block witness-patrol:
+  # Check polecats
+  session: witness
+    prompt: "Check all active polecats - are any stuck? Need nudging?"
+
+  if **any polecats are stuck**:
+    session: witness
+      prompt: "Hustle stuck polecats - nudge them to submit MRs"
+
+  # Check refinery
+  session: witness
+    prompt: "Check refinery status - is MQ moving? Stuck?"
+
+  if **refinery is stuck**:
+    do nudge("refinery")
+
+  # Run rig plugins
+  session: witness
+    prompt: "Run any pending rig-level plugins"
+
+# Deacon patrol molecule
+block deacon-patrol:
+  # Check all workers
+  parallel:
+    witness_status = session: deacon
+      prompt: "Check witness status across all rigs"
+    refinery_status = session: deacon
+      prompt: "Check refinery status across all rigs"
+    dog_status = session: deacon
+      prompt: "Check dogs status"
+
+  # Propagate DYFJ downward
+  if **any workers need nudging**:
+    session: deacon
+      prompt: "Send DYFJ signals to stuck workers"
+      context: { witness_status, refinery_status, dog_status }
+
+  # Delegate complex work to dogs
+  if **there is maintenance or plugin work pending**:
+    session: dog
+      prompt: "Handle maintenance: clean stale branches, run plugins"
+
+  # Session management
+  if **any workers need recycling**:
+    session: deacon
+      prompt: "Manage session handoffs for workers approaching context limit"
+
+# Convoy molecule - wrap work in a trackable unit
+block convoy(name, work):
+  let convoy_id = session: mayor
+    prompt: "Create convoy '{name}' to track this work unit"
+
+  try:
+    # Execute the work
+    session: mayor
+      prompt: "Execute convoy work"
+      context: work
+
+    # Land the convoy
+    session: mayor
+      prompt: "Convoy {convoy_id} landed successfully. Notify Overseer."
+      context: convoy_id
+  catch as err:
+    session: mayor
+      prompt: "Convoy {convoy_id} failed. Diagnose and notify Overseer."
+      context: [convoy_id, err]
+
+# Handoff molecule - graceful session transfer
+block handoff:
+  session: crew
+    prompt: """
+      Prepare for handoff:
+      1. Summarize current work state
+      2. Document any pending items
+      3. Leave notes for successor
+      4. Clean up temporary state
+      Then restart session. Successor will pick up via GUPP.
+    """
+
+# Rule of Five molecule - Jeffrey Emanuel's review pattern
+block rule-of-five(work):
+  let impl = session: crew
+    prompt: "Implement: {work}"
+
+  let review1 = session: crew
+    prompt: "Review 1 - Correctness: Is the implementation correct?"
+    context: impl
+
+  let review2 = session: crew
+    prompt: "Review 2 - Security: Any security issues?"
+    context: impl
+
+  let review3 = session: crew
+    prompt: "Review 3 - Performance: Any performance concerns?"
+    context: impl
+
+  let review4 = session: crew
+    prompt: "Review 4 - Maintainability: Is this maintainable?"
+    context: impl
+
+  session: crew
+    prompt: "Synthesize all reviews and apply fixes"
+    context: [impl, review1, review2, review3, review4]
+
+# ============================================================================
+# MAIN GAS TOWN LOOP - The Town Never Sleeps
+# ============================================================================
+
+# Boot the Dog wakes every 5 minutes (simulated with inner loop)
+block boot-patrol:
+  session: boot
+    prompt: """
+      Check on Deacon:
+      - Is it running its patrol?
+      - Does it need a heartbeat?
+      - Does it need a nudge?
+      - Does it need a restart?
+      - Or should it be left alone?
+      Take appropriate action.
+    """
+
+# Main orchestration - GAS TOWN RUNS FOREVER
+loop:
+  try:
+    # ========================================
+    # PHASE 1: Boot checks on Deacon
+    # ========================================
+    do boot-patrol
+
+    # ========================================
+    # PHASE 2: Deacon runs town-level patrol
+    # ========================================
+    do deacon-patrol
+
+    # ========================================
+    # PHASE 3: Per-rig patrols (parallel across rigs)
+    # ========================================
+    parallel:
+      do witness-patrol
+      do refinery-patrol
+
+    # ========================================
+    # PHASE 4: Mayor handles Overseer requests
+    # ========================================
+    let inbox = session: mayor
+      prompt: """
+        Check for new work from Overseer:
+        - New feature requests?
+        - Bug reports?
+        - Design tasks?
+        - Questions?
+      """
+
+    if **there is new work from the Overseer**:
+      choice **how to handle the incoming work**:
+        option "Swarm it":
+          # Fan out to polecats
+          let work = session: mayor
+            prompt: "Prepare work items for polecat swarm"
+            context: inbox
+          do swarm(work, 5)
+
+        option "Crew it":
+          # Assign to a crew member for design/collaboration
+          session: crew
+            prompt: "Take on this work for detailed handling"
+            context: inbox
+
+        option "Dog it":
+          # Maintenance task for dogs
+          session: dog
+            prompt: "Handle this maintenance task"
+            context: inbox
+
+        option "Mayor handles":
+          # Quick task Mayor can do directly
+          session: mayor
+            prompt: "Handle this directly"
+            context: inbox
+
+    # ========================================
+    # PHASE 5: Health check and self-repair
+    # ========================================
+    do health-check
+
+    if **any convoy completed this cycle**:
+      session: mayor
+        prompt: "Report completed convoys to Overseer"
+
+    if **any worker needs recycling due to context limits**:
+      do handoff
+
+    # ========================================
+    # PHASE 6: Exponential backoff when idle
+    # ========================================
+    if **no work was processed this cycle**:
+      session: deacon
+        prompt: """
+          Town is idle. Enter exponential backoff:
+          - Wait longer before next patrol
+          - Reduce resource usage
+          - Stay ready to wake on new work
+        """
+
+  catch as err:
+    # ========================================
+    # ERROR RECOVERY - Keep the Town Running
+    # ========================================
+    choice **the appropriate recovery action**:
+      option "Retry":
+        session: deacon
+          prompt: "Retry failed operation with adjusted parameters"
+          context: err
+
+      option "Escalate to Overseer":
+        session: mayor
+          prompt: "Escalate to Overseer - human intervention needed"
+          context: err
+
+      option "Graceful Degradation":
+        session: deacon
+          prompt: "Disable affected component, route around failure"
+          context: err
+
+      option "Restart Worker":
+        session: deacon
+          prompt: "Restart the failed worker with fresh session"
+          context: err
+
+  finally:
+    # Always log cycle completion
+    session: deacon
+      prompt: "Log patrol cycle completion with summary metrics"
+
+# ============================================================================
+# LIMITATIONS - What Real Gas Town Has That This Doesn't
+# ============================================================================
+#
+# 1. PERSISTENT STATE (Beads)
+#    Real Gas Town uses Beads - a Git-backed issue tracker where every
+#    agent, hook, molecule, and work item is persisted. OpenProse has
+#    session-scoped let/const only.
+#
+# 2. REAL-TIME MESSAGING
+#    Real Gas Town has gt nudge, mail inboxes, and event systems.
+#    OpenProse has no inter-agent messaging primitive.
+#
+# 3. HOOKS (Work Queues)
+#    In Gas Town, every worker has a hook where you hang molecules.
+#    GUPP says: if there's work on your hook, you MUST run it.
+#    OpenProse has no hook concept.
+#
+# 4. SLING (Async Dispatch)
+#    gt sling dispatches work to a worker asynchronously.
+#    OpenProse's session is synchronous - caller waits.
+#
+# 5. WORKER IDENTITY PERSISTENCE
+#    Gas Town agents survive across sessions - they're Beads in Git.
+#    OpenProse agents are just templates, not persistent identities.
+#
+# 6. TMUX INTEGRATION
+#    Gas Town uses tmux as its UI - gt commands, C-b bindings, etc.
+#    OpenProse has no UI layer.
+#
+# 7. MERGE QUEUE
+#    Gas Town has actual git operations - branch, merge, rebase.
+#    OpenProse has no git primitives.
+#
+# 8. SEANCE (Talk to Predecessors)
+#    Gas Town's gt seance lets workers talk to previous session holders.
+#    OpenProse has no session history access.
+#
+# 9. WISPS (Ephemeral Orchestration)
+#    Gas Town has wisps - ephemeral Beads not persisted to Git.
+#    OpenProse has no ephemeral vs persistent distinction.
+#
+# 10. FORMULAS → PROTOMOLECULES
+#     Gas Town has TOML formulas that "cook" into protomolecules,
+#     then instantiate into actual workflows with variable substitution.
+#     OpenProse has blocks but no template instantiation system.
+#
+# 11. CONVOYS (Work Orders)
+#     Gas Town wraps all work in Convoys for tracking/ticketing.
+#     OpenProse has no built-in work order system.
+#
+# 12. FEDERATION
+#     Gas Town supports remote workers on hyperscalers.
+#     OpenProse has no distributed execution concept.
+#
+# ============================================================================

@@ -35,7 +35,7 @@ OpenProse provides a declarative syntax for defining multi-agent workflows. Prog
 
 ### Design Principles
 
-- **Readability**: Python-like syntax with indentation-based blocks
+- **Readability**: Human friendly syntax with indentation-based blocks
 - **Self-evident**: Programs should be understandable without extensive documentation
 - **Framework-agnostic**: Works with Claude Code, OpenCode, and other agent frameworks
 - **Hybrid execution**: Strict control flow with intelligent context passing
@@ -44,66 +44,66 @@ OpenProse provides a declarative syntax for defining multi-agent workflows. Prog
 
 The following features are implemented:
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| Comments | Implemented | `# comment` syntax |
-| Single-line strings | Implemented | `"string"` with escapes |
-| Simple session | Implemented | `session "prompt"` |
-| Agent definitions | Implemented | `agent name:` with model/prompt properties |
-| Session with agent | Implemented | `session: agent` with property overrides |
-| Import statements | Implemented | `import "skill" from "source"` |
-| Agent skills | Implemented | `skills: ["skill1", "skill2"]` |
-| Agent permissions | Implemented | `permissions:` block with rules |
-| Let binding | Implemented | `let name = session "..."` |
-| Const binding | Implemented | `const name = session "..."` |
-| Variable reassignment | Implemented | `name = session "..."` (for let only) |
-| Context property | Implemented | `context: var` or `context: [a, b, c]` |
-| do: blocks | Implemented | Explicit sequential blocks |
-| Inline sequence | Implemented | `session "A" -> session "B"` |
-| Named blocks | Implemented | `block name:` with `do name` invocation |
-| Parallel blocks | Implemented | `parallel:` for concurrent execution |
-| Named parallel results | Implemented | `x = session "..."` inside parallel |
-| Object context | Implemented | `context: { a, b, c }` shorthand |
-| Join strategies | Implemented | `parallel ("first"):` or `parallel ("any"):` |
-| Failure policies | Implemented | `parallel (on-fail: "continue"):` |
-| Repeat blocks | Implemented | `repeat N:` fixed iterations |
-| Repeat with index | Implemented | `repeat N as i:` with index variable |
-| For-each blocks | Implemented | `for item in items:` iteration |
-| For-each with index | Implemented | `for item, i in items:` with index |
-| Parallel for-each | Implemented | `parallel for item in items:` fan-out |
-| Unbounded loop | Implemented | `loop:` with optional max iterations |
-| Loop until | Implemented | `loop until **condition**:` AI-evaluated |
-| Loop while | Implemented | `loop while **condition**:` AI-evaluated |
-| Loop with index | Implemented | `loop as i:` or `loop until ... as i:` |
-| Map pipeline | Implemented | `items \| map:` transform each item |
-| Filter pipeline | Implemented | `items \| filter:` keep matching items |
-| Reduce pipeline | Implemented | `items \| reduce(acc, item):` accumulate |
-| Parallel map | Implemented | `items \| pmap:` concurrent transform |
-| Pipeline chaining | Implemented | `\| filter: ... \| map: ...` |
-| Try/catch blocks | Implemented | `try:` with `catch:` for error handling |
-| Try/catch/finally | Implemented | `finally:` for cleanup |
-| Error variable | Implemented | `catch as err:` access error context |
-| Throw statement | Implemented | `throw` or `throw "message"` |
-| Retry property | Implemented | `retry: 3` automatic retry on failure |
-| Backoff strategy | Implemented | `backoff: "exponential"` delay between retries |
-| Multi-line strings | Implemented | `"""..."""` preserving whitespace |
-| String interpolation | Implemented | `"Hello {name}"` variable substitution |
-| Block parameters | Implemented | `block name(param):` with parameters |
-| Block invocation args | Implemented | `do name(arg)` passing arguments |
-| Choice blocks | Implemented | `choice **criteria**: option "label":` |
-| If/elif/else | Implemented | `if **condition**:` conditional branching |
+| Feature                | Status      | Description                                    |
+| ---------------------- | ----------- | ---------------------------------------------- |
+| Comments               | Implemented | `# comment` syntax                             |
+| Single-line strings    | Implemented | `"string"` with escapes                        |
+| Simple session         | Implemented | `session "prompt"`                             |
+| Agent definitions      | Implemented | `agent name:` with model/prompt properties     |
+| Session with agent     | Implemented | `session: agent` with property overrides       |
+| Import statements      | Implemented | `import "skill" from "source"`                 |
+| Agent skills           | Implemented | `skills: ["skill1", "skill2"]`                 |
+| Agent permissions      | Implemented | `permissions:` block with rules                |
+| Let binding            | Implemented | `let name = session "..."`                     |
+| Const binding          | Implemented | `const name = session "..."`                   |
+| Variable reassignment  | Implemented | `name = session "..."` (for let only)          |
+| Context property       | Implemented | `context: var` or `context: [a, b, c]`         |
+| do: blocks             | Implemented | Explicit sequential blocks                     |
+| Inline sequence        | Implemented | `session "A" -> session "B"`                   |
+| Named blocks           | Implemented | `block name:` with `do name` invocation        |
+| Parallel blocks        | Implemented | `parallel:` for concurrent execution           |
+| Named parallel results | Implemented | `x = session "..."` inside parallel            |
+| Object context         | Implemented | `context: { a, b, c }` shorthand               |
+| Join strategies        | Implemented | `parallel ("first"):` or `parallel ("any"):`   |
+| Failure policies       | Implemented | `parallel (on-fail: "continue"):`              |
+| Repeat blocks          | Implemented | `repeat N:` fixed iterations                   |
+| Repeat with index      | Implemented | `repeat N as i:` with index variable           |
+| For-each blocks        | Implemented | `for item in items:` iteration                 |
+| For-each with index    | Implemented | `for item, i in items:` with index             |
+| Parallel for-each      | Implemented | `parallel for item in items:` fan-out          |
+| Unbounded loop         | Implemented | `loop:` with optional max iterations           |
+| Loop until             | Implemented | `loop until **condition**:` AI-evaluated       |
+| Loop while             | Implemented | `loop while **condition**:` AI-evaluated       |
+| Loop with index        | Implemented | `loop as i:` or `loop until ... as i:`         |
+| Map pipeline           | Implemented | `items \| map:` transform each item            |
+| Filter pipeline        | Implemented | `items \| filter:` keep matching items         |
+| Reduce pipeline        | Implemented | `items \| reduce(acc, item):` accumulate       |
+| Parallel map           | Implemented | `items \| pmap:` concurrent transform          |
+| Pipeline chaining      | Implemented | `\| filter: ... \| map: ...`                   |
+| Try/catch blocks       | Implemented | `try:` with `catch:` for error handling        |
+| Try/catch/finally      | Implemented | `finally:` for cleanup                         |
+| Error variable         | Implemented | `catch as err:` access error context           |
+| Throw statement        | Implemented | `throw` or `throw "message"`                   |
+| Retry property         | Implemented | `retry: 3` automatic retry on failure          |
+| Backoff strategy       | Implemented | `backoff: "exponential"` delay between retries |
+| Multi-line strings     | Implemented | `"""..."""` preserving whitespace              |
+| String interpolation   | Implemented | `"Hello {name}"` variable substitution         |
+| Block parameters       | Implemented | `block name(param):` with parameters           |
+| Block invocation args  | Implemented | `do name(arg)` passing arguments               |
+| Choice blocks          | Implemented | `choice **criteria**: option "label":`         |
+| If/elif/else           | Implemented | `if **condition**:` conditional branching      |
 
 ---
 
 ## File Format
 
-| Property | Value |
-|----------|-------|
-| Extension | `.prose` |
-| Encoding | UTF-8 |
-| Case sensitivity | Case-sensitive |
-| Indentation | Spaces (Python-like) |
-| Line endings | LF or CRLF |
+| Property         | Value                |
+| ---------------- | -------------------- |
+| Extension        | `.prose`             |
+| Encoding         | UTF-8                |
+| Case sensitivity | Case-sensitive       |
+| Indentation      | Spaces (Python-like) |
+| Line endings     | LF or CRLF           |
 
 ---
 
@@ -145,9 +145,11 @@ Comments are **stripped during compilation**. The Orchestrator never sees them. 
 ### Important Notes
 
 - **Comments inside strings are NOT comments**:
+
   ```prose
   session "Say hello # this is part of the string"
   ```
+
   The `#` inside the string literal is part of the prompt, not a comment.
 
 - **Comments inside indented blocks are allowed**:
@@ -176,12 +178,12 @@ Strings are enclosed in double quotes:
 
 The following escape sequences are supported:
 
-| Sequence | Meaning |
-|----------|---------|
-| `\\` | Backslash |
-| `\"` | Double quote |
-| `\n` | Newline |
-| `\t` | Tab |
+| Sequence | Meaning      |
+| -------- | ------------ |
+| `\\`     | Backslash    |
+| `\"`     | Double quote |
+| `\n`     | Newline      |
+| `\t`     | Tab          |
 
 ### Examples
 
@@ -267,12 +269,12 @@ Please provide final recommendations.
 
 ### Validation
 
-| Check | Result |
-|-------|--------|
-| Unterminated string | Error |
-| Unknown escape sequence | Error |
-| Empty string as prompt | Warning |
-| Undefined interpolation variable | Error |
+| Check                            | Result  |
+| -------------------------------- | ------- |
+| Unterminated string              | Error   |
+| Unknown escape sequence          | Error   |
+| Empty string as prompt           | Warning |
+| Undefined interpolation variable | Error   |
 
 ---
 
@@ -288,11 +290,11 @@ import "skill-name" from "source"
 
 ### Source Types
 
-| Source Type | Format | Example |
-|-------------|--------|---------|
-| GitHub | `github:user/repo` | `github:anthropic/skills` |
-| NPM | `npm:package` | `npm:@org/analyzer` |
-| Local path | `./path` or `../path` | `./local-skills/my-skill` |
+| Source Type | Format                | Example                   |
+| ----------- | --------------------- | ------------------------- |
+| GitHub      | `github:user/repo`    | `github:anthropic/skills` |
+| NPM         | `npm:package`         | `npm:@org/analyzer`       |
+| Local path  | `./path` or `../path` | `./local-skills/my-skill` |
 
 ### Examples
 
@@ -310,12 +312,12 @@ import "shared-skill" from "../common/skills"
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Empty skill name | Error | Import skill name cannot be empty |
-| Empty source | Error | Import source cannot be empty |
-| Duplicate import | Error | Skill already imported |
-| Unknown source format | Warning | Should start with github:, npm:, or ./ |
+| Check                 | Severity | Message                                |
+| --------------------- | -------- | -------------------------------------- |
+| Empty skill name      | Error    | Import skill name cannot be empty      |
+| Empty source          | Error    | Import source cannot be empty          |
+| Duplicate import      | Error    | Skill already imported                 |
+| Unknown source format | Warning  | Should start with github:, npm:, or ./ |
 
 ### Execution Semantics
 
@@ -345,12 +347,12 @@ agent name:
 
 ### Properties
 
-| Property | Type | Values | Description |
-|----------|------|--------|-------------|
-| `model` | identifier | `sonnet`, `opus`, `haiku` | The Claude model to use |
-| `prompt` | string | Any string | System prompt/context for the agent |
-| `skills` | array | String array | Skills assigned to this agent |
-| `permissions` | block | Permission rules | Access control for the agent |
+| Property      | Type       | Values                    | Description                         |
+| ------------- | ---------- | ------------------------- | ----------------------------------- |
+| `model`       | identifier | `sonnet`, `opus`, `haiku` | The Claude model to use             |
+| `prompt`      | string     | Any string                | System prompt/context for the agent |
+| `skills`      | array      | String array              | Skills assigned to this agent       |
+| `permissions` | block      | Permission rules          | Access control for the agent        |
 
 ### Skills Property
 
@@ -381,22 +383,22 @@ agent secure-agent:
 
 #### Permission Types
 
-| Type | Description |
-|------|-------------|
-| `read` | Files the agent can read (glob patterns) |
-| `write` | Files the agent can write (glob patterns) |
-| `execute` | Files the agent can execute (glob patterns) |
-| `bash` | Shell access: `allow`, `deny`, or `prompt` |
+| Type      | Description                                  |
+| --------- | -------------------------------------------- |
+| `read`    | Files the agent can read (glob patterns)     |
+| `write`   | Files the agent can write (glob patterns)    |
+| `execute` | Files the agent can execute (glob patterns)  |
+| `bash`    | Shell access: `allow`, `deny`, or `prompt`   |
 | `network` | Network access: `allow`, `deny`, or `prompt` |
 
 #### Permission Values
 
-| Value | Description |
-|-------|-------------|
-| `allow` | Permission granted |
-| `deny` | Permission denied |
-| `prompt` | Ask user for permission |
-| Array | List of allowed patterns (for read/write/execute) |
+| Value    | Description                                       |
+| -------- | ------------------------------------------------- |
+| `allow`  | Permission granted                                |
+| `deny`   | Permission denied                                 |
+| `prompt` | Ask user for permission                           |
+| Array    | List of allowed patterns (for read/write/execute) |
 
 ### Examples
 
@@ -434,11 +436,11 @@ agent file-handler:
 
 ### Model Selection
 
-| Model | Use Case |
-|-------|----------|
-| `haiku` | Fast, simple tasks; quick responses |
+| Model    | Use Case                              |
+| -------- | ------------------------------------- |
+| `haiku`  | Fast, simple tasks; quick responses   |
 | `sonnet` | Balanced performance; general purpose |
-| `opus` | Complex reasoning; detailed analysis |
+| `opus`   | Complex reasoning; detailed analysis  |
 
 ### Execution Semantics
 
@@ -450,12 +452,12 @@ When a session references an agent:
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Duplicate agent name | Error | Agent already defined |
-| Invalid model value | Error | Must be sonnet, opus, or haiku |
-| Empty prompt property | Warning | Consider providing a prompt |
-| Duplicate property | Error | Property already specified |
+| Check                 | Severity | Message                        |
+| --------------------- | -------- | ------------------------------ |
+| Duplicate agent name  | Error    | Agent already defined          |
+| Invalid model value   | Error    | Must be sonnet, opus, or haiku |
+| Empty prompt property | Warning  | Consider providing a prompt    |
+| Duplicate property    | Error    | Property already specified     |
 
 ---
 
@@ -565,28 +567,28 @@ To execute a session, use the Task tool:
 Task({
   description: "OpenProse session",
   prompt: "The prompt from the session statement",
-  subagent_type: "general-purpose"
-})
+  subagent_type: "general-purpose",
+});
 
 // Session with agent configuration
 Task({
   description: "OpenProse session",
   prompt: "The session prompt",
   subagent_type: "general-purpose",
-  model: "opus"  // From agent or override
-})
+  model: "opus", // From agent or override
+});
 ```
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Missing prompt and agent | Error | Session requires a prompt or agent reference |
-| Undefined agent reference | Error | Agent not defined |
-| Empty prompt `""` | Warning | Session has empty prompt |
-| Whitespace-only prompt | Warning | Session prompt contains only whitespace |
-| Prompt > 10,000 chars | Warning | Consider breaking into smaller tasks |
-| Duplicate property | Error | Property already specified |
+| Check                     | Severity | Message                                      |
+| ------------------------- | -------- | -------------------------------------------- |
+| Missing prompt and agent  | Error    | Session requires a prompt or agent reference |
+| Undefined agent reference | Error    | Agent not defined                            |
+| Empty prompt `""`         | Warning  | Session has empty prompt                     |
+| Whitespace-only prompt    | Warning  | Session prompt contains only whitespace      |
+| Prompt > 10,000 chars     | Warning  | Consider breaking into smaller tasks         |
+| Duplicate property        | Error    | Property already specified                   |
 
 ### Examples
 
@@ -738,14 +740,14 @@ const report = session: writer
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Duplicate variable name | Error | Variable already defined |
-| Const reassignment | Error | Cannot reassign const variable |
-| Undefined variable reference | Error | Undefined variable |
-| Variable conflicts with agent | Error | Variable name conflicts with agent name |
-| Undefined context variable | Error | Undefined variable in context |
-| Non-identifier in context array | Error | Context array elements must be variable references |
+| Check                           | Severity | Message                                            |
+| ------------------------------- | -------- | -------------------------------------------------- |
+| Duplicate variable name         | Error    | Variable already defined                           |
+| Const reassignment              | Error    | Cannot reassign const variable                     |
+| Undefined variable reference    | Error    | Undefined variable                                 |
+| Variable conflicts with agent   | Error    | Variable name conflicts with agent name            |
+| Undefined context variable      | Error    | Undefined variable in context                      |
+| Non-identifier in context array | Error    | Context array elements must be variable references |
 
 ---
 
@@ -877,10 +879,10 @@ do process-item("config.json", "lenient")
 
 #### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Argument count mismatch | Warning | Block expects N parameters but got M arguments |
-| Parameter shadows outer | Warning | Parameter shadows outer variable |
+| Check                   | Severity | Message                                        |
+| ----------------------- | -------- | ---------------------------------------------- |
+| Argument count mismatch | Warning  | Block expects N parameters but got M arguments |
+| Parameter shadows outer | Warning  | Parameter shadows outer variable               |
 
 ### Inline Sequence (Arrow Operator)
 
@@ -958,12 +960,12 @@ session "Write report"
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Undefined block reference | Error | Block not defined |
-| Duplicate block definition | Error | Block already defined |
-| Block name conflicts with agent | Error | Block name conflicts with agent name |
-| Empty block name | Error | Block definition must have a name |
+| Check                           | Severity | Message                              |
+| ------------------------------- | -------- | ------------------------------------ |
+| Undefined block reference       | Error    | Block not defined                    |
+| Duplicate block definition      | Error    | Block already defined                |
+| Block name conflicts with agent | Error    | Block name conflicts with agent name |
+| Empty block name                | Error    | Block definition must have a name    |
 
 ---
 
@@ -1200,16 +1202,16 @@ When the Orchestrator encounters a `parallel:` block:
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Invalid join strategy | Error | Must be "all", "first", or "any" |
-| Invalid on-fail policy | Error | Must be "fail-fast", "continue", or "ignore" |
-| Count without "any" | Error | Count is only valid with "any" strategy |
-| Count less than 1 | Error | Count must be at least 1 |
-| Count exceeds branches | Warning | Count exceeds number of parallel branches |
-| Duplicate variable in parallel | Error | Variable already defined |
-| Variable conflicts with agent | Error | Variable name conflicts with agent name |
-| Undefined variable in object context | Error | Undefined variable in context |
+| Check                                | Severity | Message                                      |
+| ------------------------------------ | -------- | -------------------------------------------- |
+| Invalid join strategy                | Error    | Must be "all", "first", or "any"             |
+| Invalid on-fail policy               | Error    | Must be "fail-fast", "continue", or "ignore" |
+| Count without "any"                  | Error    | Count is only valid with "any" strategy      |
+| Count less than 1                    | Error    | Count must be at least 1                     |
+| Count exceeds branches               | Warning  | Count exceeds number of parallel branches    |
+| Duplicate variable in parallel       | Error    | Variable already defined                     |
+| Variable conflicts with agent        | Error    | Variable name conflicts with agent name      |
+| Undefined variable in object context | Error    | Undefined variable in context                |
 
 ---
 
@@ -1355,12 +1357,12 @@ session "Synthesize all research into a business plan"
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Repeat count must be positive | Error | Repeat count must be positive |
-| Repeat count must be integer | Error | Repeat count must be an integer |
-| Undefined collection variable | Error | Undefined collection variable |
-| Loop variable shadows outer | Warning | Loop variable shadows outer variable |
+| Check                         | Severity | Message                              |
+| ----------------------------- | -------- | ------------------------------------ |
+| Repeat count must be positive | Error    | Repeat count must be positive        |
+| Repeat count must be integer  | Error    | Repeat count must be an integer      |
+| Undefined collection variable | Error    | Undefined collection variable        |
+| Loop variable shadows outer   | Warning  | Loop variable shadows outer variable |
 
 ---
 
@@ -1438,6 +1440,7 @@ loop until **done** as attempt:
 ```
 
 The iteration variable:
+
 - Starts at 0
 - Increments by 1 each iteration
 - Is scoped to the loop body
@@ -1454,6 +1457,7 @@ loop until **all bugs fixed** (max: 10):
 ```
 
 The loop exits when:
+
 1. The condition is satisfied (for `until`/`while` variants), OR
 2. The maximum iteration count is reached
 
@@ -1538,6 +1542,7 @@ When the Orchestrator encounters an unbounded loop:
 6. **Repeat**: Go to step 2
 
 For basic `loop:` without conditions:
+
 - Only the max iteration limit can cause exit
 - Without max, the loop runs indefinitely (warning issued)
 
@@ -1590,14 +1595,14 @@ session "use outer i"
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Loop without max or condition | Warning | Unbounded loop without max iterations |
-| Max iterations <= 0 | Error | Max iterations must be positive |
-| Max iterations not integer | Error | Max iterations must be an integer |
-| Empty discretion condition | Error | Discretion condition cannot be empty |
-| Very short condition | Warning | Discretion condition may be ambiguous |
-| Loop variable shadows outer | Warning | Loop variable shadows outer variable |
+| Check                         | Severity | Message                               |
+| ----------------------------- | -------- | ------------------------------------- |
+| Loop without max or condition | Warning  | Unbounded loop without max iterations |
+| Max iterations <= 0           | Error    | Max iterations must be positive       |
+| Max iterations not integer    | Error    | Max iterations must be an integer     |
+| Empty discretion condition    | Error    | Discretion condition cannot be empty  |
+| Very short condition          | Warning  | Discretion condition may be ambiguous |
+| Loop variable shadows outer   | Warning  | Loop variable shadows outer variable  |
 
 ---
 
@@ -1657,6 +1662,7 @@ let combined = ideas | reduce(summary, idea):
 ```
 
 The reduce operation requires explicit variable names:
+
 - First variable (`summary`): the accumulator
 - Second variable (`idea`): the current item
 
@@ -1725,12 +1731,12 @@ session "Format and present the combined summaries"
 
 ### Implicit Variables
 
-| Operation | Available Variables |
-|-----------|---------------------|
-| `map` | `item` - current element |
-| `filter` | `item` - current element |
-| `pmap` | `item` - current element |
-| `reduce` | Named explicitly: `reduce(accVar, itemVar):` |
+| Operation | Available Variables                          |
+| --------- | -------------------------------------------- |
+| `map`     | `item` - current element                     |
+| `filter`  | `item` - current element                     |
+| `pmap`    | `item` - current element                     |
+| `reduce`  | Named explicitly: `reduce(accVar, itemVar):` |
 
 ### Execution Semantics
 
@@ -1764,12 +1770,12 @@ session "use outer"
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Undefined input collection | Error | Undefined collection variable |
-| Invalid pipe operator | Error | Expected pipe operator (map, filter, reduce, pmap) |
-| Reduce without variables | Error | Expected accumulator and item variables |
-| Pipeline variable shadows outer | Warning | Implicit/explicit variable shadows outer variable |
+| Check                           | Severity | Message                                            |
+| ------------------------------- | -------- | -------------------------------------------------- |
+| Undefined input collection      | Error    | Undefined collection variable                      |
+| Invalid pipe operator           | Error    | Expected pipe operator (map, filter, reduce, pmap) |
+| Reduce without variables        | Error    | Expected accumulator and item variables            |
+| Pipeline variable shadows outer | Warning  | Implicit/explicit variable shadows outer variable  |
 
 ---
 
@@ -1916,10 +1922,10 @@ session "Rate-limited API"
 
 **Backoff Strategies:**
 
-| Strategy | Behavior |
-|----------|----------|
-| `"none"` | Immediate retry (default) |
-| `"linear"` | Fixed delay between retries |
+| Strategy        | Behavior                           |
+| --------------- | ---------------------------------- |
+| `"none"`        | Immediate retry (default)          |
+| `"linear"`      | Fixed delay between retries        |
 | `"exponential"` | Doubling delay (1s, 2s, 4s, 8s...) |
 
 #### Retry with Context
@@ -1949,16 +1955,16 @@ catch:
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Try without catch or finally | Error | Try block must have at least "catch:" or "finally:" |
-| Error variable shadows outer | Warning | Error variable shadows outer variable |
-| Empty throw message | Warning | Throw message is empty |
-| Non-positive retry count | Error | Retry count must be positive |
-| Non-integer retry count | Error | Retry count must be an integer |
-| High retry count (>10) | Warning | Retry count is unusually high |
-| Invalid backoff strategy | Error | Must be "none", "linear", or "exponential" |
-| Retry on agent definition | Warning | Retry property is only valid in session statements |
+| Check                        | Severity | Message                                             |
+| ---------------------------- | -------- | --------------------------------------------------- |
+| Try without catch or finally | Error    | Try block must have at least "catch:" or "finally:" |
+| Error variable shadows outer | Warning  | Error variable shadows outer variable               |
+| Empty throw message          | Warning  | Throw message is empty                              |
+| Non-positive retry count     | Error    | Retry count must be positive                        |
+| Non-integer retry count      | Error    | Retry count must be an integer                      |
+| High retry count (>10)       | Warning  | Retry count is unusually high                       |
+| Invalid backoff strategy     | Error    | Must be "none", "linear", or "exponential"          |
+| Retry on agent definition    | Warning  | Retry property is only valid in session statements  |
 
 ### Syntax Reference
 
@@ -2080,12 +2086,12 @@ Only one option is executed per choice block.
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Choice without options | Error | Choice block must have at least one option |
-| Empty criteria | Error | Choice criteria cannot be empty |
-| Duplicate option labels | Warning | Duplicate option label |
-| Empty option body | Warning | Option has empty body |
+| Check                   | Severity | Message                                    |
+| ----------------------- | -------- | ------------------------------------------ |
+| Choice without options  | Error    | Choice block must have at least one option |
+| Empty criteria          | Error    | Choice criteria cannot be empty            |
+| Duplicate option labels | Warning  | Duplicate option label                     |
+| Empty option body       | Warning  | Option has empty body                      |
 
 ### Syntax Reference
 
@@ -2256,13 +2262,13 @@ When the Orchestrator encounters an `if` statement:
 
 ### Validation Rules
 
-| Check | Severity | Message |
-|-------|----------|---------|
-| Empty condition | Error | If/elif condition cannot be empty |
-| Elif without if | Error | Elif must follow if |
-| Else without if | Error | Else must follow if or elif |
-| Multiple else | Error | Only one else clause allowed |
-| Empty body | Warning | Condition has empty body |
+| Check           | Severity | Message                           |
+| --------------- | -------- | --------------------------------- |
+| Empty condition | Error    | If/elif condition cannot be empty |
+| Elif without if | Error    | Elif must follow if               |
+| Else without if | Error    | Else must follow if or elif       |
+| Multiple else   | Error    | Only one else clause allowed      |
+| Empty body      | Warning  | Condition has empty body          |
 
 ### Syntax Reference
 
@@ -2305,24 +2311,24 @@ The Orchestrator executes the compiled program:
 
 ### Orchestrator Behavior
 
-| Aspect | Behavior |
-|--------|----------|
-| Execution order | Strict - follows program exactly |
-| Session creation | Strict - creates what program specifies |
-| Agent resolution | Strict - merge properties deterministically |
-| Context passing | Intelligent - summarizes/transforms as needed |
+| Aspect               | Behavior                                        |
+| -------------------- | ----------------------------------------------- |
+| Execution order      | Strict - follows program exactly                |
+| Session creation     | Strict - creates what program specifies         |
+| Agent resolution     | Strict - merge properties deterministically     |
+| Context passing      | Intelligent - summarizes/transforms as needed   |
 | Completion detection | Intelligent - determines when session is "done" |
 
 ### State Management
 
 For the current implementation, state is tracked in-context (conversation history):
 
-| State Type | Tracking Approach |
-|------------|-------------------|
-| Agent definitions | Collected at program start |
-| Execution flow | Implicit reasoning ("completed X, now executing Y") |
-| Session outputs | Held in conversation history |
-| Position in program | Tracked by Orchestrator |
+| State Type          | Tracking Approach                                   |
+| ------------------- | --------------------------------------------------- |
+| Agent definitions   | Collected at program start                          |
+| Execution flow      | Implicit reasoning ("completed X, now executing Y") |
+| Session outputs     | Held in conversation history                        |
+| Position in program | Tracked by Orchestrator                             |
 
 ---
 
@@ -2332,39 +2338,39 @@ The validator checks programs for errors and warnings before execution.
 
 ### Errors (Block Execution)
 
-| Code | Description |
-|------|-------------|
-| E001 | Unterminated string literal |
-| E002 | Unknown escape sequence in string |
-| E003 | Session missing prompt or agent |
-| E004 | Unexpected token |
-| E005 | Invalid syntax |
-| E006 | Duplicate agent definition |
-| E007 | Undefined agent reference |
-| E008 | Invalid model value |
-| E009 | Duplicate property |
-| E010 | Duplicate import |
-| E011 | Empty import skill name |
-| E012 | Empty import source |
-| E013 | Skills must be an array |
-| E014 | Skill name must be a string |
-| E015 | Permissions must be a block |
+| Code | Description                         |
+| ---- | ----------------------------------- |
+| E001 | Unterminated string literal         |
+| E002 | Unknown escape sequence in string   |
+| E003 | Session missing prompt or agent     |
+| E004 | Unexpected token                    |
+| E005 | Invalid syntax                      |
+| E006 | Duplicate agent definition          |
+| E007 | Undefined agent reference           |
+| E008 | Invalid model value                 |
+| E009 | Duplicate property                  |
+| E010 | Duplicate import                    |
+| E011 | Empty import skill name             |
+| E012 | Empty import source                 |
+| E013 | Skills must be an array             |
+| E014 | Skill name must be a string         |
+| E015 | Permissions must be a block         |
 | E016 | Permission pattern must be a string |
 
 ### Warnings (Non-blocking)
 
-| Code | Description |
-|------|-------------|
-| W001 | Empty session prompt |
-| W002 | Whitespace-only session prompt |
+| Code | Description                              |
+| ---- | ---------------------------------------- |
+| W001 | Empty session prompt                     |
+| W002 | Whitespace-only session prompt           |
 | W003 | Session prompt exceeds 10,000 characters |
-| W004 | Empty prompt property |
-| W005 | Unknown property name |
-| W006 | Unknown import source format |
-| W007 | Skill not imported |
-| W008 | Unknown permission type |
-| W009 | Unknown permission value |
-| W010 | Empty skills array |
+| W004 | Empty prompt property                    |
+| W005 | Unknown property name                    |
+| W006 | Unknown import source format             |
+| W007 | Skill not imported                       |
+| W008 | Unknown permission type                  |
+| W009 | Unknown permission value                 |
+| W010 | Empty skills array                       |
 
 ### Error Message Format
 
@@ -2508,12 +2514,14 @@ session: writer
 All core features through Tier 12 have been implemented. Potential future enhancements:
 
 ### Tier 13: Extended Features
+
 - Custom functions with return values
 - Module system for code organization
 - Type annotations for validation
 - Async/await patterns for advanced concurrency
 
 ### Tier 14: Tooling
+
 - Language server protocol (LSP) support
 - VS Code extension
 - Interactive debugger
