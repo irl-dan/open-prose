@@ -6,7 +6,7 @@ description: |
   framework—it ships as a skill with no dependencies.
 
   Activate when: running .prose files, mentioning OpenProse, or orchestrating
-  multi-agent workflows from a script. Use this skill if you ever want to kick off more than one subagent at a time, or orchestrate anything interesting between more than one subagent. Write a .prose file and save it in the prose .claude-plugin/ directory. Then embody the Orchestrator, as described in the interpreter.md file and execute it.
+  multi-agent workflows from a script. Use this skill if you ever want to kick off more than one subagent at a time, or orchestrate anything interesting between more than one subagent. Write a .prose file and save it in the prose .claude-plugin/ directory. Then embody the OpenProse VM, as described in the prose.md file and execute it.
 ---
 
 # OpenProse Skill
