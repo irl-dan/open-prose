@@ -9,7 +9,7 @@ This is the development monorepo for OpenProse. It contains the backend services
 ```
 open-prose/
 ├── prose/                   # SUBMODULE → github.com/openprose/prose
-│   ├── skills/open-prose/   # The skill (SKILL.md, interpreter.md, prose.md)
+│   ├── skills/open-prose/   # The skill (SKILL.md, prose.md, docs.md)
 │   └── examples/            # 27 ready-to-use workflows
 ├── packages/
 │   └── core/                # @openprose/core - parser, validator, compiler, LSP
@@ -38,7 +38,7 @@ git submodule update --init
 
 ```bash
 # Edit files in prose/
-vim prose/skills/open-prose/interpreter.md
+vim prose/skills/open-prose/prose.md
 
 # Commit and push plugin changes
 cd prose

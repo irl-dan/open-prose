@@ -6,6 +6,7 @@ import analytics from "@/lib/analytics";
 interface FundingModalProps {
   isOpen: boolean;
   onClose: () => void;
+  title?: string;
 }
 
 const donationTiers = [
@@ -29,7 +30,7 @@ const donationTiers = [
   },
 ];
 
-export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
+export default function FundingModal({ isOpen, onClose, title = "Fund the benchmarker" }: FundingModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Handle escape key
@@ -110,11 +111,10 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
               </svg>
             </div>
             <h2 id="funding-modal-title" className="funding-modal-title">
-              Fund the benchmarker
+              {title}
             </h2>
             <p className="funding-modal-subtitle">
-              Your support funds the creatine and caffeine budget—and maybe
-              some extra hours on benchmarks, tooling, and documentation.
+              Your support funds the creatine, caffeine, inference, and childcare budget.
             </p>
           </div>
 
