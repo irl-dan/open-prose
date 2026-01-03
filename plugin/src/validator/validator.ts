@@ -60,13 +60,13 @@ export interface ValidationResult {
 }
 
 /** Valid model values */
-const VALID_MODELS = ['sonnet', 'opus', 'haiku'];
+export const VALID_MODELS: readonly string[] = ['sonnet', 'opus', 'haiku'];
 
 /** Valid parallel join strategies */
-const VALID_JOIN_STRATEGIES = ['all', 'first', 'any'];
+export const VALID_JOIN_STRATEGIES: readonly string[] = ['all', 'first', 'any'];
 
 /** Valid on-fail policies */
-const VALID_ON_FAIL_POLICIES = ['fail-fast', 'continue', 'ignore'];
+export const VALID_ON_FAIL_POLICIES: readonly string[] = ['fail-fast', 'continue', 'ignore'];
 
 /** Variable binding info */
 interface VariableBinding {
