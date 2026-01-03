@@ -687,7 +687,7 @@ function GettingStartedSection() {
             View on GitHub
           </a>
           <a
-            href="https://github.com/openprose/prose/tree/main/plugin/examples"
+            href="https://github.com/openprose/prose/tree/main/examples"
             target="_blank"
             rel="noopener noreferrer"
             className="btn-secondary inline-flex items-center justify-center"
@@ -1009,6 +1009,20 @@ function Footer() {
             GitHub
           </a>
           <a
+            href="https://github.com/openprose/prose/blob/main/skills/open-prose/prose.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="prose-link"
+            onClick={() =>
+              analytics.track("cta_click", {
+                button: "vm",
+                section: "footer",
+              })
+            }
+          >
+            VM
+          </a>
+          <a
             href="https://github.com/openprose/prose/blob/main/skills/open-prose/docs.md"
             target="_blank"
             rel="noopener noreferrer"
@@ -1020,7 +1034,7 @@ function Footer() {
               })
             }
           >
-            Language Spec
+            Syntax
           </a>
         </div>
       </div>
