@@ -143,32 +143,27 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
                     source: "funding_modal",
                   })
                 }
-                className={`funding-tier ${tier.highlighted ? "highlighted" : ""} ${tier.name === "Patron" ? "patron" : ""}`}
+                className={`funding-tier ${tier.highlighted ? "highlighted" : ""}`}
               >
                 {tier.highlighted && (
                   <span className="tier-badge">POPULAR</span>
                 )}
                 <span className="tier-amount">{tier.amount}</span>
                 <span className="tier-name">{tier.name}</span>
-                {tier.name === "Patron" && (
-                  <span className="patron-note">
-                    DM me on{" "}
-                    <span
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.open("https://twitter.com/irl_dan", "_blank");
-                      }}
-                      className="twitter-link"
-                    >
-                      twitter
-                    </span>{" "}
-                    so I can say thanks
-                  </span>
-                )}
                 <span className="tier-button">Select</span>
               </a>
             ))}
+            <p className="tier-dm-note">
+              DM me on{" "}
+              <a
+                href="https://x.com/irl_dan"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                twitter
+              </a>{" "}
+              with your tier so I can say thanks
+            </p>
           </div>
 
           {/* Custom amount link */}
@@ -465,36 +460,24 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
           }
         }
 
-        /* Patron tier note */
-        .funding-tier.patron {
-          padding-bottom: 1rem;
-        }
-
-        .funding-tier .patron-note {
-          font-size: 0.65rem;
+        /* DM note below tiers */
+        .tier-dm-note {
+          grid-column: 1 / -1;
+          font-size: 0.75rem;
           color: var(--ink-light);
           font-style: italic;
-          margin-top: 0.5rem;
-          line-height: 1.3;
+          text-align: center;
+          margin: 0.5rem 0 0;
         }
 
-        .funding-tier .twitter-link {
+        .tier-dm-note a {
           color: var(--ink-medium);
           text-decoration: underline;
           text-underline-offset: 2px;
-          cursor: pointer;
         }
 
-        .funding-tier .twitter-link:hover {
+        .tier-dm-note a:hover {
           color: var(--ink-dark);
-        }
-
-        @media (max-width: 480px) {
-          .funding-tier .patron-note {
-            order: 4;
-            text-align: left;
-            margin-top: 0.25rem;
-          }
         }
 
         /* Custom amount */
