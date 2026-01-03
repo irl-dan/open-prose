@@ -632,24 +632,10 @@ function GettingStartedSection() {
 
           <div>
             <p className="text-sm font-mono text-[var(--ink-light)] mb-2">
-              2. Run a workflow
+              2. Boot OpenProse
             </p>
             <CodeBlock className="text-sm">
-              <span className="token-comment">
-                # Ask Claude to run an example
-              </span>
-              {"\n"}
-              <span className="token-string">
-                &quot;Run the code review example from OpenProse&quot;
-              </span>
-              {"\n\n"}
-              <span className="token-comment">
-                # Or run your own .prose file
-              </span>
-              {"\n"}
-              <span className="token-string">
-                &quot;Execute my-workflow.prose&quot;
-              </span>
+              openprose boot
             </CodeBlock>
           </div>
         </div>
@@ -1092,6 +1078,7 @@ function Navigation() {
 export default function Home() {
   const [contactModalOpen, setContactModalOpen] = useState(false);
   const [fundingModalOpen, setFundingModalOpen] = useState(false);
+  const [fundingModalTitle, setFundingModalTitle] = useState("Fund the benchmarker");
 
   // Initialize analytics on mount
   useEffect(() => {
@@ -1104,8 +1091,14 @@ export default function Home() {
       <main>
         <HeroSection />
         <ConceptSection />
-        <ProseCompleteSection onOpenFunding={() => setFundingModalOpen(true)} />
-        <FAQSection onOpenFunding={() => setFundingModalOpen(true)} />
+        <ProseCompleteSection onOpenFunding={() => {
+          setFundingModalTitle("Fund the benchmarker");
+          setFundingModalOpen(true);
+        }} />
+        <FAQSection onOpenFunding={() => {
+          setFundingModalTitle("Fund the creator");
+          setFundingModalOpen(true);
+        }} />
         <GettingStartedSection />
         {/* Temporarily hidden: <SupportSection onOpenContact={() => setContactModalOpen(true)} /> */}
       </main>
@@ -1117,6 +1110,7 @@ export default function Home() {
       <FundingModal
         isOpen={fundingModalOpen}
         onClose={() => setFundingModalOpen(false)}
+        title={fundingModalTitle}
       />
     </>
   );
