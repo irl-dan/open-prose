@@ -1,8 +1,18 @@
-# OpenProse
+<p align="center">
+  <img src="assets/readme-header.svg" alt="OpenProse - A new kind of language for a new kind of computer" width="100%" />
+</p>
 
-**Declarative agents. Intelligent runtime.**
+<p align="center">
+  <em>A long-running AI session is a Turing-complete computer. OpenProse is a programming language for it.</em>
+</p>
 
-An open standard for AI orchestration—declare your agent architecture, let an intelligent interpreter wire it up.
+<p align="center">
+  <a href="https://www.prose.md">Website</a> •
+  <a href="plugin/skills/open-prose/prose.md">Language Spec</a> •
+  <a href="plugin/examples/">Examples</a>
+</p>
+
+---
 
 ```prose
 # Research and write workflow
@@ -25,15 +35,13 @@ loop until **the draft meets publication standards** (max: 3):
     context: { research, competitive }
 ```
 
-## What Makes OpenProse Different?
+## The Intelligent Inversion of Control
 
-There are many agent orchestration frameworks. Here's why OpenProse is novel:
+Traditional orchestration requires explicit coordination code. OpenProse inverts this—you declare agents and control flow, and an AI session wires them up. **The session is the IoC container.**
 
-### 1. Intelligent Inversion of Control
+### 1. The Session as Runtime
 
-Traditional orchestration frameworks require you to write explicit coordination code. OpenProse inverts this—you declare agent primitives, and an AI session (the "Orchestrator") wires them up and executes them.
-
-The Orchestrator isn't just a runtime. It's an intelligent IoC container that understands context, not just configuration.
+Other frameworks orchestrate agents from outside. OpenProse runs *inside* the agent session—the session itself is both interpreter and runtime. It doesn't just match names; it understands context and intent.
 
 ### 2. The Fourth Wall (`**...**`)
 
@@ -61,8 +69,8 @@ Switch platforms anytime. Your `.prose` files work everywhere.
 ## Install (Claude Code)
 
 ```bash
-/plugin marketplace add irl-dan/open-prose
-/plugin install open-prose
+/plugin marketplace add git@github.com:openprose/prose.git
+/plugin install prose@open-prose
 ```
 
 Then:
@@ -137,15 +145,14 @@ open-prose/
 │   └── examples/             # Ready-to-use workflows
 ├── test-harness/             # LLM-as-judge E2E testing
 ├── specification/            # Language design documents
-├── landing/                  # Website (prose.md)
-└── BUILD_PLAN.md             # Development roadmap
+└── landing/                  # Website (prose.md)
 ```
 
 ## Development
 
 ```bash
-git clone https://github.com/irl-dan/open-prose.git
-cd open-prose/plugin
+git clone https://github.com/openprose/prose.git
+cd prose/plugin
 npm install
 npm test          # Run tests
 npm run lint      # Type check
@@ -160,7 +167,7 @@ bun run bin/open-prose.ts compile program.prose
 
 ### Contributing
 
-See `BUILD_PLAN.md` for the roadmap. Each feature follows:
+Each language feature follows the development pipeline:
 
 1. Parser → Validator → Compiler → Docs → LSP → Examples → E2E Test
 
@@ -177,19 +184,13 @@ Passing: Average ≥ 4.0/5.0, no criterion below 3.
 ## FAQ
 
 **Why not LangChain/CrewAI/AutoGen?**
-Those are libraries locked to specific runtimes. OpenProse is a language spec that runs in any AI assistant.
+Those are orchestration libraries—they coordinate agents from outside. OpenProse runs inside the agent session—the session itself is the IoC container. Zero external dependencies, portable across any AI assistant.
 
 **Why not just plain English?**
-You can use `**...**` for that. But complex workflows need unambiguous structure for control flow.
+You can use `**...**` for that. But complex workflows need unambiguous structure for control flow—the AI shouldn't guess whether you want sequential or parallel execution.
 
 **What's "intelligent IoC"?**
-Traditional IoC wires dependencies from config. OpenProse's container is an AI that wires agent sessions using understanding.
-
-## Links
-
-- **Website**: [prose.md](https://www.prose.md)
-- **Language Spec**: [prose.md](plugin/skills/open-prose/prose.md)
-- **Examples**: [plugin/examples/](plugin/examples/)
+Traditional IoC containers (Spring, Guice) wire up dependencies from configuration. OpenProse's container is an AI session that wires up agents using *understanding*. It doesn't just match names—it understands context, intent, and can make intelligent decisions about execution.
 
 ## License
 
