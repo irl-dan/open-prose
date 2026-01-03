@@ -369,9 +369,9 @@ function ProseCompleteSection({
           </blockquote>
 
           <p className="text-[var(--ink-medium)] text-lg max-w-2xl">
-            Not all systems are Prose Complete. The capability depends on the
-            underlying model&apos;s ability to maintain context, follow complex
-            control flow, and coordinate multiple agent sessions.
+            Not all systems are Prose Complete. It&apos;s not just the model—it&apos;s
+            the model plus the tooling around it. Together, they need to maintain
+            context, follow complex control flow, and coordinate agent sessions.
           </p>
         </div>
 
