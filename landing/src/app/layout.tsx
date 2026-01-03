@@ -2,20 +2,20 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Open Prose - Declarative Agents, Intelligent Runtime",
-  description: "An open standard for AI orchestration. Declare your agent architecture, let an intelligent interpreter wire it up. No framework lock-in—works with Claude Code, OpenCode, Codex, and more.",
-  keywords: ["AI agents", "orchestration", "LLM", "declarative", "Claude Code", "OpenProse", "agent framework", "intelligent IoC"],
+  title: "OpenProse - A new kind of language for a new kind of computer",
+  description: "A programming language for AI agent sessions. Intelligent IoC—declare agents and control flow, let the session wire them up.",
+  keywords: ["AI agents", "programming language", "LLM", "Claude Code", "OpenProse", "intelligent IoC", "agent sessions"],
   authors: [{ name: "OpenProse" }],
   openGraph: {
-    title: "Open Prose - Declarative Agents, Intelligent Runtime",
-    description: "An open standard for AI orchestration. Declare your agent architecture, let an intelligent interpreter wire it up.",
+    title: "OpenProse - A new kind of language for a new kind of computer",
+    description: "A programming language for AI agent sessions. Intelligent IoC—declare agents and control flow, let the session wire them up.",
     type: "website",
     url: "https://prose.md",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Open Prose - Declarative Agents, Intelligent Runtime",
-    description: "An open standard for AI orchestration. No framework lock-in.",
+    title: "OpenProse - A new kind of language for a new kind of computer",
+    description: "A programming language for AI agent sessions.",
   },
 };
 

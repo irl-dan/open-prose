@@ -151,7 +151,7 @@ function HeroSection() {
         {/* CTA buttons */}
         <div className="flex flex-col sm:flex-row gap-4 opacity-0 animate-fade-in-up animation-delay-600">
           <a
-            href="https://github.com/irl-dan/open-prose"
+            href="https://github.com/openprose/prose"
             className="btn-primary inline-flex items-center justify-center gap-2"
             onClick={() =>
               analytics.track("cta_click", {
@@ -437,8 +437,8 @@ function GettingStartedSection() {
               1. Install the plugin
             </p>
             <CodeBlock className="text-sm">
-              /plugin marketplace add irl-dan/open-prose{"\n"}
-              /plugin install open-prose
+              /plugin marketplace add git@github.com:openprose/prose.git{"\n"}
+              /plugin install prose@open-prose
             </CodeBlock>
           </div>
 
@@ -468,7 +468,7 @@ function GettingStartedSection() {
 
         <div className="flex flex-col sm:flex-row gap-4">
           <a
-            href="https://github.com/irl-dan/open-prose"
+            href="https://github.com/openprose/prose"
             className="btn-primary inline-flex items-center justify-center gap-2"
             onClick={() =>
               analytics.track("cta_click", {
@@ -487,7 +487,7 @@ function GettingStartedSection() {
             View on GitHub
           </a>
           <a
-            href="https://github.com/irl-dan/open-prose/tree/main/plugin/examples"
+            href="https://github.com/openprose/prose/tree/main/plugin/examples"
             className="btn-secondary inline-flex items-center justify-center"
             onClick={() =>
               analytics.track("cta_click", {
@@ -706,7 +706,7 @@ function Footer() {
 
         <div className="flex gap-6 text-sm text-[var(--ink-light)]">
           <a
-            href="https://github.com/irl-dan/open-prose"
+            href="https://github.com/openprose/prose"
             className="prose-link"
             onClick={() =>
               analytics.track("cta_click", {
@@ -718,7 +718,7 @@ function Footer() {
             GitHub
           </a>
           <a
-            href="https://github.com/irl-dan/open-prose/blob/main/plugin/skills/open-prose/prose.md"
+            href="https://github.com/openprose/prose/blob/main/plugin/skills/open-prose/prose.md"
             className="prose-link"
             onClick={() =>
               analytics.track("cta_click", {
@@ -776,7 +776,7 @@ function Navigation() {
     { href: "#concept", label: "Concept" },
     { href: "#faq", label: "FAQ" },
     { href: "#start", label: "Get Started" },
-    { href: "#support", label: "Support" },
+    // Temporarily hidden: { href: "#support", label: "Support" },
   ];
 
   return (
@@ -905,7 +905,7 @@ export default function Home() {
         <ConceptSection />
         <FAQSection />
         <GettingStartedSection />
-        <SupportSection onOpenContact={() => setContactModalOpen(true)} />
+        {/* Temporarily hidden: <SupportSection onOpenContact={() => setContactModalOpen(true)} /> */}
       </main>
       <Footer />
       <ContactModal
