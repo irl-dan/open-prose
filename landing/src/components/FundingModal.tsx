@@ -155,23 +155,12 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
             ))}
           </div>
 
-          {/* DM note */}
-          <p className="tier-dm-note">
-            DM me on{" "}
-            <a
-              href="https://x.com/irl_dan"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              twitter
-            </a>{" "}
-            so I can say thanks (include your tier and payment time)
-          </p>
-
           {/* Custom amount link */}
           <div className="funding-custom">
             <a
               href="https://buy.stripe.com/9B67sM60TaQacu77IQ5AQ01"
+              target="_blank"
+              rel="noopener noreferrer"
               onClick={() =>
                 analytics.track("donation_click", {
                   tier: "custom",
@@ -192,6 +181,21 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
                 <path d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </a>
+          </div>
+
+          {/* DM note with callout background */}
+          <div className="funding-dm-callout">
+            <p>
+              DM me on{" "}
+              <a
+                href="https://x.com/irl_dan"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                twitter
+              </a>{" "}
+              so I can say thanks (include your tier and payment time)
+            </p>
           </div>
 
           {/* Fine print */}
@@ -462,29 +466,37 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
           }
         }
 
-        /* DM note below tiers */
-        .tier-dm-note {
-          font-size: 0.75rem;
-          color: var(--ink-light);
+        /* DM callout */
+        .funding-dm-callout {
+          padding: 1rem 1.5rem;
+          margin: 0 1.5rem;
+          background: var(--paper-warm);
+          border-radius: 8px;
+          border-top: 3px solid var(--paper-aged);
+        }
+
+        .funding-dm-callout p {
+          font-size: 0.9rem;
+          color: var(--ink-medium);
           font-style: italic;
           text-align: center;
           margin: 0;
-          padding: 0.75rem 2rem 0;
+          line-height: 1.5;
         }
 
-        .tier-dm-note a {
-          color: var(--ink-medium);
+        .funding-dm-callout a {
+          color: var(--ink-dark);
           text-decoration: underline;
           text-underline-offset: 2px;
         }
 
-        .tier-dm-note a:hover {
-          color: var(--ink-dark);
+        .funding-dm-callout a:hover {
+          color: var(--semantic-gold);
         }
 
         /* Custom amount */
         .funding-custom {
-          padding: 0 2rem 2rem;
+          padding: 0.75rem 2rem 1.5rem;
           text-align: center;
         }
 
