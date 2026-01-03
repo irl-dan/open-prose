@@ -110,11 +110,11 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
               </svg>
             </div>
             <h2 id="funding-modal-title" className="funding-modal-title">
-              Fund the benchmarks
+              Fund the benchmarker
             </h2>
             <p className="funding-modal-subtitle">
-              Rigorous testing of Prose Completeness requires time, compute, and
-              access to multiple AI systems. Your support makes this research possible.
+              Your support keeps OpenProse LLC running—enabling my time on benchmarks,
+              tooling, and everything that makes this project possible.
             </p>
           </div>
 
@@ -126,8 +126,8 @@ export default function FundingModal({ isOpen, onClose }: FundingModalProps) {
               is worth exploring.
             </p>
             <p>
-              Every contribution helps me dedicate more time to systematic benchmarking
-              across different models and platforms.
+              Every contribution helps me keep the lights on and dedicate more time
+              to this work.
             </p>
           </div>
 

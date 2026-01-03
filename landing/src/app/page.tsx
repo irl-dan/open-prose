@@ -444,20 +444,20 @@ function ProseCompleteSection({
             <p className="text-[var(--ink-medium)] text-base">
               <span className="italic">Benchmarks still underway.</span>{" "}
               <span className="text-[var(--ink-light)]">
-                Rigorous testing requires time and compute.
+                Want to help fund my time?
               </span>
             </p>
             <button
               onClick={() => {
                 analytics.track("cta_click", {
-                  button: "fund_benchmarks",
+                  button: "fund_benchmarker",
                   section: "prose_complete",
                 });
                 onOpenFunding();
               }}
               className="btn-secondary whitespace-nowrap inline-flex items-center justify-center gap-2"
             >
-              Fund the benchmarks
+              Fund the benchmarker
               <svg
                 className="w-4 h-4"
                 fill="none"
