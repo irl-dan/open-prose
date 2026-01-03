@@ -153,6 +153,8 @@ function HeroSection() {
         <div className="flex flex-col sm:flex-row gap-4 opacity-0 animate-fade-in-up animation-delay-600">
           <a
             href="https://github.com/openprose/prose"
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-primary inline-flex items-center justify-center gap-2"
             onClick={() =>
               analytics.track("cta_click", {
@@ -370,8 +372,17 @@ function ProseCompleteSection({
 
           <p className="text-[var(--ink-medium)] text-lg max-w-2xl">
             Not all systems are Prose Complete. It&apos;s not just the model—it&apos;s
-            the model plus the tooling around it. Together, they need to maintain
-            context, follow complex control flow, and coordinate agent sessions.
+            the model plus the{" "}
+            <a
+              href="https://x.com/irl_dan/status/1950204749761880570"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[var(--ink-dark)] underline underline-offset-2 hover:text-[var(--semantic-gold)]"
+            >
+              harness
+            </a>
+            . Together, they need to maintain context, follow complex control
+            flow, and coordinate agent sessions.
           </p>
         </div>
 
@@ -626,6 +637,8 @@ function GettingStartedSection() {
         <div className="flex flex-col sm:flex-row gap-4">
           <a
             href="https://github.com/openprose/prose"
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-primary inline-flex items-center justify-center gap-2"
             onClick={() =>
               analytics.track("cta_click", {
@@ -645,6 +658,8 @@ function GettingStartedSection() {
           </a>
           <a
             href="https://github.com/openprose/prose/tree/main/plugin/examples"
+            target="_blank"
+            rel="noopener noreferrer"
             className="btn-secondary inline-flex items-center justify-center"
             onClick={() =>
               analytics.track("cta_click", {
@@ -679,6 +694,8 @@ function DonationTier({
   return (
     <a
       href={href}
+      target="_blank"
+      rel="noopener noreferrer"
       onClick={() => analytics.track("donation_click", { tier: amount, name })}
       className={`
         group relative flex flex-col items-center p-6 rounded-lg transition-all duration-300
@@ -765,6 +782,8 @@ function SupportSection({ onOpenContact }: { onOpenContact: () => void }) {
         <div className="text-center mb-16">
           <a
             href="https://buy.stripe.com/9B67sM60TaQacu77IQ5AQ01"
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm text-[var(--ink-light)] hover:text-[var(--ink-dark)] transition-colors font-mono"
             onClick={() =>
               analytics.track("donation_click", {
@@ -864,6 +883,8 @@ function Footer() {
         <div className="flex gap-6 text-sm text-[var(--ink-light)]">
           <a
             href="https://github.com/openprose/prose"
+            target="_blank"
+            rel="noopener noreferrer"
             className="prose-link"
             onClick={() =>
               analytics.track("cta_click", {
@@ -876,6 +897,8 @@ function Footer() {
           </a>
           <a
             href="https://github.com/openprose/prose/blob/main/plugin/skills/open-prose/prose.md"
+            target="_blank"
+            rel="noopener noreferrer"
             className="prose-link"
             onClick={() =>
               analytics.track("cta_click", {
