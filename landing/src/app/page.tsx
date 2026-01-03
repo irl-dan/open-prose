@@ -238,7 +238,7 @@ function ConceptSection() {
               <code className="inline-code text-sm ml-1">
                 loop until **the code is production ready**
               </code>
-              . The interpreter evaluates this semantically.
+              . The OpenProse VM evaluates this semantically.
             </p>
           </div>
 
@@ -494,10 +494,14 @@ function ProseCompleteSection({
 // FAQ SECTION
 // ============================================
 
-function FAQSection() {
+function FAQSection({
+  onOpenFunding,
+}: {
+  onOpenFunding: () => void;
+}) {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
-  const faqs = [
+  const faqs: { question: string; answer: React.ReactNode }[] = [
     {
       question: "Why not LangChain, CrewAI, or AutoGen?",
       answer:
@@ -525,8 +529,24 @@ function FAQSection() {
     },
     {
       question: "How will you make money?",
-      answer:
-        "I won't, directly. OpenProse is an open gift to the world. I've raised no VC funds and work independently of the big labs. This project exists because I think the idea is worth exploring, not because there's a business model behind it. That said—I'm a father of four kids under five, and independent work isn't free. If OpenProse is useful to you, consider supporting the project or hiring me for agent architecture consulting.",
+      answer: (
+        <>
+          This project is bootstrapped and does not have a revenue model.
+          I&apos;m sure I will find a way. If you want to help fund it:
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenFunding();
+            }}
+            className="ml-2 inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[var(--semantic-gold)] bg-[var(--semantic-gold-bg)] hover:bg-[var(--semantic-gold)] hover:text-white rounded-md transition-colors"
+          >
+            Fund the creator
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </button>
+        </>
+      ),
     },
   ];
 
@@ -1085,7 +1105,7 @@ export default function Home() {
         <HeroSection />
         <ConceptSection />
         <ProseCompleteSection onOpenFunding={() => setFundingModalOpen(true)} />
-        <FAQSection />
+        <FAQSection onOpenFunding={() => setFundingModalOpen(true)} />
         <GettingStartedSection />
         {/* Temporarily hidden: <SupportSection onOpenContact={() => setContactModalOpen(true)} /> */}
       </main>
