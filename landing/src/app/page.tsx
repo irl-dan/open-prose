@@ -792,9 +792,9 @@ function SupportSection({ onOpenContact }: { onOpenContact: () => void }) {
         </h2>
 
         <p className="text-lg text-[var(--ink-medium)] mb-12 max-w-2xl">
-          OpenProse is an open gift to the world—no VC funds, no big lab
-          backing. I&apos;m a father of four kids under five, building this
-          because the idea is worth exploring.
+          OpenProse is not venture backed or associated with any of the big
+          labs. Small support goes a long way for giving me the time to
+          maintain this project.
         </p>
 
         {/* Donation Tiers */}
