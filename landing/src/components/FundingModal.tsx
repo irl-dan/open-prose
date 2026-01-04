@@ -30,7 +30,11 @@ const donationTiers = [
   },
 ];
 
-export default function FundingModal({ isOpen, onClose, title = "Fund the benchmarker" }: FundingModalProps) {
+export default function FundingModal({
+  isOpen,
+  onClose,
+  title = "Fund the benchmarker",
+}: FundingModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
 
   // Handle escape key
@@ -114,19 +118,21 @@ export default function FundingModal({ isOpen, onClose, title = "Fund the benchm
               {title}
             </h2>
             <p className="funding-modal-subtitle">
-              Your support funds the creatine, caffeine, inference, and childcare budget.
+              Your support funds the creatine, caffeine, inference, and
+              childcare budget.
             </p>
           </div>
 
           {/* Appeal */}
           <div className="funding-appeal">
             <p>
-              To date, I&apos;ve built OpenProse independently—no VC funds, no big lab backing.
-              I&apos;m a father of four kids under five, working on this because it&apos;s fun.
+              To date, I&apos;ve built OpenProse independently—no VC funds, no
+              big lab backing. I&apos;m a father of four kids under five,
+              working on this because it&apos;s fun.
             </p>
             <p>
-              Every contribution helps me keep the lights on and dedicate more time
-              to this work.
+              Every contribution helps me keep the lights on and dedicate more
+              time to this work.
             </p>
           </div>
 
@@ -188,7 +194,7 @@ export default function FundingModal({ isOpen, onClose, title = "Fund the benchm
             <p>
               DM me on{" "}
               <a
-                href="https://x.com/irl_dan"
+                href="https://x.com/irl_danB"
                 target="_blank"
                 rel="noopener noreferrer"
               >
