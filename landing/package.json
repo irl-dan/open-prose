@@ -9,6 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@codemirror/commands": "^6.8.0",
+    "@codemirror/language": "^6.10.8",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.36.3",
+    "@lezer/highlight": "^1.2.1",
+    "@openprose/core": "file:../packages/core",
+    "codemirror": "^6.0.1",
     "next": "16.1.1",
     "react": "19.2.3",
     "react-dom": "19.2.3"

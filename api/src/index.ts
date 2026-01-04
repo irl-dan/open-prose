@@ -15,6 +15,8 @@ import type {
   StatsMetric,
 } from './analytics-types';
 import { insertInquiry, inquiryQueries, type InquiryPayload } from './inquiry-db';
+import type { IdeGenerateRequest } from './ide-types';
+import { getProseSystemPrompt, warmCache } from './prose-spec';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -268,6 +270,137 @@ app.get('/v1/inquiries', (req, res) => {
   }
 });
 
+// IDE generation endpoint (SSE streaming)
+app.post('/v1/ide/generate', async (req, res) => {
+  try {
+    const { currentProse, history, prompt } = req.body as IdeGenerateRequest;
+
+    // Validate required fields
+    if (!prompt || !prompt.trim()) {
+      return res.status(400).json({ error: 'prompt is required' });
+    }
+
+    // Check for API key
+    const apiKey = process.env.OPENROUTER_API_KEY;
+    if (!apiKey) {
+      console.error('OPENROUTER_API_KEY not configured');
+      return res.status(500).json({ error: 'API not configured' });
+    }
+
+    // Fetch the prose.md spec (cached with TTL)
+    let systemPrompt: string;
+    try {
+      systemPrompt = await getProseSystemPrompt();
+    } catch (error) {
+      console.error('Failed to fetch prose.md:', error);
+      return res.status(503).json({ error: 'Language spec unavailable' });
+    }
+
+    // Build messages array for OpenRouter
+    const messages: Array<{ role: string; content: string }> = [
+      { role: 'system', content: systemPrompt },
+    ];
+
+    // Add conversation history
+    if (history && Array.isArray(history)) {
+      for (const msg of history) {
+        messages.push({ role: msg.role, content: msg.content });
+      }
+    }
+
+    // Add current request
+    const userContent = currentProse?.trim()
+      ? `Current .prose file:\n\`\`\`prose\n${currentProse}\n\`\`\`\n\n${prompt}`
+      : prompt;
+    messages.push({ role: 'user', content: userContent });
+
+    // Call OpenRouter with streaming
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'https://prose.md',
+        'X-Title': 'OpenProse IDE',
+      },
+      body: JSON.stringify({
+        model: 'anthropic/claude-sonnet-4',
+        messages,
+        stream: true,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('OpenRouter error:', response.status, errorText);
+      return res.status(502).json({ error: 'Upstream API error', details: errorText });
+    }
+
+    // Set SSE headers
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+
+    // Stream the response
+    const reader = response.body?.getReader();
+    if (!reader) {
+      res.write('data: {"error": "No response body"}\n\n');
+      res.end();
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process complete SSE lines
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || ''; // Keep incomplete line in buffer
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') {
+              res.write('data: [DONE]\n\n');
+              continue;
+            }
+
+            try {
+              const json = JSON.parse(data);
+              const content = json.choices?.[0]?.delta?.content;
+              if (content) {
+                // Forward just the content to the client
+                res.write(`data: ${JSON.stringify({ content })}\n\n`);
+              }
+            } catch {
+              // Ignore parse errors for malformed chunks
+            }
+          }
+        }
+      }
+    } catch (streamError) {
+      console.error('Stream error:', streamError);
+      res.write(`data: ${JSON.stringify({ error: 'Stream interrupted' })}\n\n`);
+    }
+
+    res.end();
+  } catch (error) {
+    console.error('IDE generate error:', error);
+    if (!res.headersSent) {
+      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.end();
+    }
+  }
+});
+
 // Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('SIGTERM received, closing database...');
@@ -277,4 +410,6 @@ process.on('SIGTERM', () => {
 
 app.listen(PORT, () => {
   console.log(`OpenProse API listening on port ${PORT}`);
+  // Pre-warm the prose.md cache (non-blocking)
+  warmCache();
 });
