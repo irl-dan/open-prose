@@ -646,7 +646,7 @@ function GettingStartedSection() {
               3. Boot OpenProse
             </p>
             <CodeBlock className="text-sm">
-              openprose boot
+              /prose-boot
             </CodeBlock>
           </div>
         </div>
