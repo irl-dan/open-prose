@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "An AI session is a Turing-complete computer. OpenProse is a programming language for it. Structure English into unambiguous control flow—the session is the runtime.",
   keywords: ["AI agents", "programming language", "LLM", "Claude Code", "OpenProse", "intelligent IoC", "agent orchestration", "multi-agent workflows"],
   authors: [{ name: "OpenProse" }],
-  metadataBase: new URL("https://prose.md"),
+  metadataBase: new URL("https://www.prose.md"),
   openGraph: {
     title: "OpenProse",
     description: "An AI session is a Turing-complete computer. OpenProse is a programming language for it.",
