@@ -1092,7 +1092,7 @@ function Navigation() {
     { href: "#concept", label: "Concept" },
     { href: "#faq", label: "FAQ" },
     { href: "#start", label: "Get Started" },
-    // Temporarily hidden: { href: "#support", label: "Support" },
+    { href: "#support", label: "Support" },
   ];
 
   return (
@@ -1231,7 +1231,7 @@ export default function Home() {
           setFundingModalOpen(true);
         }} />
         <BetaLegalSection />
-        {/* Temporarily hidden: <SupportSection onOpenContact={() => setContactModalOpen(true)} /> */}
+        <SupportSection onOpenContact={() => setContactModalOpen(true)} />
       </main>
       <Footer />
       <ContactModal
