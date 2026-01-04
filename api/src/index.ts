@@ -21,6 +21,35 @@ import { getProseSystemPrompt, warmCache } from './prose-spec';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Simple IP-based rate limiting for IDE endpoint
+const rateLimits = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 10; // requests per window
+const RATE_WINDOW_MS = 60 * 1000; // 1 minute
+
+function getRateLimitInfo(ip: string): { limited: boolean; remaining: number; resetIn: number } {
+  const now = Date.now();
+  const record = rateLimits.get(ip);
+
+  // Clean up old entries periodically (every 100 checks)
+  if (Math.random() < 0.01) {
+    for (const [key, val] of rateLimits) {
+      if (now > val.resetAt) rateLimits.delete(key);
+    }
+  }
+
+  if (!record || now > record.resetAt) {
+    rateLimits.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return { limited: false, remaining: RATE_LIMIT - 1, resetIn: RATE_WINDOW_MS };
+  }
+
+  if (record.count >= RATE_LIMIT) {
+    return { limited: true, remaining: 0, resetIn: record.resetAt - now };
+  }
+
+  record.count++;
+  return { limited: false, remaining: RATE_LIMIT - record.count, resetIn: record.resetAt - now };
+}
+
 // Middleware
 app.use(express.json({ limit: '100kb' }));
 
@@ -273,6 +302,21 @@ app.get('/v1/inquiries', (req, res) => {
 // IDE generation endpoint (SSE streaming)
 app.post('/v1/ide/generate', async (req, res) => {
   try {
+    // Rate limiting
+    const ip = req.ip || req.socket.remoteAddress || 'unknown';
+    const rateLimit = getRateLimitInfo(ip);
+
+    res.setHeader('X-RateLimit-Limit', RATE_LIMIT);
+    res.setHeader('X-RateLimit-Remaining', rateLimit.remaining);
+    res.setHeader('X-RateLimit-Reset', Math.ceil(rateLimit.resetIn / 1000));
+
+    if (rateLimit.limited) {
+      return res.status(429).json({
+        error: 'Rate limit exceeded',
+        retryAfter: Math.ceil(rateLimit.resetIn / 1000),
+      });
+    }
+
     const { currentProse, history, prompt } = req.body as IdeGenerateRequest;
 
     // Validate required fields
